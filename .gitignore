@@ -3,3 +3,5 @@ cmake-build-*
 .idea/*
 !.idea/fileTemplates
 !.idea/codeStyles
+build/
+test-reports/

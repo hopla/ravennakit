@@ -75,8 +75,6 @@ find_package(asio CONFIG REQUIRED)
 add_library(skilled_bytes_ravenna_sdk STATIC
         include/ravenna-sdk/containers/BufferView.hpp
         include/ravenna-sdk/rtp/RtpHeaderView.hpp
-        include/ravenna-sdk/rtp/RtcpPacketView.hpp
-        include/ravenna-sdk/rtp/Rtcp.h
         include/ravenna-sdk/platform/ByteOrder.hpp
         include/ravenna-sdk/util/Util.hpp
         src/ravenna-sdk/rtp/RtpHeaderView.cpp

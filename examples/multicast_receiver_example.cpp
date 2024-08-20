@@ -15,7 +15,7 @@
 
 #include "../include/ravenna-sdk/rtp/RtpHeaderView.hpp"
 
-constexpr short multicast_port = 5004;
+constexpr short port = 5004;
 
 class Receiver {
   public:
@@ -24,36 +24,36 @@ class Receiver {
         const asio::ip::address& listen_address,
         const asio::ip::address& multicast_address,
         const asio::ip::address& interface_address
-    ) : socket_(io_context) {
+    ) : rtp_socket_(io_context) {
         // Create the socket so that multiple may be bound to the same address.
-        const asio::ip::udp::endpoint listen_endpoint(listen_address, multicast_port);
-        socket_.open(listen_endpoint.protocol());
-        socket_.set_option(asio::ip::udp::socket::reuse_address(true));
-        socket_.bind(listen_endpoint);
+        const asio::ip::udp::endpoint listen_endpoint(listen_address, port);
+        rtp_socket_.open(listen_endpoint.protocol());
+        rtp_socket_.set_option(asio::ip::udp::socket::reuse_address(true));
+        rtp_socket_.bind(listen_endpoint);
 
         // Join the multicast group.
-        socket_.set_option(asio::ip::multicast::join_group(multicast_address.to_v4(), interface_address.to_v4()));
+        rtp_socket_.set_option(asio::ip::multicast::join_group(multicast_address.to_v4(), interface_address.to_v4()));
 
-        do_receive();
+        receive_rtp();
     }
 
   private:
-    void do_receive() {
-        socket_.async_receive_from(
+    void receive_rtp() {
+        rtp_socket_.async_receive_from(
             asio::buffer(data_),
-            sender_endpoint_,
+            rtp_endpoint_,
             [this](std::error_code const ec, const std::size_t length) {
                 if (!ec) {
                     const rav::RtpHeaderView header(data_.data(), length);
                     fmt::println("{}", header.to_string());
-                    do_receive();
+                    receive_rtp();
                 }
             }
         );
     }
 
-    asio::ip::udp::socket socket_;
-    asio::ip::udp::endpoint sender_endpoint_;
+    asio::ip::udp::socket rtp_socket_;
+    asio::ip::udp::endpoint rtp_endpoint_;
     std::array<uint8_t, 2048> data_ {};
 };
 

@@ -13,7 +13,7 @@
 #include <asio.hpp>
 #include <iostream>
 
-#include "../include/ravenna-sdk/rtp/RtpHeaderView.hpp"
+#include "../include/ravenna-sdk/rtp/RtpPacketView.hpp"
 
 constexpr short port = 5004;
 
@@ -48,7 +48,7 @@ class Receiver {
             rtp_endpoint_,
             [this](std::error_code const ec, const std::size_t length) {
                 if (!ec) {
-                    const rav::RtpHeaderView header(rtp_data_.data(), length);
+                    const rav::RtpPacketView header(rtp_data_.data(), length);
                     // fmt::println("{}", header.to_string());
                     receive_rtp();
                 } else {

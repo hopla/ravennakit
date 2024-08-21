@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 include(submodules/build_tools/cmake/git_version.cmake)
 
-project(skilled-bytes-ravenna-sdk VERSION ${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH} LANGUAGES C CXX)
+project(ravenna-sdk VERSION ${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH} LANGUAGES C CXX)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/HelperTargets.cmake)
 
@@ -72,7 +72,7 @@ find_package(asio CONFIG REQUIRED)
 # RAVENNA SDK Library #
 #######################
 
-add_library(skilled_bytes_ravenna_sdk STATIC
+add_library(ravenna_sdk STATIC
         include/ravenna-sdk/containers/BufferView.hpp
         include/ravenna-sdk/rtp/RtpHeaderView.hpp
         include/ravenna-sdk/platform/ByteOrder.hpp
@@ -81,9 +81,9 @@ add_library(skilled_bytes_ravenna_sdk STATIC
         src/ravenna-sdk/util/empty_source.cpp
 )
 
-target_include_directories(skilled_bytes_ravenna_sdk PUBLIC include)
+target_include_directories(ravenna_sdk PUBLIC include)
 
-target_link_libraries(skilled_bytes_ravenna_sdk
+target_link_libraries(ravenna_sdk
         PUBLIC
         rsdk_recommended_warning_flags
         rsdk_recommended_lto_flags
@@ -101,7 +101,7 @@ add_executable(multicast_receiver_example
 
 target_link_libraries(multicast_receiver_example
         PUBLIC
-        skilled_bytes_ravenna_sdk
+        ravenna_sdk
 )
 
 ############################
@@ -114,7 +114,7 @@ add_executable(unicast_receiver_example
 
 target_link_libraries(unicast_receiver_example
         PUBLIC
-        skilled_bytes_ravenna_sdk
+        ravenna_sdk
 )
 
 ##############
@@ -131,5 +131,5 @@ add_executable(ravenna_sdk_tests
 target_link_libraries(ravenna_sdk_tests
         PRIVATE
         Catch2::Catch2 Catch2::Catch2WithMain
-        skilled_bytes_ravenna_sdk
+        ravenna_sdk
 )

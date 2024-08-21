@@ -12,7 +12,7 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "ravenna-sdk/rtp/RtpHeaderView.hpp"
+#include "ravenna-sdk/rtp/RtpPacketView.hpp"
 
 TEST_CASE("Parse an RTP header from data", "[RTP]") {
     uint8_t data[] = {
@@ -37,19 +37,19 @@ TEST_CASE("Parse an RTP header from data", "[RTP]") {
     };
 
     SECTION("A header with invalid data should result in Status::InvalidLength") {
-        rav::RtpHeaderView header(data, sizeof(data) - 1);
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::InvalidHeaderLength);
+        rav::RtpPacketView header(data, sizeof(data) - 1);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::InvalidHeaderLength);
     }
 
     SECTION("A header with more data should result in Status::Ok") {
-        rav::RtpHeaderView header(data, sizeof(data) + 1);
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::Ok);
+        rav::RtpPacketView header(data, sizeof(data) + 1);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::Ok);
     }
 
-    rav::RtpHeaderView header(data, sizeof(data));
+    rav::RtpPacketView header(data, sizeof(data));
 
     SECTION("Status should be ok") {
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::Ok);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::Ok);
     }
 
     SECTION("Version should be 2") {
@@ -90,7 +90,7 @@ TEST_CASE("Parse an RTP header from data", "[RTP]") {
 
     SECTION("A version higher than should result in InvalidVersion") {
         data[0] = 0b11000000;
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::InvalidVersion);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::InvalidVersion);
     }
 
     SECTION("Header to string should result in this string") {
@@ -102,10 +102,10 @@ TEST_CASE("Parse an RTP header from data", "[RTP]") {
 }
 
 TEST_CASE("Parsing header data should not lead to undefined behaviour or invalid memory access", "[RTP]") {
-    rav::RtpHeaderView header(nullptr, 0);
+    rav::RtpPacketView header(nullptr, 0);
 
     SECTION("Status should be ok") {
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::InvalidPointer);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::InvalidPointer);
     }
 
     SECTION("Version should be 0") {
@@ -180,10 +180,10 @@ TEST_CASE("Correctly handle CSRCs", "[RTP]") {
         0x12,
     };
 
-    const rav::RtpHeaderView header(data, sizeof(data) - sizeof(uint32_t) * 2);
+    const rav::RtpPacketView header(data, sizeof(data) - sizeof(uint32_t) * 2);
 
     SECTION("Status should be ok") {
-        REQUIRE(header.validate() == rav::RtpHeaderView::ValidationResult::InvalidHeaderLength);
+        REQUIRE(header.validate() == rav::RtpPacketView::ValidationResult::InvalidHeaderLength);
     }
 
     SECTION("CSRC Count should be 2") {
@@ -250,7 +250,7 @@ TEST_CASE("Header extension", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
 
         const auto header_extension_data = header.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 8);
@@ -295,7 +295,7 @@ TEST_CASE("Header extension", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
 
         const auto header_extension_data = header.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 8);
@@ -326,7 +326,7 @@ TEST_CASE("Header extension", "[RTP]") {
             0x04,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
 
         const auto header_extension_data = header.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 0);
@@ -358,7 +358,7 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x04,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         REQUIRE(header.header_total_length() == 12);
     }
 
@@ -398,7 +398,7 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         REQUIRE(header.header_total_length() == 24);
     }
 
@@ -448,7 +448,7 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         REQUIRE(header.header_total_length() == 32);
     }
 }
@@ -480,7 +480,7 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         auto payload = header.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());
@@ -532,7 +532,7 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         auto payload = header.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());
@@ -594,7 +594,7 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpHeaderView header(data, sizeof(data));
+        const rav::RtpPacketView header(data, sizeof(data));
         auto payload = header.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());

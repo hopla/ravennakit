@@ -22,7 +22,7 @@ namespace rav {
  * cheap to create and use but make sure to keep the data alive while using this class.
  * RFC 3550 https://datatracker.ietf.org/doc/html/rfc3550
  */
-class RtpHeaderView {
+class RtpPacketView {
   public:
     enum class ValidationResult {
         Ok,
@@ -36,7 +36,7 @@ class RtpHeaderView {
      * @param data The RTP header data.
      * @param data_length The lenght of the RTP header data in bytes.
      */
-    RtpHeaderView(const uint8_t* data, size_t data_length);
+    RtpPacketView(const uint8_t* data, size_t data_length);
 
     /**
      * Validates the RTP header data.

@@ -19,12 +19,42 @@
 
 namespace rav {
 
-class RtcpPacketView {
+class RtcpReportBlockView {
   public:
     /**
-     * Constructs an RTP header from the given data.
-     * @param data The RTP header data.
-     * @param data_length The lenght of the RTP header data in bytes.
+     * Constructs an RTCP report block view from the given data.
+     * @param data The RTCP report block data.
+     * @param data_length The length of the RTCP report block in bytes.
+     */
+    RtcpReportBlockView(const uint8_t* data, size_t data_length);
+
+  private:
+    const uint8_t* data_ {};
+    size_t data_length_ {0};
+};
+
+class RtcpPacketView {
+  public:
+    enum class RtcpPacketType {
+        /// Unknown packet type
+        Unknown,
+        /// Sender report, for transmission and reception statistics from participants that are active senders
+        SenderReport,
+        /// Receiver report, for reception statistics from participants that are not active senders and in combination
+        /// with SR for active senders reporting on more than 31 sources
+        ReceiverReport,
+        /// Source description items, including CNAME
+        SourceDescriptionItems,
+        /// Indicates end of participation
+        Bye,
+        /// Application-specific functions
+        App
+    };
+
+    /**
+     * Constructs an RTCP packet view from the given data.
+     * @param data The RTCP packet data.
+     * @param data_length The length of the RTCP packet in bytes.
      */
     RtcpPacketView(const uint8_t* data, size_t data_length);
 
@@ -53,7 +83,7 @@ class RtcpPacketView {
     /**
      * @return The packet type
      */
-    [[nodiscard]] rtp::RtcpPacketType packet_type() const;
+    [[nodiscard]] RtcpPacketType packet_type() const;
 
     /**
      * @returns The length of this RTCP packet in 32-bit words.
@@ -66,15 +96,36 @@ class RtcpPacketView {
     [[nodiscard]] uint32_t ssrc() const;
 
     /**
-     * @return The NTP timestamp of a SR or RR packet. If the packet is not an SR or RR then the value returned will be
-     * zero.
+     * @return The NTP timestamp is a send report then this method returns the NTP timestamp, otherwise returns an empty
+     * (0) timestamp.
      */
     [[nodiscard]] ntp::TimeStamp ntp_timestamp() const;
+
+    /**
+     * @returns The RTP timestamp if this packet is a sender report, otherwise returns 0.
+     */
+    [[nodiscard]] uint32_t rtp_timestamp() const;
+
+    /**
+     * @returns The senders packet count, if packet type is sender report, otherwise returns 0.
+     */
+    [[nodiscard]] uint32_t packet_count() const;
+
+    /**
+     * @returns The senders octet count, if packet type is sender report, otherwise returns 0.
+     */
+    [[nodiscard]] uint32_t octet_count() const;
 
     /**
      * @returns A string representation of the RTCP header.
      */
     [[nodiscard]] std::string to_string() const;
+
+    /**
+     * @param packet_type The type to get a string representation for.
+     * @return A string representation of given packet type.
+     */
+    static const char* packet_type_to_string(RtcpPacketType packet_type);
 
   private:
     const uint8_t* data_ {};

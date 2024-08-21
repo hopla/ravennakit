@@ -15,9 +15,18 @@
 #include "ravenna-sdk/platform/ByteOrder.hpp"
 
 namespace {
-constexpr size_t kRtcpHeaderBaseLengthOctets = 8;
-constexpr size_t kRtcpNtpTimestampLength = 8;
-}  // namespace
+constexpr auto kHeaderLength = 8;
+constexpr auto kSenderReportNtpTimestampHalfLength = 4;
+constexpr auto kSenderReportNtpTimestampFullLength = kSenderReportNtpTimestampHalfLength * 2;
+constexpr auto kSenderReportPacketCountLength = 4;
+constexpr auto kSenderReportOctetCountLength = 4;
+constexpr auto kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::rtp::kRtpTimestampLength
+    + kSenderReportPacketCountLength + kSenderReportOctetCountLength;
+constexpr auto kSenderReportMinLength = kHeaderLength + kSenderInfoLength;
+}
+
+rav::RtcpReportBlockView::RtcpReportBlockView(const uint8_t* data, const size_t data_length) :
+    data_(data), data_length_(data_length) {}
 
 rav::RtcpPacketView::RtcpPacketView(const uint8_t* data, const size_t data_length) :
     data_(data), data_length_(data_length) {}
@@ -27,12 +36,18 @@ rav::rtp::VerificationResult rav::RtcpPacketView::verify() const {
         return rtp::VerificationResult::InvalidPointer;
     }
 
-    if (data_length_ < kRtcpHeaderBaseLengthOctets) {
+    if (data_length_ < kHeaderLength) {
         return rtp::VerificationResult::InvalidHeaderLength;
     }
 
     if (version() > 2) {
         return rtp::VerificationResult::InvalidVersion;
+    }
+
+    if (packet_type() == RtcpPacketType::SenderReport) {
+        if (data_length_ < kHeaderLength + kSenderInfoLength) {
+            return rtp::VerificationResult::InvalidSenderInfoLength;
+        }
     }
 
     return rtp::VerificationResult::Ok;
@@ -59,24 +74,24 @@ uint8_t rav::RtcpPacketView::reception_report_count() const {
     return data_[0] & 0b00011111;
 }
 
-rav::rtp::RtcpPacketType rav::RtcpPacketView::packet_type() const {
+rav::RtcpPacketView::RtcpPacketType rav::RtcpPacketView::packet_type() const {
     if (data_length_ < 2) {
-        return rtp::RtcpPacketType::Unknown;
+        return RtcpPacketType::Unknown;
     }
 
     switch (data_[1]) {
         case 200:
-            return rtp::RtcpPacketType::SenderReport;
+            return RtcpPacketType::SenderReport;
         case 201:
-            return rtp::RtcpPacketType::ReceiverReport;
+            return RtcpPacketType::ReceiverReport;
         case 202:
-            return rtp::RtcpPacketType::SourceDescriptionItems;
+            return RtcpPacketType::SourceDescriptionItems;
         case 203:
-            return rtp::RtcpPacketType::Bye;
+            return RtcpPacketType::Bye;
         case 204:
-            return rtp::RtcpPacketType::App;
+            return RtcpPacketType::App;
         default:
-            return rtp::RtcpPacketType::Unknown;
+            return RtcpPacketType::Unknown;
     }
 }
 
@@ -98,18 +113,58 @@ uint32_t rav::RtcpPacketView::ssrc() const {
 }
 
 rav::ntp::TimeStamp rav::RtcpPacketView::ntp_timestamp() const {
-    if (packet_type() != rtp::RtcpPacketType::SenderReport) {
+    if (packet_type() != RtcpPacketType::SenderReport) {
         return {};
     }
 
-    if (data_length_ < kRtcpHeaderBaseLengthOctets + kRtcpNtpTimestampLength) {
+    if (data_length_ < kHeaderLength + kSenderReportNtpTimestampFullLength) {
         return {};
     }
 
     return {
-        byte_order::read_be<uint32_t>(data_ + kRtcpHeaderBaseLengthOctets),
-        byte_order::read_be<uint32_t>(data_ + kRtcpHeaderBaseLengthOctets + sizeof(uint32_t))
+        byte_order::read_be<uint32_t>(data_ + kHeaderLength),
+        byte_order::read_be<uint32_t>(data_ + kHeaderLength + kSenderReportNtpTimestampHalfLength)
     };
+}
+
+uint32_t rav::RtcpPacketView::rtp_timestamp() const {
+    if (packet_type() != RtcpPacketType::SenderReport) {
+        return {};
+    }
+
+    constexpr auto offset = kHeaderLength + kSenderReportNtpTimestampFullLength;
+    if (data_length_ < offset + rtp::kRtpTimestampLength) {
+        return {};
+    }
+
+    return byte_order::read_be<uint32_t>(data_ + offset);
+}
+
+uint32_t rav::RtcpPacketView::packet_count() const {
+    if (packet_type() != RtcpPacketType::SenderReport) {
+        return {};
+    }
+
+    constexpr auto offset = kHeaderLength + kSenderReportNtpTimestampFullLength + rtp::kRtpTimestampLength;
+    if (data_length_ < offset + kSenderReportPacketCountLength) {
+        return {};
+    }
+
+    return byte_order::read_be<uint32_t>(data_ + offset);
+}
+
+uint32_t rav::RtcpPacketView::octet_count() const {
+    if (packet_type() != RtcpPacketType::SenderReport) {
+        return {};
+    }
+
+    constexpr auto offset =
+        kHeaderLength + kSenderReportNtpTimestampFullLength + rtp::kRtpTimestampLength + kSenderReportOctetCountLength;
+    if (data_length_ < offset + kSenderReportOctetCountLength) {
+        return {};
+    }
+
+    return byte_order::read_be<uint32_t>(data_ + offset);
 }
 
 std::string rav::RtcpPacketView::to_string() const {
@@ -119,12 +174,30 @@ std::string rav::RtcpPacketView::to_string() const {
         version(),
         padding(),
         reception_report_count(),
-        rtcp_packet_type_to_string(packet_type()),
+        packet_type_to_string(packet_type()),
         length(),
         ssrc()
     );
 
-    if (packet_type() == rtp::RtcpPacketType::SenderReport) {}
+    if (packet_type() == RtcpPacketType::SenderReport) {}
 
     return header;
+}
+
+const char* rav::RtcpPacketView::packet_type_to_string(const RtcpPacketType packet_type) {
+    switch (packet_type) {
+        case RtcpPacketType::SenderReport:
+            return "SenderReport";
+        case RtcpPacketType::ReceiverReport:
+            return "ReceiverReport";
+        case RtcpPacketType::SourceDescriptionItems:
+            return "SourceDescriptionItems";
+        case RtcpPacketType::Bye:
+            return "Bye";
+        case RtcpPacketType::App:
+            return "App";
+        case RtcpPacketType::Unknown:
+            return "Unknown";
+    }
+    return "";
 }

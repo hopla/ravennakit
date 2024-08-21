@@ -12,33 +12,15 @@
 
 namespace rav::rtp {
 
+constexpr auto kSsrcLength = 4;
+constexpr auto kRtpTimestampLength = 4;
+
 enum class VerificationResult {
     Ok,
     InvalidPointer,
     InvalidHeaderLength,
+    InvalidSenderInfoLength,
     InvalidVersion,
 };
-
-enum class RtcpPacketType {
-    /// Unknown packet type
-    Unknown,
-    /// Sender report, for transmission and reception statistics from participants that are active senders
-    SenderReport,
-    /// Receiver report, for reception statistics from participants that are not active senders and in combination with
-    /// SR for active senders reporting on more than 31 sources
-    ReceiverReport,
-    /// Source description items, including CNAME
-    SourceDescriptionItems,
-    /// Indicates end of participation
-    Bye,
-    /// Application-specific functions
-    App
-};
-
-/**
- * @param packet_type The type to get a string representation for.
- * @return A string representation of given packet type.
- */
-const char* rtcp_packet_type_to_string(RtcpPacketType packet_type);
 
 }  // namespace rav::rtp

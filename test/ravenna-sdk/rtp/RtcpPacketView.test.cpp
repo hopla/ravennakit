@@ -20,7 +20,7 @@ TEST_CASE("RtcpPacketView | verify()", "[RtcpPacketView]") {
         // v, p, rc
         0b10'0'10101,
         // packet type
-        200,
+        201,
         0,
         0,
         0,
@@ -120,12 +120,12 @@ TEST_CASE("RtcpPacketView | reception_report_count()", "[RtcpPacketView]") {
 
     SECTION("Count 15") {
         data[0] = {0b11'1'10101};
-        REQUIRE(packet.reception_report_count() == 0x15);
+        REQUIRE(packet.reception_report_count() == 0b10101);
     }
 
     SECTION("Count 31 (max value)") {
         data[0] = {0b11'1'11111};
-        REQUIRE(packet.reception_report_count() == 0x1f);
+        REQUIRE(packet.reception_report_count() == 0b11111);
     }
 }
 
@@ -133,31 +133,31 @@ TEST_CASE("RtcpPacketView | packet_type()", "[RtcpPacketView]") {
     uint8_t data[] = {0b11111111, 0};
     const rav::RtcpPacketView packet(data, sizeof(data));
 
-    REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::Unknown);
+    REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::Unknown);
 
     SECTION("Sender report") {
         data[1] = 200;
-        REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::SenderReport);
+        REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::SenderReport);
     }
 
     SECTION("Receiver report") {
         data[1] = 201;
-        REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::ReceiverReport);
+        REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::ReceiverReport);
     }
 
     SECTION("Source description items") {
         data[1] = 202;
-        REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::SourceDescriptionItems);
+        REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::SourceDescriptionItems);
     }
 
     SECTION("Bye") {
         data[1] = 203;
-        REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::Bye);
+        REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::Bye);
     }
 
     SECTION("App specific") {
         data[1] = 204;
-        REQUIRE(packet.packet_type() == rav::rtp::RtcpPacketType::App);
+        REQUIRE(packet.packet_type() == rav::RtcpPacketView::RtcpPacketType::App);
     }
 }
 
@@ -211,15 +211,15 @@ TEST_CASE("RtcpPacketView | to_string()", "[RtcpPacketView]") {
     uint8_t data[] = {// v, p, rc
                       0b10'0'10101,
                       // packet type
-                      200,
+                      201,
                       // length
-                      0xAB,
-                      0XCD,
-                      // csrc
-                      0x01,
                       0x02,
-                      0x03,
-                      0x04
+                      0X03,
+                      // csrc
+                      0x04,
+                      0x05,
+                      0x06,
+                      0x07,
     };
 
     const rav::RtcpPacketView packet(data, sizeof(data));
@@ -227,7 +227,7 @@ TEST_CASE("RtcpPacketView | to_string()", "[RtcpPacketView]") {
     SECTION("Test to_string method") {
         REQUIRE(
             packet.to_string()
-            == "RTCP Packet: valid=true version=2 padding=false reception_report_count=21 packet_type=SenderReport length=43982 ssrc=16909060"
+            == "RTCP Packet: valid=true version=2 padding=false reception_report_count=21 packet_type=ReceiverReport length=516 ssrc=67438087"
         );
     }
 }
@@ -273,4 +273,179 @@ TEST_CASE("RtcpPacketView | ntp_timestamp()", "[RtcpPacketView]") {
         REQUIRE(integer == 0);
         REQUIRE(fraction == 0);
     }
+}
+
+TEST_CASE("RtcpPacketView | rtp_timestamp()", "[RtcpPacketView]") {
+    uint8_t data[] = {
+
+        // v, p, rc
+        0b10'0'10101,
+        // packet type
+        200,
+        // length
+        0x02,
+        0X03,
+        // csrc
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        // NTP MSW
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        // NTP LSW
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
+        // RTP timestamp
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+    };
+
+    SECTION("Sender report with too little data") {
+        const rav::RtcpPacketView packet(data, sizeof(data) - 1);
+        REQUIRE(packet.rtp_timestamp() == 0);
+    }
+
+    const rav::RtcpPacketView packet(data, sizeof(data));
+
+    SECTION("Sender report") {
+        REQUIRE(packet.rtp_timestamp() == 0x10111213);
+    }
+
+    SECTION("Receiver report") {
+        data[1] = 201;
+        REQUIRE(packet.rtp_timestamp() == 0);
+    }
+}
+
+TEST_CASE("RtcpPacketView | packet_count()", "[RtcpPacketView]") {
+    uint8_t data[] = {
+
+        // v, p, rc
+        0b10'0'10101,
+        // packet type
+        200,
+        // length
+        0x02,
+        0X03,
+        // csrc
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        // NTP MSW
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        // NTP LSW
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
+        // RTP timestamp
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+        // Senders packet count
+        0x14,
+        0x15,
+        0x16,
+        0x17,
+    };
+
+    SECTION("Sender report with too little data") {
+        const rav::RtcpPacketView packet(data, sizeof(data) - 1);
+        REQUIRE(packet.packet_count() == 0);
+    }
+
+    const rav::RtcpPacketView packet(data, sizeof(data));
+
+    SECTION("Sender report") {
+        REQUIRE(packet.packet_count() == 0x14151617);
+    }
+
+    SECTION("Receiver report") {
+        data[1] = 201;
+        REQUIRE(packet.packet_count() == 0);
+    }
+}
+
+TEST_CASE("RtcpPacketView | octet_count()", "[RtcpPacketView]") {
+    uint8_t data[] = {
+
+        // v, p, rc
+        0b10'0'10101,
+        // packet type
+        200,
+        // length
+        0x02,
+        0X03,
+        // csrc
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        // NTP MSW
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        // NTP LSW
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
+        // RTP timestamp
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+        // Senders packet count
+        0x14,
+        0x15,
+        0x16,
+        0x17,
+        // Senders octet count
+        0x18,
+        0x19,
+        0x1A,
+        0x1B
+    };
+
+    SECTION("Sender report with too little data") {
+        const rav::RtcpPacketView packet(data, sizeof(data) - 1);
+        REQUIRE(packet.octet_count() == 0);
+    }
+
+    const rav::RtcpPacketView packet(data, sizeof(data));
+
+    SECTION("Sender report") {
+        REQUIRE(packet.octet_count() == 0x18191A1B);
+    }
+
+    SECTION("Receiver report") {
+        data[1] = 201;
+        REQUIRE(packet.octet_count() == 0);
+    }
+}
+
+TEST_CASE("RtcpPacketView | packet_type_to_string()") {
+    auto expect = [](const rav::RtcpPacketView::RtcpPacketType packet_type, const char* str) {
+        return std::strcmp(rav::RtcpPacketView::packet_type_to_string(packet_type), str) == 0;
+    };
+
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::SourceDescriptionItems, "SourceDescriptionItems"));
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::SenderReport, "SenderReport"));
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::ReceiverReport, "ReceiverReport"));
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::Unknown, "Unknown"));
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::Bye, "Bye"));
+    REQUIRE(expect(rav::RtcpPacketView::RtcpPacketType::App, "App"));
 }

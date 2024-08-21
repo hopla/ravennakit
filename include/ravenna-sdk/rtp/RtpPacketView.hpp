@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <string>
 
+#include "Rtp.hpp"
 #include "ravenna-sdk/containers/BufferView.hpp"
 
 namespace rav {
@@ -24,13 +25,6 @@ namespace rav {
  */
 class RtpPacketView {
   public:
-    enum class VerificationResult {
-        Ok,
-        InvalidPointer,
-        InvalidHeaderLength,
-        InvalidVersion,
-    };
-
     /**
      * Constructs an RTP header from the given data.
      * @param data The RTP header data.
@@ -43,7 +37,7 @@ class RtpPacketView {
      * to undefined behavior.
      * @returns The result of the verification.
      */
-    [[nodiscard]] VerificationResult verify() const;
+    [[nodiscard]] rtp::VerificationResult verify() const;
 
     /**
      * @returns The version of the RTP header.

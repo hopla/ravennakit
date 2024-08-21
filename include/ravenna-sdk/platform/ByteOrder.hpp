@@ -15,7 +15,8 @@
 #include <memory>
 
 // This defines RAV_LITTLE_ENDIAN and RAV_BIG_ENDIAN macros indicating the byte order of the system.
-#if (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) || __BIG_ENDIAN__
+// TODO: Test on a big endian system
+#if (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) || (defined(__BIG_ENDIAN__) && __BIG_ENDIAN__)
     #define RAV_LITTLE_ENDIAN 0
     #define RAV_BIG_ENDIAN 1
 #else

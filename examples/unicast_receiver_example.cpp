@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "../include/ravenna-sdk/rtp/RtpPacketView.hpp"
+#include "ravenna-sdk/rtp/RtcpPacketView.hpp"
 
 constexpr short port = 5004;
 
@@ -64,7 +65,8 @@ class Receiver {
             rtcp_endpoint_,
             [this](std::error_code const ec, const std::size_t length) {
                 if (!ec) {
-                    fmt::println("Received RTCP data");
+                    const rav::RtcpPacketView packet(rtcp_data_.data(), length);
+                    fmt::println("{}", packet.to_string());
                     receive_rtcp();
                 } else {
                     fmt::println("RTCP Receive error. Exit.");

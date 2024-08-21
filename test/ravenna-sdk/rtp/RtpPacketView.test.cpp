@@ -14,7 +14,7 @@
 
 #include "ravenna-sdk/rtp/RtpPacketView.hpp"
 
-TEST_CASE("Parse an RTP header from data", "[RTP]") {
+TEST_CASE("RtpPacketView | Parse an RTP header from data", "[RtpPacketView]") {
     uint8_t data[] = {
 
         // v, p, x, cc
@@ -37,123 +37,123 @@ TEST_CASE("Parse an RTP header from data", "[RTP]") {
     };
 
     SECTION("A header with invalid data should result in Status::InvalidLength") {
-        rav::RtpPacketView header(data, sizeof(data) - 1);
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::InvalidHeaderLength);
+        rav::RtpPacketView packet(data, sizeof(data) - 1);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::InvalidHeaderLength);
     }
 
     SECTION("A header with more data should result in Status::Ok") {
-        rav::RtpPacketView header(data, sizeof(data) + 1);
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::Ok);
+        rav::RtpPacketView packet(data, sizeof(data) + 1);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::Ok);
     }
 
-    rav::RtpPacketView header(data, sizeof(data));
+    rav::RtpPacketView packet(data, sizeof(data));
 
     SECTION("Status should be ok") {
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::Ok);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::Ok);
     }
 
     SECTION("Version should be 2") {
-        REQUIRE(header.version() == 2);
+        REQUIRE(packet.version() == 2);
     }
 
     SECTION("There should be no padding") {
-        REQUIRE(header.padding() == false);
+        REQUIRE(packet.padding() == false);
     }
 
     SECTION("Extension should be false") {
-        REQUIRE(header.extension() == false);
+        REQUIRE(packet.extension() == false);
     }
 
     SECTION("CSRC Count should be 0") {
-        REQUIRE(header.csrc_count() == 0);
+        REQUIRE(packet.csrc_count() == 0);
     }
 
     SECTION("Marker bit should not be set") {
-        REQUIRE(header.marker_bit() == false);
+        REQUIRE(packet.marker_bit() == false);
     }
 
     SECTION("Payload type should be 98 (L24)") {
-        REQUIRE(header.payload_type() == 98);
+        REQUIRE(packet.payload_type() == 98);
     }
 
     SECTION("Sequence number should be 43981") {
-        REQUIRE(header.sequence_number() == 43981);
+        REQUIRE(packet.sequence_number() == 43981);
     }
 
     SECTION("Timestamp should be 2882400001") {
-        REQUIRE(header.timestamp() == 2882400001);
+        REQUIRE(packet.timestamp() == 2882400001);
     }
 
     SECTION("SSRC should be 16909060") {
-        REQUIRE(header.ssrc() == 16909060);
+        REQUIRE(packet.ssrc() == 16909060);
     }
 
     SECTION("A version higher than should result in InvalidVersion") {
         data[0] = 0b11000000;
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::InvalidVersion);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::InvalidVersion);
     }
 
     SECTION("Header to string should result in this string") {
         REQUIRE(
-            header.to_string()
+            packet.to_string()
             == "RTP Header: valid=true version=2 padding=false extension=false csrc_count=0 market_bit=false payload_type=98 sequence_number=43981 timestamp=2882400001 ssrc=16909060 payload_start_index=12"
         );
     }
 }
 
-TEST_CASE("Parsing header data should not lead to undefined behaviour or invalid memory access", "[RTP]") {
-    rav::RtpPacketView header(nullptr, 0);
+TEST_CASE("RtpPacketView | Parsing header data should not lead to undefined behaviour or invalid memory access", "[RtpPacketView]") {
+    rav::RtpPacketView packet(nullptr, 0);
 
     SECTION("Status should be ok") {
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::InvalidPointer);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::InvalidPointer);
     }
 
     SECTION("Version should be 0") {
-        REQUIRE(header.version() == 0);
+        REQUIRE(packet.version() == 0);
     }
 
     SECTION("There should be no padding") {
-        REQUIRE(header.padding() == false);
+        REQUIRE(packet.padding() == false);
     }
 
     SECTION("Extension should be false") {
-        REQUIRE(header.extension() == false);
+        REQUIRE(packet.extension() == false);
     }
 
     SECTION("CSRC Count should be 0") {
-        REQUIRE(header.csrc_count() == 0);
+        REQUIRE(packet.csrc_count() == 0);
     }
 
     SECTION("Marker bit should not be set") {
-        REQUIRE(header.marker_bit() == false);
+        REQUIRE(packet.marker_bit() == false);
     }
 
     SECTION("Payload type should be 0") {
-        REQUIRE(header.payload_type() == 0);
+        REQUIRE(packet.payload_type() == 0);
     }
 
     SECTION("Sequence number should be 0") {
-        REQUIRE(header.sequence_number() == 0);
+        REQUIRE(packet.sequence_number() == 0);
     }
 
     SECTION("Timestamp should be 0") {
-        REQUIRE(header.timestamp() == 0);
+        REQUIRE(packet.timestamp() == 0);
     }
 
     SECTION("SSRC should be 0") {
-        REQUIRE(header.ssrc() == 0);
+        REQUIRE(packet.ssrc() == 0);
     }
 
     SECTION("CSRC 1 (which does not exist) should be 0") {
-        REQUIRE(header.csrc(0) == 0);
+        REQUIRE(packet.csrc(0) == 0);
     }
 
     SECTION("The buffer view should be invalid") {
-        REQUIRE_FALSE(header.payload_data().is_valid());
+        REQUIRE_FALSE(packet.payload_data().is_valid());
     }
 }
 
-TEST_CASE("Correctly handle CSRCs", "[RTP]") {
+TEST_CASE("RtpPacketView | Correctly handle CSRCs", "[RtpPacketView]") {
     const uint8_t data[] = {
         // v, p, x, cc
         0b10000010,
@@ -184,30 +184,30 @@ TEST_CASE("Correctly handle CSRCs", "[RTP]") {
         0x12,
     };
 
-    const rav::RtpPacketView header(data, sizeof(data) - sizeof(uint32_t) * 2);
+    const rav::RtpPacketView packet(data, sizeof(data) - sizeof(uint32_t) * 2);
 
     SECTION("Status should be ok") {
-        REQUIRE(header.verify() == rav::RtpPacketView::VerificationResult::InvalidHeaderLength);
+        REQUIRE(packet.verify() == rav::rtp::VerificationResult::InvalidHeaderLength);
     }
 
     SECTION("CSRC Count should be 2") {
-        REQUIRE(header.csrc_count() == 2);
+        REQUIRE(packet.csrc_count() == 2);
     }
 
     SECTION("CSRC 1 should be 84281096") {
-        REQUIRE(header.csrc(0) == 84281096);
+        REQUIRE(packet.csrc(0) == 84281096);
     }
 
     SECTION("CSRC 2 should be 152047890") {
-        REQUIRE(header.csrc(1) == 152047890);
+        REQUIRE(packet.csrc(1) == 152047890);
     }
 
     SECTION("CSRC 3 (which does not exist) should be 0") {
-        REQUIRE(header.csrc(2) == 0);
+        REQUIRE(packet.csrc(2) == 0);
     }
 }
 
-TEST_CASE("Header extension", "[RTP]") {
+TEST_CASE("RtpPacketView | Header extension", "[RtpPacketView]") {
     SECTION("Test header extension with csrc and extension") {
         const uint8_t data[] = {
             // v, p, x, cc
@@ -254,11 +254,11 @@ TEST_CASE("Header extension", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
+        const rav::RtpPacketView packet(data, sizeof(data));
 
-        const auto header_extension_data = header.get_header_extension_data();
+        const auto header_extension_data = packet.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 8);
-        REQUIRE(header.get_header_extension_defined_by_profile() == 513);
+        REQUIRE(packet.get_header_extension_defined_by_profile() == 513);
         REQUIRE(header_extension_data.data() == data + 24);
         REQUIRE(std::memcmp(data + 24, header_extension_data.data(), 8) == 0);
     }
@@ -299,11 +299,11 @@ TEST_CASE("Header extension", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
+        const rav::RtpPacketView packet(data, sizeof(data));
 
-        const auto header_extension_data = header.get_header_extension_data();
+        const auto header_extension_data = packet.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 8);
-        REQUIRE(header.get_header_extension_defined_by_profile() == 513);
+        REQUIRE(packet.get_header_extension_defined_by_profile() == 513);
         REQUIRE(header_extension_data.is_valid());
         REQUIRE(header_extension_data.data() == data + 16);
         REQUIRE(std::memcmp(header_extension_data.data(), data + 16, 8) == 0);
@@ -330,17 +330,17 @@ TEST_CASE("Header extension", "[RTP]") {
             0x04,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
+        const rav::RtpPacketView packet(data, sizeof(data));
 
-        const auto header_extension_data = header.get_header_extension_data();
+        const auto header_extension_data = packet.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 0);
-        REQUIRE(header.get_header_extension_defined_by_profile() == 0);
+        REQUIRE(packet.get_header_extension_defined_by_profile() == 0);
         REQUIRE(header_extension_data.is_valid() == false);
         REQUIRE(header_extension_data.data() == nullptr);
     }
 }
 
-TEST_CASE("Payload start index", "[RTP]") {
+TEST_CASE("RtpPacketView | Payload start index", "[RtpPacketView]") {
     SECTION("Test payload start index without csrc and without extension") {
         const uint8_t data[] = {
             // v, p, x, cc
@@ -362,8 +362,8 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x04,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        REQUIRE(header.header_total_length() == 12);
+        const rav::RtpPacketView packet(data, sizeof(data));
+        REQUIRE(packet.header_total_length() == 12);
     }
 
     SECTION("Test payload start index without csrc and with extension") {
@@ -402,8 +402,8 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        REQUIRE(header.header_total_length() == 24);
+        const rav::RtpPacketView packet(data, sizeof(data));
+        REQUIRE(packet.header_total_length() == 24);
     }
 
     SECTION("Test payload start index with csrc and extension") {
@@ -452,12 +452,12 @@ TEST_CASE("Payload start index", "[RTP]") {
             0x08,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        REQUIRE(header.header_total_length() == 32);
+        const rav::RtpPacketView packet(data, sizeof(data));
+        REQUIRE(packet.header_total_length() == 32);
     }
 }
 
-TEST_CASE("Payload buffer view", "[RTP]") {
+TEST_CASE("RtpPacketView | Payload buffer view", "[RtpPacketView]") {
     SECTION("Test getting payload without csrc and without extension") {
         const uint8_t data[] = {
             // v, p, x, cc
@@ -484,8 +484,8 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        auto payload = header.payload_data();
+        const rav::RtpPacketView packet(data, sizeof(data));
+        auto payload = packet.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());
         REQUIRE(payload.data() == data + 12);
@@ -536,8 +536,8 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        auto payload = header.payload_data();
+        const rav::RtpPacketView packet(data, sizeof(data));
+        auto payload = packet.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());
         REQUIRE(payload.data() == data + 24);
@@ -598,8 +598,8 @@ TEST_CASE("Payload buffer view", "[RTP]") {
             0x44,
         };
 
-        const rav::RtpPacketView header(data, sizeof(data));
-        auto payload = header.payload_data();
+        const rav::RtpPacketView packet(data, sizeof(data));
+        auto payload = packet.payload_data();
         REQUIRE(payload.size() == 4);
         REQUIRE(payload.size() == payload.size_bytes());
         REQUIRE(payload.data() == data + 32);

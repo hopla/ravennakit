@@ -1,10 +1,11 @@
-add_library(rsdk_recommended_warning_flags INTERFACE)
+add_library(rav_recommended_warning_flags INTERFACE)
 
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
-    target_compile_options(rsdk_recommended_warning_flags INTERFACE "/W4")
+    target_compile_options(rav_recommended_warning_flags INTERFACE "/W4")
 elseif ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
-    target_compile_options(rsdk_recommended_warning_flags INTERFACE
+    target_compile_options(rav_recommended_warning_flags INTERFACE
             -Wall
+            -Wundef
             -Wshadow-all
             -Wshorten-64-to-32
             -Wstrict-aliasing
@@ -39,8 +40,9 @@ elseif ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQ
             -Wunguarded-availability
             -Wunguarded-availability-new>)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(rsdk_recommended_warning_flags INTERFACE
+    target_compile_options(rav_recommended_warning_flags INTERFACE
             -Wall
+            -Wundef
             -Wextra
             -Wpedantic
             -Wstrict-aliasing
@@ -65,20 +67,20 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             -Wzero-as-null-pointer-constant>)
 endif ()
 
-add_library(rsdk_recommended_lto_flags INTERFACE)
+add_library(rav_recommended_lto_flags INTERFACE)
 
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
-    target_compile_options(rsdk_recommended_lto_flags INTERFACE
+    target_compile_options(rav_recommended_lto_flags INTERFACE
             $<$<CONFIG:Release>:$<IF:$<STREQUAL:"${CMAKE_CXX_COMPILER_ID}","MSVC">,-GL,-flto>>)
-    target_link_libraries(rsdk_recommended_lto_flags INTERFACE
+    target_link_libraries(rav_recommended_lto_flags INTERFACE
             $<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_CXX_COMPILER_ID}","MSVC">:-LTCG>>)
 elseif ((NOT MINGW) AND ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")))
-    target_compile_options(rsdk_recommended_lto_flags INTERFACE $<$<CONFIG:Release>:-flto>)
-    target_link_libraries(rsdk_recommended_lto_flags INTERFACE $<$<CONFIG:Release>:-flto>)
+    target_compile_options(rav_recommended_lto_flags INTERFACE $<$<CONFIG:Release>:-flto>)
+    target_link_libraries(rav_recommended_lto_flags INTERFACE $<$<CONFIG:Release>:-flto>)
     # Xcode 15.0 requires this flag to avoid a compiler bug
-    target_link_libraries(rsdk_recommended_lto_flags INTERFACE
+    target_link_libraries(rav_recommended_lto_flags INTERFACE
             $<$<CONFIG:Release>:$<$<STREQUAL:"${CMAKE_CXX_COMPILER_ID}","AppleClang">:-Wl,-weak_reference_mismatches,weak>>)
 endif ()
 

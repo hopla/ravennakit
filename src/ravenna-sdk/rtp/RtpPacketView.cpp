@@ -16,27 +16,27 @@
 #include "ravenna-sdk/rtp/RtpPacketView.hpp"
 
 namespace {
-constexpr size_t kHeaderBaseLengthOctets = 12;
+constexpr size_t kRtpHeaderBaseLengthOctets = 12;
 constexpr size_t kHeaderExtensionLengthOctets = sizeof(uint16_t) * 2;
 }  // namespace
 
 rav::RtpPacketView::RtpPacketView(const uint8_t* data, const size_t data_length) :
     data_(data), data_length_(data_length) {}
 
-rav::RtpPacketView::VerificationResult rav::RtpPacketView::verify() const {
+rav::rtp::VerificationResult rav::RtpPacketView::verify() const {
     if (data_ == nullptr) {
-        return VerificationResult::InvalidPointer;
+        return rtp::VerificationResult::InvalidPointer;
     }
 
-    if (data_length_ < kHeaderBaseLengthOctets || data_length_ < header_total_length()) {
-        return VerificationResult::InvalidHeaderLength;
+    if (data_length_ < kRtpHeaderBaseLengthOctets || data_length_ < header_total_length()) {
+        return rtp::VerificationResult::InvalidHeaderLength;
     }
 
     if (version() > 2) {
-        return VerificationResult::InvalidVersion;
+        return rtp::VerificationResult::InvalidVersion;
     }
 
-    return VerificationResult::Ok;
+    return rtp::VerificationResult::Ok;
 }
 
 bool rav::RtpPacketView::marker_bit() const {
@@ -110,7 +110,7 @@ uint32_t rav::RtpPacketView::csrc(const uint32_t index) const {
     if (index >= csrc_count()) {
         return 0;
     }
-    return byte_order::read_be<uint32_t>(&data_[kHeaderBaseLengthOctets + index * sizeof(uint32_t)]);
+    return byte_order::read_be<uint32_t>(&data_[kRtpHeaderBaseLengthOctets + index * sizeof(uint32_t)]);
 }
 
 uint16_t rav::RtpPacketView::get_header_extension_defined_by_profile() const {
@@ -118,7 +118,7 @@ uint16_t rav::RtpPacketView::get_header_extension_defined_by_profile() const {
         return 0;
     }
 
-    const auto header_extension_start_index = kHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t);
+    const auto header_extension_start_index = kRtpHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t);
     uint16_t data;
     std::memcpy(&data, &data_[header_extension_start_index], sizeof(data));
     return data;
@@ -129,7 +129,7 @@ rav::BufferView<const uint8_t> rav::RtpPacketView::get_header_extension_data() c
         return {};
     }
 
-    const auto header_extension_start_index = kHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t);
+    const auto header_extension_start_index = kRtpHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t);
 
     const auto num_32bit_words = byte_order::read_be<uint16_t>(&data_[header_extension_start_index + sizeof(uint16_t)]);
     const auto data_start_index = header_extension_start_index + kHeaderExtensionLengthOctets;
@@ -143,7 +143,7 @@ size_t rav::RtpPacketView::header_total_length() const {
         const auto extension = get_header_extension_data();
         extension_length_octets += extension.size_bytes();
     }
-    return kHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t) + extension_length_octets;
+    return kRtpHeaderBaseLengthOctets + csrc_count() * sizeof(uint32_t) + extension_length_octets;
 }
 
 rav::BufferView<const unsigned char> rav::RtpPacketView::payload_data() const {
@@ -161,7 +161,7 @@ rav::BufferView<const unsigned char> rav::RtpPacketView::payload_data() const {
 std::string rav::RtpPacketView::to_string() const {
     return fmt::format(
         "RTP Header: valid={} version={} padding={} extension={} csrc_count={} market_bit={} payload_type={} sequence_number={} timestamp={} ssrc={} payload_start_index={}",
-        verify() == VerificationResult::Ok,
+        verify() == rtp::VerificationResult::Ok,
         version(),
         padding(),
         extension(),

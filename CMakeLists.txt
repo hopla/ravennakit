@@ -72,21 +72,17 @@ find_package(asio CONFIG REQUIRED)
 # RAVENNA SDK Library #
 #######################
 
-add_library(ravenna_sdk STATIC
-        include/ravenna-sdk/containers/BufferView.hpp
-        include/ravenna-sdk/rtp/RtpPacketView.hpp
-        include/ravenna-sdk/platform/ByteOrder.hpp
-        include/ravenna-sdk/util/Util.hpp
-        src/ravenna-sdk/rtp/RtpPacketView.cpp
-        src/ravenna-sdk/util/empty_source.cpp
-)
+file(GLOB_RECURSE RAVENNA_SDK_HEADER_FILES include/*.hpp)
+file(GLOB_RECURSE RAVENNA_SDK_SOURCE_FILES src/*.cpp)
+
+add_library(ravenna_sdk STATIC ${RAVENNA_SDK_HEADER_FILES} ${RAVENNA_SDK_SOURCE_FILES})
 
 target_include_directories(ravenna_sdk PUBLIC include)
 
 target_link_libraries(ravenna_sdk
         PUBLIC
-        rsdk_recommended_warning_flags
-        rsdk_recommended_lto_flags
+        rav_recommended_warning_flags
+        rav_recommended_lto_flags
         asio::asio
         spdlog::spdlog
 )
@@ -121,14 +117,14 @@ target_link_libraries(unicast_receiver_example
 # Unit Tests #
 ##############
 
-add_executable(ravenna_sdk_tests
-        test/ravenna-sdk/rtp/RtpPacketView.test.cpp
-        test/ravenna-sdk/util/Util.test.cpp
-        test/ravenna-sdk/containers/BufferView.test.cpp
-        test/ravenna-sdk/platform/ByteOrder.test.cpp
-)
+file(GLOB_RECURSE TEST_SOURCE_FILES test/*.test.cpp)
+
+add_executable(ravenna_sdk_tests ${TEST_SOURCE_FILES})
 
 target_link_libraries(ravenna_sdk_tests
+        PUBLIC
+        rav_recommended_warning_flags
+        rav_recommended_lto_flags
         PRIVATE
         Catch2::Catch2 Catch2::Catch2WithMain
         ravenna_sdk

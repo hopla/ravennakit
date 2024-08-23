@@ -9,8 +9,8 @@ from pathlib import Path
 from submodules.build_tools.cmake import Config, CMake
 
 test_report_folder = Path('test-reports')
-test_report_file = Path('ravenna_sdk_test_report.xml')
-ravenna_sdk_tests_target = 'ravenna_sdk_tests'
+test_report_file = Path('ravennakit_test_report.xml')
+ravennakit_tests_target = 'ravennakit_tests'
 
 # Script location matters, cwd does not
 script_path = Path(__file__)
@@ -107,7 +107,7 @@ def build(args):
         path_to_build = build_macos(args, build_config)
 
         # Run tests
-        subprocess.run([path_to_build / build_config.value / ravenna_sdk_tests_target, '--reporter',
+        subprocess.run([path_to_build / build_config.value / ravennakit_tests_target, '--reporter',
                         f'JUnit::out={test_report_folder}/{test_report_file}', '--reporter',
                         'console::out=-::colour-mode=ansi'],
                        check=True)
@@ -116,7 +116,7 @@ def build(args):
         path_to_build_x64 = build_windows(args, 'x64', build_config)
 
         # Run tests
-        subprocess.run([path_to_build_x64 / build_config.value / f'{ravenna_sdk_tests_target}.exe', '--reporter',
+        subprocess.run([path_to_build_x64 / build_config.value / f'{ravennakit_tests_target}.exe', '--reporter',
                         f'JUnit::out={test_report_folder}/{test_report_file}', '--reporter',
                         'console::out=-::colour-mode=ansi'],
                        check=True)
@@ -126,7 +126,7 @@ def build(args):
         # path_to_build_arm64 = build_linux(args, 'arm64', build_config)
 
         # Run tests
-        subprocess.run([path_to_build_x64 / f'{ravenna_sdk_tests_target}', '--reporter',
+        subprocess.run([path_to_build_x64 / f'{ravennakit_tests_target}', '--reporter',
                         f'JUnit::out={test_report_folder}/{test_report_file}', '--reporter',
                         'console::out=-::colour-mode=ansi'],
                        check=True)

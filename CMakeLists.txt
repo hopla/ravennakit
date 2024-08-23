@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 include(submodules/build_tools/cmake/git_version.cmake)
 
-project(ravenna-sdk VERSION ${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH} LANGUAGES C CXX)
+project(ravennakit VERSION ${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH} LANGUAGES C CXX)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/HelperTargets.cmake)
 
@@ -72,14 +72,14 @@ find_package(asio CONFIG REQUIRED)
 # RAVENNA SDK Library #
 #######################
 
-file(GLOB_RECURSE RAVENNA_SDK_HEADER_FILES include/*.hpp)
-file(GLOB_RECURSE RAVENNA_SDK_SOURCE_FILES src/*.cpp)
+file(GLOB_RECURSE RAVENNAKIT_HEADER_FILES include/*.hpp)
+file(GLOB_RECURSE RAVENNAKIT_SOURCE_FILES src/*.cpp)
 
-add_library(ravenna_sdk STATIC ${RAVENNA_SDK_HEADER_FILES} ${RAVENNA_SDK_SOURCE_FILES})
+add_library(ravennakit STATIC ${RAVENNAKIT_HEADER_FILES} ${RAVENNAKIT_SOURCE_FILES})
 
-target_include_directories(ravenna_sdk PUBLIC include)
+target_include_directories(ravennakit PUBLIC include)
 
-target_link_libraries(ravenna_sdk
+target_link_libraries(ravennakit
         PUBLIC
         rav_recommended_warning_flags
         rav_recommended_lto_flags
@@ -97,7 +97,7 @@ add_executable(multicast_receiver_example
 
 target_link_libraries(multicast_receiver_example
         PUBLIC
-        ravenna_sdk
+        ravennakit
 )
 
 ############################
@@ -110,7 +110,7 @@ add_executable(unicast_receiver_example
 
 target_link_libraries(unicast_receiver_example
         PUBLIC
-        ravenna_sdk
+        ravennakit
 )
 
 ##############
@@ -119,13 +119,13 @@ target_link_libraries(unicast_receiver_example
 
 file(GLOB_RECURSE TEST_SOURCE_FILES test/*.test.cpp)
 
-add_executable(ravenna_sdk_tests ${TEST_SOURCE_FILES})
+add_executable(ravennakit_tests ${TEST_SOURCE_FILES})
 
-target_link_libraries(ravenna_sdk_tests
+target_link_libraries(ravennakit_tests
         PUBLIC
         rav_recommended_warning_flags
         rav_recommended_lto_flags
         PRIVATE
         Catch2::Catch2 Catch2::Catch2WithMain
-        ravenna_sdk
+        ravennakit
 )

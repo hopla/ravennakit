@@ -16,6 +16,7 @@
 
 #include "RtcpReportBlockView.h"
 #include "Rtp.hpp"
+#include "ravenna-sdk/containers/BufferView.hpp"
 #include "ravenna-sdk/ntp/Timestamp.hpp"
 
 namespace rav {
@@ -73,7 +74,8 @@ class RtcpPacketView {
     [[nodiscard]] PacketType packet_type() const;
 
     /**
-     * @returns The length of this RTCP packet in 32-bit words.
+     * @returns The length of this RTCP packet in 32-bit words. While the length is stored as n-1 in the data, this
+     * method returns the actual length.
      */
     [[nodiscard]] uint16_t length() const;
 
@@ -109,6 +111,11 @@ class RtcpPacketView {
      * @return The report block.
      */
     [[nodiscard]] RtcpReportBlockView get_report_block(size_t index) const;
+
+    /**
+     * @returns The profile specific extension data, or an empty buffer if no extension data is present.
+     */
+    [[nodiscard]] BufferView<const uint8_t> get_profile_specific_extension() const;
 
     /**
      * @returns A string representation of the RTCP header.

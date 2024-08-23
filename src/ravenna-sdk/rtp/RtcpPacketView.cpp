@@ -179,6 +179,23 @@ rav::RtcpReportBlockView rav::RtcpPacketView::get_report_block(const size_t inde
     };
 }
 
+rav::BufferView<const uint8_t> rav::RtcpPacketView::get_profile_specific_extension() const {
+    const auto offset = static_cast<size_t>(kSenderReportMinLength)
+        + RtcpReportBlockView::kReportBlockLength * reception_report_count();
+
+    const auto reported_length = length() * 4;
+
+    if (offset >= data_length_) {
+        return {};
+    }
+
+    if (reported_length < data_length_) {
+        return {};
+    }
+
+    return {data_ + offset, length() * 4 - offset};
+}
+
 std::string rav::RtcpPacketView::to_string() const {
     auto header = fmt::format(
         "RTCP Packet: valid={} version={} padding={} reception_report_count={} packet_type={} length={} ssrc={}",

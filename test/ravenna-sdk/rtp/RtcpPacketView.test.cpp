@@ -10,11 +10,10 @@
 
 #include "ravenna-sdk/rtp/RtcpPacketView.hpp"
 
+#include <array>
 #include <asio/detail/socket_ops.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
-
-#include <array>
 
 TEST_CASE("RtcpPacketView | verify()", "[RtcpPacketView]") {
     uint8_t data[] = {
@@ -487,6 +486,93 @@ TEST_CASE("RtcpPacketView | get_report_block()", "[RtcpPacketView]") {
         REQUIRE(report2.delay_since_last_sr() == 0x35363738);
         REQUIRE(report2.data() == packet.data() + 28 + 24);
         REQUIRE(report2.data_length() == 24);
+    }
+}
+
+TEST_CASE("RtcpPacketView | get_profile_specific_extension()", "[RtcpPacketView]") {
+    SECTION("A packet with report count two and with the data should return a valid report view") {
+        constexpr std::array<uint8_t, 76> packet {
+            // Header
+            0x82, 0xc8, 0x00, 0X12,  // v, p, rc | packet type | length
+            0x04, 0x05, 0x06, 0x07,  // csrc
+            // Sender info
+            0x08, 0x09, 0x0a, 0x0b,  // NTP MSW
+            0x0c, 0x0d, 0x0e, 0x0f,  // NTP LSW
+            0x10, 0x11, 0x12, 0x13,  // RTP timestamp
+            0x14, 0x15, 0x16, 0x17,  // Senders packet count
+            0x18, 0x19, 0x1a, 0x1b,  // Senders octet count
+            // Report block 1
+            0x01, 0x02, 0x03, 0x04,  // SSRC
+            0x05, 0x06, 0x07, 0x08,  // fraction lost | cumulative number of packets lost
+            0x09, 0x0a, 0x0b, 0x0c,  // extended highest sequence number received
+            0x0d, 0x0e, 0x0f, 0x10,  // inter-arrival jitter
+            0x11, 0x12, 0x13, 0x14,  // last SR timestamp
+            0x15, 0x16, 0x17, 0x18,  // delay since last SR
+            // Report block 2
+            0x21, 0x22, 0x23, 0x24,  // SSRC
+            0x25, 0x26, 0x27, 0x28,  // fraction lost | cumulative number of packets lost
+            0x29, 0x2a, 0x2b, 0x2c,  // extended highest sequence number received
+            0x2d, 0x2e, 0x2f, 0x30,  // inter-arrival jitter
+            0x31, 0x32, 0x33, 0x34,  // last SR timestamp
+            0x35, 0x36, 0x37, 0x38   // delay since last SR
+        };
+
+        const rav::RtcpPacketView packet_view(packet.data(), packet.size());
+
+        REQUIRE(packet_view.length() == 0x13);
+
+        const auto ext = packet_view.get_profile_specific_extension();
+        REQUIRE(ext.data() == nullptr);
+        REQUIRE(ext.empty());
+    }
+
+    SECTION("A packet with report count two and with the data should return a valid report view") {
+        constexpr std::array<uint8_t, 84> packet {
+            // Header
+            0x82, 0xc8, 0x00, 0X14,  // v, p, rc | packet type | length
+            0x04, 0x05, 0x06, 0x07,  // csrc
+            // Sender info
+            0x08, 0x09, 0x0a, 0x0b,  // NTP MSW
+            0x0c, 0x0d, 0x0e, 0x0f,  // NTP LSW
+            0x10, 0x11, 0x12, 0x13,  // RTP timestamp
+            0x14, 0x15, 0x16, 0x17,  // Senders packet count
+            0x18, 0x19, 0x1a, 0x1b,  // Senders octet count
+            // Report block 1
+            0x01, 0x02, 0x03, 0x04,  // SSRC
+            0x05, 0x06, 0x07, 0x08,  // fraction lost | cumulative number of packets lost
+            0x09, 0x0a, 0x0b, 0x0c,  // extended highest sequence number received
+            0x0d, 0x0e, 0x0f, 0x10,  // inter-arrival jitter
+            0x11, 0x12, 0x13, 0x14,  // last SR timestamp
+            0x15, 0x16, 0x17, 0x18,  // delay since last SR
+            // Report block 2
+            0x21, 0x22, 0x23, 0x24,  // SSRC
+            0x25, 0x26, 0x27, 0x28,  // fraction lost | cumulative number of packets lost
+            0x29, 0x2a, 0x2b, 0x2c,  // extended highest sequence number received
+            0x2d, 0x2e, 0x2f, 0x30,  // inter-arrival jitter
+            0x31, 0x32, 0x33, 0x34,  // last SR timestamp
+            0x35, 0x36, 0x37, 0x38,  // delay since last SR
+            // Profile specific extension
+            0x41, 0x42, 0x43, 0x44,  // data
+            0x45, 0x46, 0x47, 0x48,  // data
+        };
+
+        const rav::RtcpPacketView packet_view(packet.data(), packet.size());
+
+        REQUIRE(packet_view.length() == 0x15);
+
+        const auto ext = packet_view.get_profile_specific_extension();
+        REQUIRE(ext.data() != nullptr);
+        REQUIRE_FALSE(ext.empty());
+        REQUIRE(ext.size() == 8);
+        REQUIRE(ext.size_bytes() == 8);
+        REQUIRE(ext.data()[0] == 0x41);
+        REQUIRE(ext.data()[1] == 0x42);
+        REQUIRE(ext.data()[2] == 0x43);
+        REQUIRE(ext.data()[3] == 0x44);
+        REQUIRE(ext.data()[4] == 0x45);
+        REQUIRE(ext.data()[5] == 0x46);
+        REQUIRE(ext.data()[6] == 0x47);
+        REQUIRE(ext.data()[7] == 0x48);
     }
 }
 

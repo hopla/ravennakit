@@ -14,6 +14,8 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
+
 TEST_CASE("RtcpPacketView | verify()", "[RtcpPacketView]") {
     uint8_t data[] = {
         0b10'0'10101,                   // v, p, rc

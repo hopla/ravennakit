@@ -15,14 +15,13 @@
 #include "ravennakit/platform/ByteOrder.hpp"
 
 namespace {
-constexpr auto kHeaderLength = 8;
-constexpr auto kSenderReportNtpTimestampHalfLength = 4;
-constexpr auto kSenderReportNtpTimestampFullLength = kSenderReportNtpTimestampHalfLength * 2;
-constexpr auto kSenderReportPacketCountLength = 4;
-constexpr auto kSenderReportOctetCountLength = 4;
-constexpr auto kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::rtp::kRtpTimestampLength
+constexpr size_t kHeaderLength = 8;
+constexpr size_t kSenderReportNtpTimestampHalfLength = 4;
+constexpr size_t kSenderReportNtpTimestampFullLength = kSenderReportNtpTimestampHalfLength * 2;
+constexpr size_t kSenderReportPacketCountLength = 4;
+constexpr size_t kSenderReportOctetCountLength = 4;
+constexpr size_t kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::rtp::kRtpTimestampLength
     + kSenderReportPacketCountLength + kSenderReportOctetCountLength;
-constexpr auto kSenderReportMinLength = kHeaderLength + kSenderInfoLength;
 }  // namespace
 
 rav::RtcpPacketView::RtcpPacketView(const uint8_t* data, const size_t data_length) :
@@ -187,8 +186,7 @@ rav::BufferView<const uint8_t> rav::RtcpPacketView::get_profile_specific_extensi
         return {};
     }
 
-    auto offset =
-        static_cast<size_t>(kHeaderLength) + RtcpReportBlockView::kReportBlockLength * reception_report_count();
+    auto offset = kHeaderLength + RtcpReportBlockView::kReportBlockLength * reception_report_count();
 
     if (packet_type() == PacketType::SenderReport) {
         offset += kSenderInfoLength;

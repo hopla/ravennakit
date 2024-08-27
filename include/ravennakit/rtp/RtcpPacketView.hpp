@@ -44,9 +44,9 @@ class RtcpPacketView {
     /**
      * Constructs an RTCP packet view from the given data.
      * @param data The RTCP packet data.
-     * @param data_length The length of the RTCP packet in bytes.
+     * @param size_bytes The size of the RTCP packet in bytes.
      */
-    RtcpPacketView(const uint8_t* data, size_t data_length);
+    RtcpPacketView(const uint8_t* data, size_t size_bytes);
 
     /**
      * Validates the RTP header data. After this method returns all other methods should return valid data and not lead
@@ -131,9 +131,9 @@ class RtcpPacketView {
     [[nodiscard]] const uint8_t* data() const;
 
     /**
-     * @return The length of the data in bytes.
+     * @return The size of the data in bytes.
      */
-    [[nodiscard]] size_t data_length() const;
+    [[nodiscard]] size_t size() const;
 
     /**
      * @returns A string representation of the RTCP header.
@@ -148,7 +148,7 @@ class RtcpPacketView {
 
   private:
     const uint8_t* data_ {};
-    size_t data_length_ {0};
+    size_t size_bytes_ {0};
 };
 
 }  // namespace rav

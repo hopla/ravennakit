@@ -21,15 +21,15 @@ constexpr size_t kRtpHeaderBaseLengthOctets = 12;
 constexpr size_t kHeaderExtensionLengthOctets = sizeof(uint16_t) * 2;
 }  // namespace
 
-rav::RtpPacketView::RtpPacketView(const uint8_t* data, const size_t data_length) :
-    data_(data), data_length_(data_length) {}
+rav::RtpPacketView::RtpPacketView(const uint8_t* data, const size_t size_bytes) :
+    data_(data), size_bytes_(size_bytes) {}
 
 rav::rtp::Result rav::RtpPacketView::validate() const {
     if (data_ == nullptr) {
         return rtp::Result::InvalidPointer;
     }
 
-    if (data_length_ < kRtpHeaderBaseLengthOctets || data_length_ < header_total_length()) {
+    if (size_bytes_ < kRtpHeaderBaseLengthOctets || size_bytes_ < header_total_length()) {
         return rtp::Result::InvalidHeaderLength;
     }
 
@@ -41,14 +41,14 @@ rav::rtp::Result rav::RtpPacketView::validate() const {
 }
 
 bool rav::RtpPacketView::marker_bit() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return (data_[1] & 0b10000000) >> 7 != 0;
 }
 
 uint8_t rav::RtpPacketView::payload_type() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return data_[1] & 0b01111111;
@@ -56,7 +56,7 @@ uint8_t rav::RtpPacketView::payload_type() const {
 
 uint16_t rav::RtpPacketView::sequence_number() const {
     constexpr auto kOffset = 2;
-    if (data_length_ < kOffset + sizeof(uint16_t)) {
+    if (size_bytes_ < kOffset + sizeof(uint16_t)) {
         return 0;
     }
 
@@ -65,7 +65,7 @@ uint16_t rav::RtpPacketView::sequence_number() const {
 
 uint32_t rav::RtpPacketView::timestamp() const {
     constexpr auto kOffset = 4;
-    if (data_length_ < kOffset + sizeof(uint32_t)) {
+    if (size_bytes_ < kOffset + sizeof(uint32_t)) {
         return 0;
     }
     return byte_order::read_be<uint32_t>(&data_[kOffset]);
@@ -73,35 +73,35 @@ uint32_t rav::RtpPacketView::timestamp() const {
 
 uint32_t rav::RtpPacketView::ssrc() const {
     constexpr auto kOffset = 8;
-    if (data_length_ < kOffset + sizeof(uint32_t)) {
+    if (size_bytes_ < kOffset + sizeof(uint32_t)) {
         return 0;
     }
     return byte_order::read_be<uint32_t>(&data_[kOffset]);
 }
 
 uint8_t rav::RtpPacketView::version() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return 0;
     }
     return (data_[0] & 0b11000000) >> 6;
 }
 
 bool rav::RtpPacketView::padding() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return (data_[0] & 0b00100000) >> 5 != 0;
 }
 
 bool rav::RtpPacketView::extension() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return (data_[0] & 0b00010000) >> 4 != 0;
 }
 
 uint32_t rav::RtpPacketView::csrc_count() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return 0;
     }
     return data_[0] & 0b00001111;
@@ -152,11 +152,11 @@ rav::BufferView<const unsigned char> rav::RtpPacketView::payload_data() const {
         return {};
     }
 
-    if (data_length_ < header_total_length()) {
+    if (size_bytes_ < header_total_length()) {
         return {};
     }
 
-    return {data_ + header_total_length(), data_length_ - header_total_length()};
+    return {data_ + header_total_length(), size_bytes_ - header_total_length()};
 }
 
 std::string rav::RtpPacketView::to_string() const {

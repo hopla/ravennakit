@@ -30,9 +30,9 @@ class RtcpReportBlockView {
     /**
      * Constructs an RTCP report block view from the given data.
      * @param data The RTCP report block data.
-     * @param data_length The length of the RTCP report block in bytes.
+     * @param size_bytes The size of the RTCP report block in bytes.
      */
-    RtcpReportBlockView(const uint8_t* data, size_t data_length);
+    RtcpReportBlockView(const uint8_t* data, size_t size_bytes);
 
     /**
      * @returns True if this report block appears to be correct, or false if not.
@@ -80,13 +80,13 @@ class RtcpReportBlockView {
     [[nodiscard]] const uint8_t* data() const;
 
     /**
-     * @return The length of the data in bytes.
+     * @return The size of the data in bytes.
      */
-    [[nodiscard]] size_t data_length() const;
+    [[nodiscard]] size_t size() const;
 
   private:
     const uint8_t* data_ {};
-    size_t data_length_ {0};
+    size_t size_bytes_ {0};
 };
 
 }  // namespace rav

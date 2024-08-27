@@ -24,15 +24,15 @@ constexpr size_t kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::
     + kSenderReportPacketCountLength + kSenderReportOctetCountLength;
 }  // namespace
 
-rav::RtcpPacketView::RtcpPacketView(const uint8_t* data, const size_t data_length) :
-    data_(data), data_length_(data_length) {}
+rav::RtcpPacketView::RtcpPacketView(const uint8_t* data, const size_t size_bytes) :
+    data_(data), size_bytes_(size_bytes) {}
 
 rav::rtp::Result rav::RtcpPacketView::validate() const {
     if (data_ == nullptr) {
         return rtp::Result::InvalidPointer;
     }
 
-    if (data_length_ < kHeaderLength) {
+    if (size_bytes_ < kHeaderLength) {
         return rtp::Result::InvalidHeaderLength;
     }
 
@@ -41,7 +41,7 @@ rav::rtp::Result rav::RtcpPacketView::validate() const {
     }
 
     if (packet_type() == PacketType::SenderReport) {
-        if (data_length_ < kHeaderLength + kSenderInfoLength) {
+        if (size_bytes_ < kHeaderLength + kSenderInfoLength) {
             return rtp::Result::InvalidSenderInfoLength;
         }
     }
@@ -50,28 +50,28 @@ rav::rtp::Result rav::RtcpPacketView::validate() const {
 }
 
 uint8_t rav::RtcpPacketView::version() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return 0;
     }
     return (data_[0] & 0b11000000) >> 6;
 }
 
 bool rav::RtcpPacketView::padding() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return (data_[0] & 0b00100000) >> 5 != 0;
 }
 
 uint8_t rav::RtcpPacketView::reception_report_count() const {
-    if (data_length_ < 1) {
+    if (size_bytes_ < 1) {
         return false;
     }
     return data_[0] & 0b00011111;
 }
 
 rav::RtcpPacketView::PacketType rav::RtcpPacketView::packet_type() const {
-    if (data_length_ < 2) {
+    if (size_bytes_ < 2) {
         return PacketType::Unknown;
     }
 
@@ -93,7 +93,7 @@ rav::RtcpPacketView::PacketType rav::RtcpPacketView::packet_type() const {
 
 uint16_t rav::RtcpPacketView::length() const {
     constexpr auto kOffset = 2;
-    if (data_length_ < kOffset + sizeof(uint16_t)) {
+    if (size_bytes_ < kOffset + sizeof(uint16_t)) {
         return 0;
     }
 
@@ -102,7 +102,7 @@ uint16_t rav::RtcpPacketView::length() const {
 
 uint32_t rav::RtcpPacketView::ssrc() const {
     constexpr auto kOffset = 4;
-    if (data_length_ < kOffset + sizeof(uint32_t)) {
+    if (size_bytes_ < kOffset + sizeof(uint32_t)) {
         return 0;
     }
     return byte_order::read_be<uint32_t>(&data_[kOffset]);
@@ -113,7 +113,7 @@ rav::ntp::Timestamp rav::RtcpPacketView::ntp_timestamp() const {
         return {};
     }
 
-    if (data_length_ < kHeaderLength + kSenderReportNtpTimestampFullLength) {
+    if (size_bytes_ < kHeaderLength + kSenderReportNtpTimestampFullLength) {
         return {};
     }
 
@@ -129,7 +129,7 @@ uint32_t rav::RtcpPacketView::rtp_timestamp() const {
     }
 
     constexpr auto offset = kHeaderLength + kSenderReportNtpTimestampFullLength;
-    if (data_length_ < offset + rtp::kRtpTimestampLength) {
+    if (size_bytes_ < offset + rtp::kRtpTimestampLength) {
         return {};
     }
 
@@ -142,7 +142,7 @@ uint32_t rav::RtcpPacketView::packet_count() const {
     }
 
     constexpr auto offset = kHeaderLength + kSenderReportNtpTimestampFullLength + rtp::kRtpTimestampLength;
-    if (data_length_ < offset + kSenderReportPacketCountLength) {
+    if (size_bytes_ < offset + kSenderReportPacketCountLength) {
         return {};
     }
 
@@ -156,7 +156,7 @@ uint32_t rav::RtcpPacketView::octet_count() const {
 
     constexpr auto offset =
         kHeaderLength + kSenderReportNtpTimestampFullLength + rtp::kRtpTimestampLength + kSenderReportOctetCountLength;
-    if (data_length_ < offset + kSenderReportOctetCountLength) {
+    if (size_bytes_ < offset + kSenderReportOctetCountLength) {
         return {};
     }
 
@@ -174,7 +174,7 @@ rav::RtcpReportBlockView rav::RtcpPacketView::get_report_block(const size_t inde
         offset += kSenderInfoLength;
     }
 
-    if (data_length_ < offset + RtcpReportBlockView::kReportBlockLength * (index + 1)) {
+    if (size_bytes_ < offset + RtcpReportBlockView::kReportBlockLength * (index + 1)) {
         return {};
     }
 
@@ -194,11 +194,11 @@ rav::BufferView<const uint8_t> rav::RtcpPacketView::get_profile_specific_extensi
 
     const auto reported_length = static_cast<size_t>(length()) * 4;
 
-    if (offset >= data_length_) {
+    if (offset >= size_bytes_) {
         return {};
     }
 
-    if (reported_length > data_length_) {
+    if (reported_length > size_bytes_) {
         return {};
     }
 
@@ -210,18 +210,18 @@ rav::RtcpPacketView rav::RtcpPacketView::get_next_packet() const {
         return {};
     }
     const auto reported_length = static_cast<size_t>(length()) * 4;
-    if (reported_length >= data_length_) {
+    if (reported_length >= size_bytes_) {
         return {};
     }
-    return {data_ + reported_length, data_length_ - reported_length};
+    return {data_ + reported_length, size_bytes_ - reported_length};
 }
 
 const uint8_t* rav::RtcpPacketView::data() const {
     return data_;
 }
 
-size_t rav::RtcpPacketView::data_length() const {
-    return data_length_;
+size_t rav::RtcpPacketView::size() const {
+    return size_bytes_;
 }
 
 std::string rav::RtcpPacketView::to_string() const {

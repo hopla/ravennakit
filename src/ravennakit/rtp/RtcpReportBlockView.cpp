@@ -14,19 +14,19 @@
 
 #include "ravennakit/platform/ByteOrder.hpp"
 
-rav::RtcpReportBlockView::RtcpReportBlockView(const uint8_t* data, const size_t data_length) :
-    data_(data), data_length_(data_length) {}
+rav::RtcpReportBlockView::RtcpReportBlockView(const uint8_t* data, const size_t size_bytes) :
+    data_(data), size_bytes_(size_bytes) {}
 
 rav::rtp::Result rav::RtcpReportBlockView::validate() const {
     if (data_ == nullptr) {
         return rtp::Result::InvalidPointer;
     }
 
-    if (data_length_ < kReportBlockLength) {
+    if (size_bytes_ < kReportBlockLength) {
         return rtp::Result::InvalidReportBlockLength;
     }
 
-    if (data_length_ > kReportBlockLength) {
+    if (size_bytes_ > kReportBlockLength) {
         return rtp::Result::InvalidReportBlockLength;
     }
 
@@ -66,6 +66,6 @@ const uint8_t* rav::RtcpReportBlockView::data() const {
     return data_;
 }
 
-size_t rav::RtcpReportBlockView::data_length() const {
-    return data_length_;
+size_t rav::RtcpReportBlockView::size() const {
+    return size_bytes_;
 }

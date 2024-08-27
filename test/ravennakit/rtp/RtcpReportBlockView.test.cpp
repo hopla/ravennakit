@@ -87,7 +87,7 @@ TEST_CASE("RtcpReportBlockView | data()", "[RtcpReportBlockView]") {
     REQUIRE(report.data() == default_packet.data());
 }
 
-TEST_CASE("RtcpReportBlockView | data_length()", "[RtcpReportBlockView]") {
+TEST_CASE("RtcpReportBlockView | size()", "[RtcpReportBlockView]") {
     const rav::RtcpReportBlockView report(default_packet.data(), default_packet.size());
-    REQUIRE(report.data_length() == default_packet.size());
+    REQUIRE(report.size() == default_packet.size());
 }

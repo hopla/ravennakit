@@ -28,9 +28,9 @@ class RtpPacketView {
     /**
      * Constructs an RTP header from the given data.
      * @param data The RTP header data.
-     * @param data_length The lenght of the RTP header data in bytes.
+     * @param size_bytes The size of the RTP header data in bytes.
      */
-    RtpPacketView(const uint8_t* data, size_t data_length);
+    RtpPacketView(const uint8_t* data, size_t size_bytes);
 
     /**
      * ies the RTP header data. After this method returns all other methods should return valid data and not lead
@@ -118,7 +118,7 @@ class RtpPacketView {
 
   private:
     const uint8_t* data_ {};
-    size_t data_length_ {0};
+    size_t size_bytes_ {0};
 };
 
 }  // namespace rav

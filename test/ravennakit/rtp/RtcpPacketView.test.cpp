@@ -678,7 +678,6 @@ TEST_CASE("RtcpPacketView | get_profile_specific_extension()", "[RtcpPacketView]
     SECTION("Get an empty buffer view on an empty RtcpPacketView") {
         rav::RtcpPacketView view;
         auto ext = view.get_profile_specific_extension();
-        REQUIRE(ext.is_valid() == false);
         REQUIRE(ext.data() == nullptr);
         REQUIRE(ext.empty());
         REQUIRE(ext.size_bytes() == 0);
@@ -703,7 +702,7 @@ TEST_CASE("RtcpPacketView | get_profile_specific_extension()", "[RtcpPacketView]
         const rav::RtcpPacketView packet_view(packet.data(), packet.size());
         REQUIRE(packet_view.reception_report_count() == 0);
         auto ext = packet_view.get_profile_specific_extension();
-        REQUIRE(ext.is_valid() == false);
+        REQUIRE(ext.data() == nullptr);
     }
 
     SECTION("Get profile specific extension from a receiver report packet") {

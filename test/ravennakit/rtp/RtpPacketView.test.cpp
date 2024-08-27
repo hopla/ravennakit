@@ -147,7 +147,7 @@ TEST_CASE(
     }
 
     SECTION("The buffer view should be invalid") {
-        REQUIRE_FALSE(packet.payload_data().is_valid());
+        REQUIRE(packet.payload_data().data() == nullptr);
     }
 }
 
@@ -302,7 +302,6 @@ TEST_CASE("RtpPacketView | Header extension", "[RtpPacketView]") {
         const auto header_extension_data = packet.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 8);
         REQUIRE(packet.get_header_extension_defined_by_profile() == 513);
-        REQUIRE(header_extension_data.is_valid());
         REQUIRE(header_extension_data.data() == data + 16);
         REQUIRE(std::memcmp(header_extension_data.data(), data + 16, 8) == 0);
     }
@@ -333,7 +332,6 @@ TEST_CASE("RtpPacketView | Header extension", "[RtpPacketView]") {
         const auto header_extension_data = packet.get_header_extension_data();
         REQUIRE(header_extension_data.size_bytes() == 0);
         REQUIRE(packet.get_header_extension_defined_by_profile() == 0);
-        REQUIRE(header_extension_data.is_valid() == false);
         REQUIRE(header_extension_data.data() == nullptr);
     }
 }
@@ -617,7 +615,7 @@ TEST_CASE("RtpPacketView | Payload buffer view", "[RtpPacketView]") {
 
         const rav::RtpPacketView packet(data.data(), data.size() - 1);
         auto payload = packet.payload_data();
-        REQUIRE(payload.is_valid() == false);
+        REQUIRE(payload.data() == nullptr);
         REQUIRE(payload.empty());
     }
 }

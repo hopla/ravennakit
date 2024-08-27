@@ -62,14 +62,6 @@ class BufferView {
     }
 
     /**
-     * @returns True if the buffer is valid, or false if the view doesn't point at any data. A buffer of size 0 is
-     * considered valid.
-     */
-    [[nodiscard]] bool is_valid() const {
-        return data_ != nullptr;
-    }
-
-    /**
      * @returns True if the buffer is empty.
      */
     [[nodiscard]] bool empty() const {

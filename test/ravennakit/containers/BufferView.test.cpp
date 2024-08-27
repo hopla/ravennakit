@@ -27,7 +27,6 @@ TEST_CASE("BufferView | Test BufferView", "[BufferView]") {
         REQUIRE(buffer_view.size() == 5);
         REQUIRE(buffer_view.size_bytes() == 5 * sizeof(int));
         REQUIRE(buffer_view.data() == data);
-        REQUIRE(buffer_view.is_valid() == true);
         REQUIRE(buffer_view.empty() == false);
     }
 
@@ -38,7 +37,6 @@ TEST_CASE("BufferView | Test BufferView", "[BufferView]") {
         REQUIRE(buffer_view.size() == 5);
         REQUIRE(buffer_view.size_bytes() == 5 * sizeof(char));
         REQUIRE(buffer_view.data() == data);
-        REQUIRE(buffer_view.is_valid() == true);
         REQUIRE(buffer_view.empty() == false);
     }
 
@@ -49,7 +47,6 @@ TEST_CASE("BufferView | Test BufferView", "[BufferView]") {
         REQUIRE(buffer_view.size() == 0);  // NOLINT
         REQUIRE(buffer_view.size_bytes() == 0);
         REQUIRE(buffer_view.data() == &data);
-        REQUIRE(buffer_view.is_valid() == true);
         REQUIRE(buffer_view.empty() == true);
     }
 
@@ -59,7 +56,6 @@ TEST_CASE("BufferView | Test BufferView", "[BufferView]") {
         REQUIRE(buffer_view.size() == 0);  // NOLINT
         REQUIRE(buffer_view.size_bytes() == 0);
         REQUIRE(buffer_view.data() == nullptr);
-        REQUIRE(buffer_view.is_valid() == false);
         REQUIRE(buffer_view.empty() == true);
     }
 
@@ -71,7 +67,6 @@ TEST_CASE("BufferView | Test BufferView", "[BufferView]") {
         REQUIRE(buffer_view.data() == buffer_view_copy.data());
         REQUIRE(buffer_view.size() == buffer_view_copy.size());
         REQUIRE(buffer_view.size_bytes() == buffer_view_copy.size_bytes());
-        REQUIRE(buffer_view.is_valid() == buffer_view_copy.is_valid());
         REQUIRE(buffer_view.empty() == buffer_view_copy.empty());
     }
 }

@@ -66,6 +66,7 @@ endif ()
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
+find_package(uvw CONFIG REQUIRED)
 
 find_package(asio CONFIG REQUIRED)
 target_compile_definitions(asio INTERFACE ASIO_NO_DEPRECATED ASIO_NO_DYNAMIC_BUFFER_V1)
@@ -87,6 +88,7 @@ target_link_libraries(ravennakit
         rav_recommended_lto_flags
         asio::asio
         spdlog::spdlog
+        uvw::uvw
 )
 
 ##############################

@@ -13,7 +13,7 @@
 #include <iostream>
 #include <uvw.hpp>
 
-#include "../include/ravennakit/rtp/rtp_packet_view.hpp"
+#include "ravennakit/rtp/rtp_packet_view.hpp"
 #include "ravennakit/rtp/rtp_receiver.hpp"
 
 constexpr short port = 5004;
@@ -25,6 +25,10 @@ int main(int const argc, char* argv[]) {
         std::cerr << "    receiver 0.0.0.0\n";
         return 1;
     }
+
+#if RAV_ENABLE_SPDLOG
+    spdlog::set_level(spdlog::level::trace);
+#endif
 
     const auto loop = uvw::loop::create();
     if (loop == nullptr) {
@@ -50,7 +54,7 @@ int main(int const argc, char* argv[]) {
     const auto signal = loop->resource<uvw::signal_handle>();
     signal->on<uvw::signal_event>([&receiver, &signal](const uvw::signal_event&, uvw::signal_handle&) {
         receiver.stop_close_reset();
-        signal->close(); // Need to close ourselves, otherwise the loop will not stop.
+        signal->close();  // Need to close ourselves, otherwise the loop will not stop.
     });
     signal->start(SIGTERM);
 

@@ -29,20 +29,20 @@ rav::rtcp_packet_view::rtcp_packet_view(const uint8_t* data, const size_t size_b
 
 rav::result rav::rtcp_packet_view::validate() const {
     if (data_ == nullptr) {
-        return result(error::invalid_pointer);
+        return RESULT(error::invalid_pointer);
     }
 
     if (size_bytes_ < kHeaderLength) {
-        return result(error::invalid_header_length_length);
+        return RESULT(error::invalid_header_length_length);
     }
 
     if (version() != 2) {
-        return result(error::invalid_version_version);
+        return RESULT(error::invalid_version_version);
     }
 
     if (type() == packet_type::sender_report_report) {
         if (size_bytes_ < kHeaderLength + kSenderInfoLength) {
-            return result(error::invalid_sender_info_length_length);
+            return RESULT(error::invalid_sender_info_length_length);
         }
     }
 

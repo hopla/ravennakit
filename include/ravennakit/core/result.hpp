@@ -13,8 +13,12 @@
 #include <uvw.hpp>
 
 #include "errors.hpp"
+#include "log.hpp"
 
 #include <variant>
+
+#define RESULT(guts) ::rav::result(guts, __FILE__, __LINE__, RAV_FUNCTION)
+
 namespace rav {
 
 /**
@@ -41,13 +45,15 @@ class result {
      * Constructs a result object from a library specific error code.
      * @param error The library specific error code.
      */
-    explicit result(const error error) : error_(error) {}
+    template<class T>
+    explicit result(const T error) : error_(error) {}
 
     /**
-     * Constructs a result object from a uvw error_event.
-     * @param error_event The error code returned by libuv
+     * Constructs a result object from a library specific error code.
+     * @param error The library specific error code.
      */
-    explicit result(const uvw::error_event error_event) : error_(error_event) {}
+    template<class T>
+    explicit result(const T error, [[maybe_unused]] const char* file, [[maybe_unused]] int line_num, [[maybe_unused]] const char* function_name) : error_(error) {}
 
     /**
      * @returns True if the result object represents an error, false otherwise.

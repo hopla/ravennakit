@@ -68,9 +68,11 @@ find_package(fmt CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(uvw CONFIG REQUIRED)
 
-#######################
-# RAVENNA SDK Library #
-#######################
+##############
+# RAVENNAKIT #
+##############
+
+option(RAV_ENABLE_SPDLOG "Enable spdlog for logging" OFF)
 
 file(GLOB_RECURSE RAVENNAKIT_HEADER_FILES include/*.hpp)
 file(GLOB_RECURSE RAVENNAKIT_SOURCE_FILES src/*.cpp)
@@ -86,6 +88,11 @@ target_link_libraries(ravennakit
         spdlog::spdlog
         uvw::uvw
 )
+
+if (RAV_ENABLE_SPDLOG)
+    target_compile_definitions(ravennakit PUBLIC RAV_ENABLE_SPDLOG=1)
+    target_link_libraries(ravennakit PUBLIC spdlog::spdlog)
+endif()
 
 ##############################
 # Multicast receiver example #

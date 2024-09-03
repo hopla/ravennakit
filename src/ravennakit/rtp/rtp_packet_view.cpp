@@ -23,15 +23,15 @@ rav::rtp_packet_view::rtp_packet_view(const uint8_t* data, const size_t size_byt
 
 rav::result rav::rtp_packet_view::validate() const {
     if (data_ == nullptr) {
-        return result(error::invalid_pointer);
+        return RESULT(error::invalid_pointer);
     }
 
     if (size_bytes_ < kRtpHeaderBaseLengthOctets || size_bytes_ < header_total_length()) {
-        return result(error::invalid_header_length_length);
+        return RESULT(error::invalid_header_length_length);
     }
 
     if (version() > 2) {
-        return result(error::invalid_version_version);
+        return RESULT(error::invalid_version_version);
     }
 
     return ok();

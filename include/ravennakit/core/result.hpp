@@ -127,9 +127,6 @@ class result {
 #endif
 };
 
-static_assert(std::is_copy_constructible_v<uvw::error_event>);
-static_assert(std::is_copy_assignable_v<uvw::error_event>);
-
 inline result ok() {
     return {};
 }

@@ -26,22 +26,22 @@ std::array<uint8_t, 24> default_packet {
 TEST_CASE("rtcp_report_block_view::validate()", "[rtcp_report_block_view]") {
     SECTION("Validation should fail when the view doesn't point to data") {
         const rav::rtcp_report_block_view report(nullptr, 0);
-        REQUIRE(rav::rtp::result::invalid_pointer == report.validate());
+        REQUIRE(report.validate().holds_error_of_type(rav::error::invalid_pointer));
     }
 
     SECTION("Validation should fail when the packet is too short") {
         const rav::rtcp_report_block_view report(default_packet.data(), 23);
-        REQUIRE(rav::rtp::result::invalid_report_block_length_length == report.validate());
+        REQUIRE(report.validate().holds_error_of_type(rav::error::invalid_report_block_length_length));
     }
 
     SECTION("Validation should fail when the packet is too long") {
         const rav::rtcp_report_block_view report(default_packet.data(), 25);
-        REQUIRE(rav::rtp::result::invalid_report_block_length_length == report.validate());
+        REQUIRE(report.validate().holds_error_of_type(rav::error::invalid_report_block_length_length));
     }
 
     SECTION("Or else validation should pass") {
         const rav::rtcp_report_block_view report(default_packet.data(), default_packet.size());
-        REQUIRE(rav::rtp::result::ok == report.validate());
+        REQUIRE(report.validate().is_ok());
     }
 }
 

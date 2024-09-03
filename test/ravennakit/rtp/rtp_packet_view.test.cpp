@@ -31,18 +31,18 @@ TEST_CASE("rtp_packet_view::rtp_packet_view()", "[rtp_packet_view]") {
 
     SECTION("A header with invalid data should result in Status::InvalidLength") {
         rav::rtp_packet_view packet(data, sizeof(data) - 1);
-        REQUIRE(packet.validate() == rav::rtp::result::invalid_header_length_length);
+        REQUIRE(packet.validate().holds_error_of_type(rav::error::invalid_header_length_length));
     }
 
     SECTION("A header with more data should result in Status::Ok") {
         rav::rtp_packet_view packet(data, sizeof(data) + 1);
-        REQUIRE(packet.validate() == rav::rtp::result::ok);
+        REQUIRE(packet.validate().is_ok());
     }
 
     rav::rtp_packet_view packet(data, sizeof(data));
 
     SECTION("Status should be ok") {
-        REQUIRE(packet.validate() == rav::rtp::result::ok);
+        REQUIRE(packet.validate().is_ok());
     }
 
     SECTION("Version should be 2") {
@@ -83,7 +83,7 @@ TEST_CASE("rtp_packet_view::rtp_packet_view()", "[rtp_packet_view]") {
 
     SECTION("A version higher than should result in InvalidVersion") {
         data[0] = 0b11000000;
-        REQUIRE(packet.validate() == rav::rtp::result::invalid_version_version);
+        REQUIRE(packet.validate().holds_error_of_type(rav::error::invalid_version_version));
     }
 
     SECTION("Header to string should result in this string") {
@@ -98,7 +98,7 @@ TEST_CASE("rtp_packet_view::validate()", "[rtp_packet_view]") {
     rav::rtp_packet_view packet(nullptr, 0);
 
     SECTION("Status should be ok") {
-        REQUIRE(packet.validate() == rav::rtp::result::invalid_pointer);
+        REQUIRE(packet.validate().holds_error_of_type(rav::error::invalid_pointer));
     }
 
     SECTION("Version should be 0") {
@@ -180,7 +180,7 @@ TEST_CASE("rtp_packet_view::ssrc()", "[rtp_packet_view]") {
     const rav::rtp_packet_view packet(data, sizeof(data) - sizeof(uint32_t) * 2);
 
     SECTION("Status should be ok") {
-        REQUIRE(packet.validate() == rav::rtp::result::invalid_header_length_length);
+        REQUIRE(packet.validate().holds_error_of_type(rav::error::invalid_header_length_length));
     }
 
     SECTION("CSRC Count should be 2") {

@@ -16,20 +16,20 @@
 rav::rtcp_report_block_view::rtcp_report_block_view(const uint8_t* data, const size_t size_bytes) :
     data_(data), size_bytes_(size_bytes) {}
 
-rav::rtp::result rav::rtcp_report_block_view::validate() const {
+rav::result rav::rtcp_report_block_view::validate() const {
     if (data_ == nullptr) {
-        return rtp::result::invalid_pointer;
+        return result(error::invalid_pointer);
     }
 
     if (size_bytes_ < k_report_block_length_length) {
-        return rtp::result::invalid_report_block_length_length;
+        return rav::result(error::invalid_report_block_length_length);
     }
 
     if (size_bytes_ > k_report_block_length_length) {
-        return rtp::result::invalid_report_block_length_length;
+        return rav::result(error::invalid_report_block_length_length);
     }
 
-    return rtp::result::ok;
+    return ok();
 }
 
 uint32_t rav::rtcp_report_block_view::ssrc() const {

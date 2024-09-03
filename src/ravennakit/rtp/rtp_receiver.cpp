@@ -16,13 +16,15 @@
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 
 rav::rtp_receiver::~rtp_receiver() {
-    stop();
+    stop_close_reset();
 }
 
-int rav::rtp_receiver::start_receiving_unicast(const std::string& address, const uint16_t port, udp_flags opts) {
+rav::result rav::rtp_receiver::bind(const std::string& address, const uint16_t port, const udp_flags opts) {
+    stop_close_reset();
+
     auto rtp_socket = loop_->resource<uvw::udp_handle>();
     if (rtp_socket == nullptr) {
-        return 1;
+        return result(error::allocation_failure);
     }
 
     rtp_socket->on<uvw::udp_data_event>(
@@ -40,13 +42,13 @@ int rav::rtp_receiver::start_receiving_unicast(const std::string& address, const
     {
         const uvw::error_event error(rtp_socket->bind(address, port, opts));
         if (error) {
-            return error.code();
+            return result(error);
         }
     }
 
     auto rtcp_socket = loop_->resource<uvw::udp_handle>();
     if (rtcp_socket == nullptr) {
-        return 1;
+        return result(error::allocation_failure);
     }
 
     rtcp_socket->on<uvw::udp_data_event>([](const uvw::udp_data_event& event,
@@ -63,7 +65,7 @@ int rav::rtp_receiver::start_receiving_unicast(const std::string& address, const
     {
         const uvw::error_event error(rtcp_socket->bind(address, port + 1, opts));
         if (error) {
-            return error.code();
+            return result(error);
         }
     }
 
@@ -73,10 +75,10 @@ int rav::rtp_receiver::start_receiving_unicast(const std::string& address, const
     rtp_socket_ = std::move(rtp_socket);
     rtcp_socket_ = std::move(rtcp_socket);
 
-    return 0;
+    return ok();
 }
 
-void rav::rtp_receiver::stop() const {
+void rav::rtp_receiver::stop_close_reset() const {
     if (rtp_socket_ != nullptr) {
         rtp_socket_->stop();
         rtp_socket_->close();

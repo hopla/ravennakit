@@ -14,7 +14,7 @@
 #include <string>
 
 #include "ravennakit/containers/buffer_view.hpp"
-#include "rtp.hpp"
+#include "ravennakit/core/result.hpp"
 
 namespace rav {
 
@@ -37,7 +37,7 @@ class rtp_packet_view {
      * to undefined behavior.
      * @returns The result of the validation.
      */
-    [[nodiscard]] rtp::result validate() const;
+    [[nodiscard]] rav::result validate() const;
 
     /**
      * @returns The version of the RTP header.

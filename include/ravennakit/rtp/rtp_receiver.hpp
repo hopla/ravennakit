@@ -13,6 +13,7 @@
 #include <uvw/loop.h>
 #include <uvw/udp.h>
 
+#include "ravennakit/core/result.hpp"
 #include "rtp_packet_view.hpp"
 
 namespace rav {
@@ -34,15 +35,27 @@ class rtp_receiver final: public uvw::emitter<rtp_receiver, rtp_packet_event> {
     rtp_receiver(rtp_receiver&&) = delete;
     rtp_receiver& operator=(rtp_receiver&&) = delete;
 
+    /**
+     * Constructs a new RTP receiver using given loop.
+     * @param loop The event loop to use.
+     */
     explicit rtp_receiver(const std::shared_ptr<uvw::loop>& loop) : loop_(loop) {}
 
-    int
-    start_receiving_unicast(const std::string& address, uint16_t port = 5004, udp_flags opts = udp_flags::_UVW_ENUM);
+    /**
+     * Binds 2 UDP sockets to the given address and port. One for receiving RTP packets and one for receiving RTCP
+     * packets. The sockets will be bound to the given address and port. The port number will be used for RTP and port
+     * number + 1 will be used for RTCP.
+     * @param address The address to bind to.
+     * @param port The port to bind to. Default is 5004.
+     * @param opts The options to pass to the underlying UDP sockets. By default, REUSEADDR is used.
+     * @return 0 on success, non-zero on failure.
+     */
+    result bind(const std::string& address, uint16_t port = 5004, udp_flags opts = udp_flags::REUSEADDR);
 
     /**
      * Stops and closes the sockets, removing all event listeners.
      */
-    void stop() const;
+    void stop_close_reset() const;
 
   private:
     std::shared_ptr<uvw::loop> loop_;

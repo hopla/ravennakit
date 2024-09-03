@@ -8,10 +8,11 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
+#include "ravennakit/rtp/rtcp_packet_view.hpp"
+
 #include <fmt/core.h>
 
 #include "ravennakit/platform/byte_order.hpp"
-#include "ravennakit/rtp/rtcp_packet_view.hpp"
 
 namespace {
 constexpr size_t kHeaderLength = 8;
@@ -26,26 +27,26 @@ constexpr size_t kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::
 rav::rtcp_packet_view::rtcp_packet_view(const uint8_t* data, const size_t size_bytes) :
     data_(data), size_bytes_(size_bytes) {}
 
-rav::rtp::result rav::rtcp_packet_view::validate() const {
+rav::result rav::rtcp_packet_view::validate() const {
     if (data_ == nullptr) {
-        return rtp::result::invalid_pointer;
+        return result(error::invalid_pointer);
     }
 
     if (size_bytes_ < kHeaderLength) {
-        return rtp::result::invalid_header_length_length;
+        return result(error::invalid_header_length_length);
     }
 
     if (version() != 2) {
-        return rtp::result::invalid_version_version;
+        return result(error::invalid_version_version);
     }
 
     if (type() == packet_type::sender_report_report) {
         if (size_bytes_ < kHeaderLength + kSenderInfoLength) {
-            return rtp::result::invalid_sender_info_length_length;
+            return result(error::invalid_sender_info_length_length);
         }
     }
 
-    return rtp::result::ok;
+    return ok();
 }
 
 uint8_t rav::rtcp_packet_view::version() const {
@@ -177,7 +178,10 @@ rav::rtcp_report_block_view rav::rtcp_packet_view::get_report_block(const size_t
         return {};
     }
 
-    return {data_ + offset + rtcp_report_block_view::k_report_block_length_length * index, rtcp_report_block_view::k_report_block_length_length};
+    return {
+        data_ + offset + rtcp_report_block_view::k_report_block_length_length * index,
+        rtcp_report_block_view::k_report_block_length_length
+    };
 }
 
 rav::buffer_view<const uint8_t> rav::rtcp_packet_view::get_profile_specific_extension() const {
@@ -226,8 +230,8 @@ size_t rav::rtcp_packet_view::size() const {
 std::string rav::rtcp_packet_view::to_string() const {
     auto header = fmt::format(
         "RTCP Packet valid={} | Header version={} padding={} reception_report_count={} packet_type={} length={} ssrc={}",
-        validate() == rtp::result::ok, version(), padding(), reception_report_count(),
-        packet_type_to_string(type()), length(), ssrc()
+        validate().is_ok(), version(), padding(), reception_report_count(), packet_type_to_string(type()), length(),
+        ssrc()
     );
 
     if (type() == packet_type::sender_report_report) {

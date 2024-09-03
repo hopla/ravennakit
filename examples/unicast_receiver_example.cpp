@@ -37,14 +37,14 @@ int main(int const argc, char* argv[]) {
         fmt::println("{}", event.packet.to_string());
     });
 
-    if (auto result = receiver.start_receiving_unicast(argv[1], port); result != 0) {
-        fmt::println(stderr, "Error: {}", result);
-        return result;
+    if (const auto result = receiver.bind(argv[1], port); result.holds_error()) {
+        fmt::println(stderr, "Error: {}", result.what());
+        return 2;
     }
 
     const auto signal = loop->resource<uvw::signal_handle>();
     signal->on<uvw::signal_event>([&receiver, &signal](const uvw::signal_event&, uvw::signal_handle&) {
-        receiver.stop();
+        receiver.stop_close_reset();
         signal->close(); // Need to close ourselves, otherwise the loop will not stop.
     });
     signal->start(SIGTERM);

@@ -14,6 +14,7 @@
 
 #include "errors.hpp"
 
+#include <variant>
 namespace rav {
 
 /**

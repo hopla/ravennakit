@@ -20,6 +20,7 @@ enum class error {
     invalid_version_version,
     invalid_state,
     resource_failure,
+    multicast_membership_failure,
 };
 
 /**

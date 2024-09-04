@@ -19,10 +19,10 @@
 constexpr short port = 5004;
 
 int main(int const argc, char* argv[]) {
-    if (argc != 2) {
+    if (argc < 2 || argc > 4) {
         std::cerr << "Usage: receiver <listen_address>\n";
         std::cerr << "  For IPv4, try:\n";
-        std::cerr << "    receiver 0.0.0.0\n";
+        std::cerr << "    unicast_receiver_example 0.0.0.0 [239.1.15.51] [192.168.15.52]\n";
         return 1;
     }
 
@@ -48,6 +48,20 @@ int main(int const argc, char* argv[]) {
     if (const auto result = receiver.bind(argv[1], port); result.holds_error()) {
         result.log_if_error();
         return 2;
+    }
+
+    if (argc == 4) {
+        auto result = receiver.set_multicast_membership(argv[2], argv[3], uvw::udp_handle::membership::JOIN_GROUP);
+        if (result.holds_error()) {
+            result.log_if_error();
+            return 3;
+        }
+    } else if (argc == 3) {
+        auto result = receiver.set_multicast_membership(argv[2], "", uvw::udp_handle::membership::JOIN_GROUP);
+        if (result.holds_error()) {
+            result.log_if_error();
+            return 3;
+        }
     }
 
     if (const auto result = receiver.start(); result.holds_error()) {

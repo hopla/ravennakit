@@ -25,7 +25,7 @@ rav::rtp_receiver::~rtp_receiver() {
 }
 
 rav::result rav::rtp_receiver::bind(const std::string& address, const uint16_t port, const udp_flags opts) {
-    const auto result = stop();
+    const auto result = close();
 
     if (result.holds_error()) {
         return result;
@@ -81,6 +81,25 @@ rav::result rav::rtp_receiver::bind(const std::string& address, const uint16_t p
 
     rtp_socket_ = std::move(rtp_socket);
     rtcp_socket_ = std::move(rtcp_socket);
+
+    return ok();
+}
+
+rav::result rav::rtp_receiver::set_multicast_membership(
+    const std::string& multicast_address, const std::string& interface_address,
+    const uvw::udp_handle::membership membership
+) const {
+    if (rtp_socket_ == nullptr || rtcp_socket_ == nullptr) {
+        return RESULT(error::invalid_state);
+    }
+
+    if (!rtp_socket_->multicast_membership(multicast_address, interface_address, membership)) {
+        return RESULT(error::multicast_membership_failure);
+    }
+
+    if (!rtcp_socket_->multicast_membership(multicast_address, interface_address, membership)) {
+        return RESULT(error::multicast_membership_failure);
+    }
 
     return ok();
 }

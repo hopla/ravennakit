@@ -36,7 +36,7 @@ int main(int const argc, char* argv[]) {
         return 1;
     }
 
-    int count = 10;
+    int count = 50;
     socket->on<uvw::udp_data_event>([&count](const uvw::udp_data_event& event, uvw::udp_handle& handle) {
         const rav::rtp_packet_view header(reinterpret_cast<const uint8_t*>(event.data.get()), event.length);
         fmt::println("{}", header.to_string());

@@ -53,9 +53,21 @@ class rtp_receiver final: public uvw::emitter<rtp_receiver, rtp_packet_event, rt
      * @param address The address to bind to.
      * @param port The port to bind to. Default is 5004.
      * @param opts The options to pass to the underlying UDP sockets. By default, REUSEADDR is used.
-     * @return 0 on success, non-zero on failure.
+     * @return A result indicating success or failure.
      */
     result bind(const std::string& address, uint16_t port = 5004, udp_flags opts = udp_flags::REUSEADDR);
+
+    /**
+     * Sets the multicast membership for the given multicast address and interface address.
+     * @param multicast_address The multicast address to join or leave.
+     * @param interface_address The interface address to use.
+     * @param membership The membership to set.
+     * @return A result indicating success or failure.
+     */
+    [[nodiscard]] result set_multicast_membership(
+        const std::string& multicast_address, const std::string& interface_address,
+        uvw::udp_handle::membership membership
+    ) const;
 
     /**
      * @return Starts receiving datagrams on the bound sockets.

@@ -8,11 +8,10 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
-#include "ravennakit/containers/buffer_view.hpp"
-
 #include <catch2/catch_all.hpp>
 
-#include "ravennakit/util/util.hpp"
+#include <ravennakit/containers/buffer_view.hpp>
+#include <ravennakit/core/util.hpp>
 
 static_assert(std::is_trivially_copyable_v<rav::buffer_view<double>> == true);
 static_assert(std::is_trivially_copyable_v<rav::buffer_view<float>> == true);

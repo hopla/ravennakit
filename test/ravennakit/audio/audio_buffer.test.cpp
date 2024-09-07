@@ -398,3 +398,21 @@ TEST_CASE("audio_buffer::operator=(move)", "[audio_buffer]") {
         REQUIRE(copy_data[1][2] == 6);
     }
 }
+
+TEST_CASE("audio_buffer::operator==()", "[audio_buffer]") {
+    SECTION("Test for equality") {
+        constexpr size_t num_samples = 3;
+        constexpr size_t num_channels = 2;
+
+        auto lhs = get_test_buffer<int>(num_channels, num_samples);
+        auto rhs = get_test_buffer<int>(num_channels, num_samples);
+
+        REQUIRE(lhs == rhs);
+        REQUIRE_FALSE(lhs != rhs);
+
+        lhs.set_sample(0, 0, 42);
+
+        REQUIRE_FALSE(lhs == rhs);
+        REQUIRE(lhs != rhs);
+    }
+}

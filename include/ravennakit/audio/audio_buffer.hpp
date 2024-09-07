@@ -73,12 +73,41 @@ class audio_buffer {
         return *this;
     }
 
-    audio_buffer& operator=(audio_buffer&& other)  noexcept {
+    /**
+     * Moves the contents from another audio buffer to this buffer. It does this by swapping, so other will have the
+     * contents of this buffer.
+     * @param other The other buffer to move from.
+     * @return A reference to this buffer.
+     */
+    audio_buffer& operator=(audio_buffer&& other) noexcept {
         std::swap(data_, other.data_);
         std::swap(channels_, other.channels_);
         update_channel_pointers();
-        other.update_channel_pointers(); // Data is swapped, so we need to update the pointers of the other buffer.
+        other.update_channel_pointers();  // Data is swapped, so we need to update the pointers of the other buffer.
         return *this;
+    }
+
+    /**
+     * Compares two audio buffers for equality. It does this by comparing the data and the number of channels.
+     * @param lhs Left hand side audio buffer.
+     * @param rhs Right hand side audio buffer.
+     * @return True if the audio buffers are equal, false otherwise.
+     */
+    friend bool operator==(const audio_buffer& lhs, const audio_buffer& rhs) {
+        if (lhs.channels_.size() != rhs.channels_.size()) {
+            return false;
+        }
+        return lhs.data_ == rhs.data_;
+    }
+
+    /**
+     * Compares two audio buffers for inequality. It does this by comparing the data and the number of channels.
+     * @param lhs Left hand side audio buffer.
+     * @param rhs Right hand side audio buffer.
+     * @return True if the audio buffers are not equal, false otherwise.
+     */
+    friend bool operator!=(const audio_buffer& lhs, const audio_buffer& rhs) {
+        return !(lhs == rhs);
     }
 
     /**

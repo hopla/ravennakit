@@ -24,7 +24,7 @@ void test_circular_buffer_read_write() {
 
     // Fill source data
     for (size_t i = 0; i < S; ++i) {
-        src[i] = i + 1;
+        src[i] = static_cast<T>(i + 1); // NOLINT
     }
 
     rav::circular_buffer<T, F> buffer(S);

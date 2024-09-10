@@ -170,7 +170,7 @@ struct spsc {
 
 struct mpsc {
     struct lock {
-        position position {};
+        fifo::position position {};
 
         lock() = default;
 

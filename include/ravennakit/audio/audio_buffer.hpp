@@ -153,14 +153,14 @@ class audio_buffer {
     /**
      * @returns An array of pointers to the beginning of each channel which can be written to.
      */
-    const T* const* get_array_of_read_pointers() const {
+    const T* const* data() const {
         return channels_.empty() ? nullptr : channels_.data();
     }
 
     /**
      * @returns An array of pointers to the beginning of each channel.
      */
-    T* const* get_array_of_write_pointers() {
+    T* const* data() {
         return channels_.empty() ? nullptr : channels_.data();
     }
 

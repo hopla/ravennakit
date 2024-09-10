@@ -20,7 +20,7 @@ struct custom_sample_type {
 
 template<class T>
 void check_sample_values(const rav::audio_buffer<T>& buffer, const T& fill_value) {
-    auto* const* audio_data = buffer.get_array_of_read_pointers();
+    auto* const* audio_data = buffer.data();
 
     REQUIRE(buffer.num_channels() > 0);
     REQUIRE(buffer.num_frames() > 0);
@@ -72,8 +72,7 @@ TEST_CASE("audio_buffer::audio_buffer()", "[audio_buffer]") {
         rav::audio_buffer<float> buffer {0, 0};
 
         // When the buffer holds no data, we expect nullptrs.
-        REQUIRE(buffer.get_array_of_read_pointers() == nullptr);
-        REQUIRE(buffer.get_array_of_write_pointers() == nullptr);
+        REQUIRE(buffer.data() == nullptr);
         REQUIRE(buffer.num_channels() == 0);
         REQUIRE(buffer.num_frames() == 0);
     }
@@ -122,7 +121,7 @@ TEST_CASE("audio_buffer::set_sample()", "[audio_buffer]") {
         }
     }
 
-    auto* const* audio_data = buffer.get_array_of_read_pointers();
+    auto* const* audio_data = buffer.data();
 
     for (size_t ch = 0; ch < num_channels; ch++) {
         for (size_t sample = 0; sample < num_frames; sample++) {
@@ -187,7 +186,7 @@ TEST_CASE("audio_buffer::copy_from()", "[audio_buffer]") {
         buffer.copy_from(0, 0, num_frames, channel0);
         buffer.copy_from(1, 0, num_frames, channel1);
 
-        auto* const* audio_data = buffer.get_array_of_read_pointers();
+        auto* const* audio_data = buffer.data();
 
         REQUIRE(audio_data[0][0] == 1);
         REQUIRE(audio_data[0][1] == 2);
@@ -208,7 +207,7 @@ TEST_CASE("audio_buffer::copy_from()", "[audio_buffer]") {
 
         rav::audio_buffer<int> dst(num_channels, num_frames);
 
-        dst.copy_from(0, num_frames, src.get_array_of_read_pointers(), src.num_channels());
+        dst.copy_from(0, num_frames, src.data(), src.num_channels());
 
         REQUIRE(dst[0][0] == 1);
         REQUIRE(dst[0][1] == 2);
@@ -217,7 +216,7 @@ TEST_CASE("audio_buffer::copy_from()", "[audio_buffer]") {
         REQUIRE(dst[1][1] == 5);
         REQUIRE(dst[1][2] == 6);
 
-        dst.copy_from(1, num_frames - 1, src.get_array_of_read_pointers(), src.num_channels());
+        dst.copy_from(1, num_frames - 1, src.data(), src.num_channels());
 
         REQUIRE(dst[0][0] == 1);
         REQUIRE(dst[0][1] == 1);
@@ -227,7 +226,7 @@ TEST_CASE("audio_buffer::copy_from()", "[audio_buffer]") {
         REQUIRE(dst[1][2] == 5);
 
         dst.clear();
-        dst.copy_from(0, num_frames - 1, src.get_array_of_read_pointers(), src.num_channels(), 1);
+        dst.copy_from(0, num_frames - 1, src.data(), src.num_channels(), 1);
 
         REQUIRE(dst[0][0] == 2);
         REQUIRE(dst[0][1] == 3);
@@ -264,7 +263,7 @@ TEST_CASE("audio_buffer::copy_to()", "[audio_buffer]") {
 
         rav::audio_buffer<int> dst(num_channels, num_frames);
 
-        buffer.copy_to(0, num_frames, dst.get_array_of_write_pointers(), num_channels);
+        buffer.copy_to(0, num_frames, dst.data(), num_channels);
 
         REQUIRE(dst[0][0] == 1);
         REQUIRE(dst[0][1] == 2);
@@ -274,7 +273,7 @@ TEST_CASE("audio_buffer::copy_to()", "[audio_buffer]") {
         REQUIRE(dst[1][2] == 6);
 
         dst.clear();
-        buffer.copy_to(1, num_frames - 1, dst.get_array_of_write_pointers(), num_channels);
+        buffer.copy_to(1, num_frames - 1, dst.data(), num_channels);
 
         REQUIRE(dst[0][0] == 2);
         REQUIRE(dst[0][1] == 3);
@@ -284,7 +283,7 @@ TEST_CASE("audio_buffer::copy_to()", "[audio_buffer]") {
         REQUIRE(dst[1][2] == 0);
 
         dst.clear();
-        buffer.copy_to(0, num_frames - 1, dst.get_array_of_write_pointers(), num_channels, 1);
+        buffer.copy_to(0, num_frames - 1, dst.data(), num_channels, 1);
 
         REQUIRE(dst[0][0] == 0);
         REQUIRE(dst[0][1] == 1);
@@ -320,8 +319,8 @@ TEST_CASE("audio_buffer::audio_buffer(copy)", "[audio_buffer]") {
 
     const rav::audio_buffer<int> copy(buffer);  // NOLINT
 
-    auto buffer_data = buffer.get_array_of_read_pointers();
-    auto copy_data = copy.get_array_of_read_pointers();
+    auto buffer_data = buffer.data();
+    auto copy_data = copy.data();
 
     REQUIRE(buffer_data != copy_data);
     REQUIRE(buffer_data[0] != copy_data[0]);
@@ -337,8 +336,8 @@ TEST_CASE("audio_buffer::operator=(copy)", "[audio_buffer]") {
 
     rav::audio_buffer<int> copy = buffer;  // NOLINT
 
-    auto buffer_data = buffer.get_array_of_read_pointers();
-    auto copy_data = copy.get_array_of_read_pointers();
+    auto buffer_data = buffer.data();
+    auto copy_data = copy.data();
 
     REQUIRE(buffer_data != copy_data);
     REQUIRE(buffer_data[0] != copy_data[0]);
@@ -357,8 +356,8 @@ TEST_CASE("audio_buffer::audio_buffer(move)", "[audio_buffer]") {
     REQUIRE(buffer.num_channels() == 0);
     REQUIRE(buffer.num_frames() == 0);
 
-    REQUIRE(buffer.get_array_of_read_pointers() == nullptr);
-    auto copy_data = copy.get_array_of_read_pointers();
+    REQUIRE(buffer.data() == nullptr);
+    auto copy_data = copy.data();
 
     REQUIRE(copy_data[0][0] == 1);
     REQUIRE(copy_data[0][1] == 2);
@@ -380,8 +379,8 @@ TEST_CASE("audio_buffer::operator=(move)", "[audio_buffer]") {
         REQUIRE(buffer.num_channels() == 0);
         REQUIRE(buffer.num_frames() == 0);
 
-        REQUIRE(buffer.get_array_of_read_pointers() == nullptr);
-        auto copy_data = copy.get_array_of_read_pointers();
+        REQUIRE(buffer.data() == nullptr);
+        auto copy_data = copy.data();
 
         REQUIRE(copy_data[0][0] == 1);
         REQUIRE(copy_data[0][1] == 2);
@@ -402,7 +401,7 @@ TEST_CASE("audio_buffer::operator=(move)", "[audio_buffer]") {
         REQUIRE(buffer.num_channels() == num_channels);
         REQUIRE(buffer.num_frames() == num_frames);
 
-        auto buffer_data = buffer.get_array_of_read_pointers();
+        auto buffer_data = buffer.data();
 
         REQUIRE(buffer_data[0][0] == 5);
         REQUIRE(buffer_data[0][1] == 5);
@@ -411,8 +410,8 @@ TEST_CASE("audio_buffer::operator=(move)", "[audio_buffer]") {
         REQUIRE(buffer_data[1][1] == 5);
         REQUIRE(buffer_data[1][2] == 5);
 
-        REQUIRE(buffer.get_array_of_read_pointers() != copy.get_array_of_read_pointers());
-        auto copy_data = copy.get_array_of_read_pointers();
+        REQUIRE(buffer.data() != copy.data());
+        auto copy_data = copy.data();
 
         REQUIRE(copy_data[0][0] == 1);
         REQUIRE(copy_data[0][1] == 2);

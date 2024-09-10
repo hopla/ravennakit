@@ -14,7 +14,7 @@
 
     #include <spdlog/spdlog.h>
 
-    #ifdef RAV_TRACE
+    #ifndef RAV_TRACE
         #define RAV_TRACE(...) SPDLOG_TRACE(__VA_ARGS__)
     #endif
 
@@ -46,7 +46,7 @@
 
     #include <fmt/format.h>
 
-    #ifdef RAV_TRACE
+    #ifndef RAV_TRACE
         #define RAV_TRACE(...) fmt::println(__VA_ARGS__)
     #endif
 

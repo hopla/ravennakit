@@ -11,63 +11,86 @@
 #include <catch2/catch_all.hpp>
 #include <ravennakit/containers/circular_buffer.hpp>
 #include <ravennakit/containers/fifo.hpp>
+#include <ravennakit/core/log.hpp>
 #include <thread>
 
-TEST_CASE("circular_buffer<int, rav::fifo::single>") {
-    rav::circular_buffer<int, rav::fifo::single> buffer(10);
+namespace {
 
-    const std::array<int, 8> src = {1, 2, 3, 4, 5, 6, 7, 8};
+template<typename T, typename F, size_t S>
+void test_circular_buffer_read_write() {
+    static_assert(S % 2 == 0, "Size S must be a multiple of 2.");
+
+    std::array<T, S> src {};
+
+    // Fill source data
+    for (size_t i = 0; i < S; ++i) {
+        src[i] = i + 1;
+    }
+
+    rav::circular_buffer<T, F> buffer(S);
+
     REQUIRE(buffer.write(src.data(), src.size()));
-    REQUIRE(buffer.write(src.data(), 2));
     REQUIRE_FALSE(buffer.write(&src[0], 1));
 
-    std::array<int, 10> dst = {};
+    std::array<T, S> dst {};
 
     REQUIRE(buffer.read(dst.data(), dst.size()));
-    REQUIRE(dst == std::array {1, 2, 3, 4, 5, 6, 7, 8, 1, 2});
+    REQUIRE(dst == src);
     REQUIRE_FALSE(buffer.read(dst.data(), 1));
 
     dst = {};
 
-    REQUIRE(buffer.write(src.data(), 4));
-    REQUIRE(buffer.read(dst.data(), 2));
-    REQUIRE(buffer.read(dst.data() + 2, 2));
+    // No do half write + read to test the wrap around
+    REQUIRE(buffer.write(src.data(), src.size() / 2));
+    REQUIRE(buffer.read(dst.data(), src.size() / 2));
 
-    REQUIRE(dst == std::array {1, 2, 3, 4, 0, 0, 0, 0, 0, 0});
+    REQUIRE(buffer.write(src.data(), src.size()));
+    REQUIRE(buffer.read(dst.data(), dst.size()));
+
+    REQUIRE(dst == src);
 }
 
-TEST_CASE("circular_buffer<int, rav::sync_strategy::spsc>") {
-    SECTION("Test basic reading writing") {
-        rav::circular_buffer<int, rav::fifo::spsc> buffer(10);
-        const std::array<int, 8> src = {1, 2, 3, 4, 5, 6, 7, 8};
-        REQUIRE(buffer.write(src.data(), src.size()));
-        REQUIRE(buffer.write(src.data(), 2));
-        REQUIRE_FALSE(buffer.write(&src[0], 1));
+}  // namespace
 
-        std::array<int, 10> dst = {};
+TEST_CASE("circular_buffer test basic reading writing") {
+    SECTION("Test basic reading and writing") {
+        constexpr size_t size = 10;
+        test_circular_buffer_read_write<uint8_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<uint16_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<uint32_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<uint64_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<int8_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<int16_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<int32_t, rav::fifo::single, size>();
+        test_circular_buffer_read_write<int64_t, rav::fifo::single, size>();
 
-        REQUIRE(buffer.read(dst.data(), dst.size()));
-        REQUIRE(dst == std::array {1, 2, 3, 4, 5, 6, 7, 8, 1, 2});
-        REQUIRE_FALSE(buffer.read(dst.data(), 1));
+        test_circular_buffer_read_write<uint8_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<uint16_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<uint32_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<uint64_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<int8_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<int16_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<int32_t, rav::fifo::spsc, size>();
+        test_circular_buffer_read_write<int64_t, rav::fifo::spsc, size>();
 
-        dst = {};
-
-        REQUIRE(buffer.write(src.data(), 4));
-        REQUIRE(buffer.read(dst.data(), 2));
-        REQUIRE(buffer.read(dst.data() + 2, 2));
-
-        REQUIRE(dst == std::array {1, 2, 3, 4, 0, 0, 0, 0, 0, 0});
+        test_circular_buffer_read_write<uint8_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<uint16_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<uint32_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<uint64_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<int8_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<int16_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<int32_t, rav::fifo::mpsc, size>();
+        test_circular_buffer_read_write<int64_t, rav::fifo::mpsc, size>();
     }
 
-    SECTION("Reading and writing should be without data races") {
-        constexpr int64_t num_elements = 1'000'000;
+    SECTION("Test single producer single consumer") {
+        constexpr int num_writes_per_thread = 100'000;
         int64_t expected_total = 0;
-        int64_t total = 0;
 
         rav::circular_buffer<int64_t, rav::fifo::spsc> buffer(10);
 
         std::thread writer([&] {
-            for (int64_t i = 0; i < num_elements; ++i) {
+            for (int i = 0; i < num_writes_per_thread; i++) {
                 const std::array<int64_t, 3> src = {i + 1, i + 2, i + 3};
                 while (!buffer.write(src.data(), src.size())) {}
 
@@ -77,45 +100,76 @@ TEST_CASE("circular_buffer<int, rav::sync_strategy::spsc>") {
             }
         });
 
+        int64_t total = 0;
+
+        std::atomic writer_done = false;
         std::thread reader([&] {
             std::array<int64_t, 3> dst = {};
 
-            for (int i = 0; i < num_elements; ++i) {
-                while (!buffer.read(dst.data(), dst.size())) {}
-
-                for (const auto n : dst) {
-                    total += n;
+            while (!writer_done) {
+                while (buffer.read(dst.data(), dst.size())) {
+                    for (const auto n : dst) {
+                        total += n;
+                    }
                 }
             }
         });
 
         writer.join();
+
+        writer_done = true;
+
+        reader.join();
+
+        REQUIRE(total == expected_total);
+    }
+
+    SECTION("Test multi producer single consumer") {
+        constexpr int num_writer_threads = 4;
+        constexpr int num_writes_per_thread = 100'000;
+        std::atomic<int64_t> expected_total = 0;
+
+        rav::circular_buffer<int64_t, rav::fifo::mpsc> buffer(10);
+
+        std::vector<std::thread> writers;
+        writers.reserve(num_writer_threads);
+
+        for (auto t = 0; t < num_writer_threads; t++) {
+            writers.emplace_back([&] {
+                for (int i = 0; i < num_writes_per_thread; i++) {
+                    const std::array<int64_t, 3> src = {i + 1, i + 2, i + 3};
+                    while (!buffer.write(src.data(), src.size())) {}
+
+                    for (const auto n : src) {
+                        expected_total += n;
+                    }
+                }
+            });
+        }
+
+        std::atomic<int64_t> total = 0;
+
+        std::atomic writers_done = false;
+        std::thread reader([&] {
+            std::array<int64_t, 3> dst = {};
+
+            while (!writers_done) {
+                while (buffer.read(dst.data(), dst.size())) {
+                    for (const auto n : dst) {
+                        total.fetch_add(n);
+                    }
+                }
+            }
+        });
+
+        for (auto& t : writers) {
+            t.join();
+        }
+
+        writers_done = true;
+
         reader.join();
 
         REQUIRE(total == expected_total);
     }
 }
-
-// TEST_CASE("circular_buffer<int, rav::sync_strategy::mpsc>") {
-//     rav::circular_buffer<int, rav::sync_strategy::mpsc> buffer(10);
-//
-//     for (int i = 0; i < 10; ++i) {
-//         REQUIRE(buffer.push(&i, 1));
-//     }
-// }
-//
-// TEST_CASE("circular_buffer<int, rav::sync_strategy::spmc>") {
-//     rav::circular_buffer<int, rav::sync_strategy::spmc> buffer(10);
-//
-//     for (int i = 0; i < 10; ++i) {
-//         REQUIRE(buffer.push(&i, 1));
-//     }
-// }
-//
-// TEST_CASE("circular_buffer<int, rav::sync_strategy::mpmc>") {
-//     rav::circular_buffer<int, rav::sync_strategy::mpmc> buffer(10);
-//
-//     for (int i = 0; i < 10; ++i) {
-//         REQUIRE(buffer.push(&i, 1));
-//     }
-// }

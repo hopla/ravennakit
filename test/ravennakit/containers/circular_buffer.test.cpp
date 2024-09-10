@@ -90,6 +90,15 @@ TEST_CASE("circular_buffer test basic reading writing") {
         test_circular_buffer_read_write<int16_t, rav::fifo::spmc, size>();
         test_circular_buffer_read_write<int32_t, rav::fifo::spmc, size>();
         test_circular_buffer_read_write<int64_t, rav::fifo::spmc, size>();
+
+        test_circular_buffer_read_write<uint8_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<uint16_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<uint32_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<uint64_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<int8_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<int16_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<int32_t, rav::fifo::mpmc, size>();
+        test_circular_buffer_read_write<int64_t, rav::fifo::mpmc, size>();
     }
 
     SECTION("Test single producer single consumer") {
@@ -184,7 +193,7 @@ TEST_CASE("circular_buffer test basic reading writing") {
 
     SECTION("Test single producer multi consumer") {
         constexpr int num_reader_threads = 4;
-        constexpr int num_writes_per_thread = 100'0000;
+        constexpr int num_writes_per_thread = 100'000;
         int64_t expected_total = 0;
 
         rav::circular_buffer<int64_t, rav::fifo::spmc> buffer(10);
@@ -223,6 +232,63 @@ TEST_CASE("circular_buffer test basic reading writing") {
         writer.join();
 
         writer_done = true;
+
+        for (auto& t : readers) {
+            t.join();
+        }
+
+        REQUIRE(total == expected_total);
+    }
+
+    SECTION("Test multi producer multi consumer") {
+        constexpr int num_reader_threads = 4;
+        constexpr int num_writer_threads = 4;
+        constexpr int num_writes_per_thread = 100'000;
+        std::atomic<int64_t> expected_total = 0;
+
+        rav::circular_buffer<int64_t, rav::fifo::mpmc> buffer(10);
+
+        std::vector<std::thread> writers;
+        writers.reserve(num_writer_threads);
+
+        for (auto t = 0; t < num_writer_threads; t++) {
+            writers.emplace_back([&] {
+                for (int i = 0; i < num_writes_per_thread; i++) {
+                    const std::array<int64_t, 3> src = {i + 1, i + 2, i + 3};
+                    while (!buffer.write(src.data(), src.size())) {}
+
+                    for (const auto n : src) {
+                        expected_total += n;
+                    }
+                }
+            });
+        }
+
+        std::atomic writers_done = false;
+        std::atomic<int64_t> total = 0;
+
+        std::vector<std::thread> readers;
+        readers.reserve(num_reader_threads);
+
+        for (auto t = 0; t < num_reader_threads; t++) {
+            readers.emplace_back([&] {
+                std::array<int64_t, 3> dst = {};
+
+                while (!writers_done) {
+                    while (buffer.read(dst.data(), dst.size())) {
+                        for (const auto n : dst) {
+                            total.fetch_add(n);
+                        }
+                    }
+                }
+            });
+        }
+
+        for (auto& t : writers) {
+            t.join();
+        }
+
+        writers_done = true;
 
         for (auto& t : readers) {
             t.join();

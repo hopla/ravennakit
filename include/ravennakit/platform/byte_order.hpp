@@ -50,11 +50,11 @@ namespace rav::byte_order {
 template<typename Type>
 Type swap_bytes(Type value) {
     if constexpr (sizeof(Type) == 2) {
-        value = RAV_BYTE_SWAP_16(value);
+        value = static_cast<Type>(RAV_BYTE_SWAP_16(static_cast<uint16_t>(value)));
     } else if constexpr (sizeof(Type) == 4) {
-        value = RAV_BYTE_SWAP_32(value);
+        value = static_cast<Type>(RAV_BYTE_SWAP_32(static_cast<uint32_t>(value)));
     } else if constexpr (sizeof(Type) == 8) {
-        value = RAV_BYTE_SWAP_64(value);
+        value = static_cast<Type>(RAV_BYTE_SWAP_64(static_cast<uint64_t>(value)));
     }
     return value;
 }

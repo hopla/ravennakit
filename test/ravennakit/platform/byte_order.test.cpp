@@ -94,8 +94,6 @@ TEST_CASE("byte_order::read()", "[byte_order]") {
 
     constexpr uint8_t f64_be[] = {0x9a, 0x99, 0x99, 0x99, 0x99, 0x99, 0xf1, 0xbf};  // -1.1 (big endian)
     constexpr uint8_t f64_le[] = {0xbf, 0xf1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a};  // -1.1 (little endian)
-    auto f64_be_val = rav::byte_order::read_be<double>(f64_be);
-    auto f64_le_val = rav::byte_order::read_le<double>(f64_le);
     REQUIRE(rav::util::is_within(rav::byte_order::read_be<double>(f64_le), -1.1, 0.0));
     REQUIRE(rav::util::is_within(rav::byte_order::read_le<double>(f64_be), -1.1, 0.0));
 }

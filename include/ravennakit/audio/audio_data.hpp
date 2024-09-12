@@ -11,6 +11,7 @@
 #pragma once
 
 #include <algorithm>
+#include <catch2/catch_message.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -20,23 +21,9 @@
 
 namespace rav::audio_data {
 namespace interleaving {
-    struct interleaved {
-        static size_t get_sample_index(
-            const size_t channel_index, const size_t frame_index, const size_t num_channels,
-            [[maybe_unused]] const size_t num_frames
-        ) {
-            return frame_index * num_channels + channel_index;
-        }
-    };
+    struct interleaved {};
 
-    struct noninterleaved {
-        static size_t get_sample_index(
-            const size_t channel_index, const size_t frame_index, [[maybe_unused]] const size_t num_channels,
-            const size_t num_frames
-        ) {
-            return channel_index * num_frames + frame_index;
-        }
-    };
+    struct noninterleaved {};
 }  // namespace interleaving
 
 namespace byte_order {
@@ -85,6 +72,10 @@ namespace format {
         static int8_t read(const uint8_t* data) {
             return ByteOrder::template read<int8_t>(data);
         }
+
+        static void write(uint8_t* data, const int8_t value) {
+            ByteOrder::template write<int8_t>(data, value);
+        }
     };
 
     template<class ByteOrder>
@@ -95,7 +86,7 @@ namespace format {
             return ByteOrder::template read<int16_t>(data);
         }
 
-        static void write(uint8_t* data, const int8_t value) {
+        static void write(uint8_t* data, const int16_t value) {
             ByteOrder::template write<int16_t>(data, value);
         }
     };
@@ -117,6 +108,10 @@ namespace format {
         static int32_t read(const uint8_t* data) {
             return ByteOrder::template read<int32_t>(data);
         }
+
+        static void write(uint8_t* data, const int32_t value) {
+            ByteOrder::template write<int32_t>(data, value);
+        }
     };
 
     template<class ByteOrder>
@@ -125,6 +120,10 @@ namespace format {
 
         static int64_t read(const uint8_t* data) {
             return ByteOrder::template read<int64_t>(data);
+        }
+
+        static void write(uint8_t* data, const int64_t value) {
+            ByteOrder::template write<int64_t>(data, value);
         }
     };
 
@@ -135,6 +134,10 @@ namespace format {
         static uint8_t read(const uint8_t* data) {
             return ByteOrder::template read<uint8_t>(data);
         }
+
+        static void write(uint8_t* data, const uint8_t value) {
+            ByteOrder::template write<uint8_t>(data, value);
+        }
     };
 
     template<class ByteOrder>
@@ -143,6 +146,10 @@ namespace format {
 
         static uint16 read(const uint8_t* data) {
             return ByteOrder::template read<uint16>(data);
+        }
+
+        static void write(uint8_t* data, const uint16_t value) {
+            ByteOrder::template write<uint16_t>(data, value);
         }
     };
 
@@ -163,6 +170,10 @@ namespace format {
         static uint32 read(const uint8_t* data) {
             return ByteOrder::template read<uint32>(data);
         }
+
+        static void write(uint8_t* data, const uint32_t value) {
+            ByteOrder::template write<uint32_t>(data, value);
+        }
     };
 
     template<class ByteOrder>
@@ -171,6 +182,10 @@ namespace format {
 
         static uint64 read(const uint8_t* data) {
             return ByteOrder::template read<uint64>(data);
+        }
+
+        static void write(uint8_t* data, const uint64_t value) {
+            ByteOrder::template write<uint64_t>(data, value);
         }
     };
 
@@ -181,6 +196,10 @@ namespace format {
         static float read(const uint8_t* data) {
             return ByteOrder::template read<float>(data);
         }
+
+        static void write(uint8_t* data, const float value) {
+            ByteOrder::template write<float>(data, value);
+        }
     };
 
     template<class ByteOrder>
@@ -189,6 +208,10 @@ namespace format {
 
         static double read(const uint8_t* data) {
             return ByteOrder::template read<double>(data);
+        }
+
+        static void write(uint8_t* data, const double value) {
+            ByteOrder::template write<double>(data, value);
         }
     };
 }  // namespace format
@@ -240,9 +263,9 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
         } else {
             // Interleaved src, noninterleaved dst
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
-                const auto ch = i / SrcFormat::sample_size % num_channels;
+                const auto ch = i % num_channels;
                 const auto src_i = i * SrcFormat::sample_size;
-                const auto dst_i = ch * num_frames + i / num_channels;
+                const auto dst_i = (ch * num_frames + i / num_channels) * DstFormat::sample_size;
                 convert_sample<SrcFormat, DstFormat>(src + src_i, dst + dst_i);
             }
             return true;
@@ -250,10 +273,22 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
     } else {
         if constexpr (std::is_same_v<DstInterleaving, interleaving::interleaved>) {
             // Noninterleaved src, interleaved dst
-            RAV_ASSERT_FALSE("Not implemented");
+            for (size_t i = 0; i < num_frames * num_channels; ++i) {
+                const auto ch = i % num_frames;
+                const auto src_i = (ch * num_frames + i / num_channels) * SrcFormat::sample_size;
+                const auto dst_i = i * DstFormat::sample_size;
+                convert_sample<SrcFormat, DstFormat>(src + src_i, dst + dst_i);
+            }
+            return true;
         } else {
             // Noninterleaved src, noninterleaved dst
-            RAV_ASSERT_FALSE("Not implemented");
+            for (size_t i = 0; i < num_frames * num_channels; ++i) {
+                const auto ch = i % num_frames;
+                const auto src_i = (ch * num_frames + i / num_channels) * SrcFormat::sample_size;
+                const auto dst_i = (ch * num_frames + i / num_channels) * DstFormat::sample_size;
+                convert_sample<SrcFormat, DstFormat>(src + src_i, dst + dst_i);
+            }
+            return true;
         }
     }
 

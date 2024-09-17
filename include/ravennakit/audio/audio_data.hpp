@@ -27,6 +27,8 @@ namespace interleaving {
 
 namespace byte_order {
     struct le {
+        static constexpr bool is_little_endian = true;
+
         template<class T>
         static T swap(const T value) {
 #if RAV_LITTLE_ENDIAN
@@ -38,6 +40,8 @@ namespace byte_order {
     };
 
     struct be {
+        static constexpr bool is_little_endian = false;
+
         template<class T>
         static T swap(const T value) {
 #if RAV_LITTLE_ENDIAN
@@ -49,6 +53,12 @@ namespace byte_order {
     };
 
     struct ne {
+#if RAV_LITTLE_ENDIAN
+        static constexpr bool is_little_endian = true;
+#else
+        static constexpr bool is_little_endian = false;
+#endif
+
         template<class T>
         static T swap(const T value) {
             return value;
@@ -60,121 +70,326 @@ namespace format {
     struct int8 {
         static constexpr size_t sample_size = 1;
         using type = int8_t;
+
+        static type convert(const uint8_t src) {
+            const auto result = static_cast<type>(src - 0x80);
+            return result;
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct int16 {
         static constexpr size_t sample_size = 2;
         using type = int16_t;
+
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t src) {
+            return static_cast<type>(static_cast<uint8_t>(src) << 8);
+        }
+
+        static type convert(const int16_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct int24 {
         static constexpr size_t sample_size = 3;
         using type = int32_t;
+
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t src) {
+            const auto result = static_cast<int32_t>(static_cast<uint32_t>(src) << 8);
+            return result;  // TODO: Should it be 8 bit shift?
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct int24in32 {
         static constexpr size_t sample_size = 4;
         using type = int32_t;
+
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t src) {
+            return static_cast<int32_t>(static_cast<uint32_t>(src) << 16);
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct int32 {
         static constexpr size_t sample_size = 4;
         using type = int32_t;
-    };
 
-    struct int64 {
-        static constexpr size_t sample_size = 8;
-        using type = int64_t;
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t src) {
+            return static_cast<int32_t>(static_cast<uint32_t>(src) << 16);
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct uint8 {
         static constexpr size_t sample_size = 1;
         using type = uint8_t;
-    };
 
-    struct uint16 {
-        static constexpr size_t sample_size = 2;
-        using type = uint16_t;
-    };
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
 
-    struct uint24 {
-        static constexpr size_t sample_size = 3;
-        using type = uint32_t;
-    };
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
 
-    struct uint24in32 {
-        static constexpr size_t sample_size = 4;
-        using type = uint32_t;
-    };
+        static type convert(const int16_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
 
-    struct uint32 {
-        static constexpr size_t sample_size = 4;
-        using type = uint32_t;
-    };
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
 
-    struct uint64 {
-        static constexpr size_t sample_size = 8;
-        using type = uint64_t;
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct f32 {
         static constexpr size_t sample_size = 4;
         using type = float;
+
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int32_t src) {
+            auto f = static_cast<float>(src);
+            f *= 0.00000011920928955078125f;
+            return f;
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 
     struct f64 {
         static constexpr size_t sample_size = 8;
         using type = double;
+
+        static type convert(const uint8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int8_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int16_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const int32_t) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const float) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
+
+        static type convert(const double) {
+            RAV_ASSERT_FALSE("Not implemented");
+            return {};
+        }
     };
 }  // namespace format
 
-template<class Format, class ByteOrder>
-typename Format::type read_sample(const uint8_t* data) {
-    static_assert(
-        Format::sample_size <= sizeof(typename Format::type), "sample_size is larger than the size of the value"
-    );
-    typename Format::type value;
-    std::memcpy(std::addressof(value), data, Format::sample_size);
-    return ByteOrder::swap(value);
-}
+namespace detail {
+    template<class Format, class ByteOrder>
+    typename Format::type read_sample(const uint8_t* data) {
+        static_assert(
+            Format::sample_size <= sizeof(typename Format::type), "sample_size is larger than the size of the value"
+        );
+        typename Format::type value;
+        std::memcpy(std::addressof(value), data, Format::sample_size);
+        auto swapped = ByteOrder::swap(value);
+        auto shifted = swapped >> (sizeof(value) - Format::sample_size) * 8;
+        return static_cast<typename Format::type>(shifted);
+    }
 
-template<class Format, class ByteOrder>
-void write_sample(uint8_t* data, typename Format::type value) {
-    static_assert(
-        Format::sample_size <= sizeof(typename Format::type), "sample_size is larger than the size of the value"
-    );
-    value = ByteOrder::swap(value);
-    std::memcpy(data, std::addressof(value), Format::sample_size);
-}
-
-template<class SrcFormat, class DstFormat>
-static typename DstFormat::type convert_sample_value(typename SrcFormat::type src) {
-    if constexpr (std::is_same_v<SrcFormat, DstFormat>) {
-        return src;
-    } else if (sizeof(typename SrcFormat::type) <= sizeof(typename DstFormat::type)) {
-        if constexpr ((std::is_signed_v<typename SrcFormat::type> && std::is_signed_v<typename DstFormat::type>) || (!std::is_signed_v<typename SrcFormat::type> && !std::is_signed_v<typename DstFormat::type>)) {
-            return src;
+    template<class Format, class ByteOrder>
+    void write_sample(uint8_t* data, typename Format::type value) {
+        static_assert(
+            Format::sample_size <= sizeof(typename Format::type), "sample_size is larger than the size of the value"
+        );
+        value = ByteOrder::swap(value);
+        if constexpr (ByteOrder::is_little_endian) {
+            std::memcpy(data, std::addressof(value), Format::sample_size);
+        } else {
+            std::memcpy(
+                data, reinterpret_cast<uint8_t*>(std::addressof(value)) + (sizeof(value) - Format::sample_size),
+                Format::sample_size
+            );
         }
-    } else if (sizeof(typename SrcFormat::type) == sizeof(typename DstFormat::type)) {
-        return static_cast<typename DstFormat::type>(src);
     }
 
-    RAV_ASSERT_FALSE("Not implemented");
-}
-
-template<class SrcFormat, class SrcByteOrder, class DstFormat, class DstByteOrder>
-static void convert_sample(const uint8_t* src, uint8_t* dst) {
-    if constexpr (std::is_same_v<SrcFormat, DstFormat> && std::is_same_v<SrcByteOrder, DstByteOrder>) {
-        std::memcpy(dst, src, SrcFormat::sample_size);
-    } else if (std::is_same_v<SrcFormat, DstFormat>) {
-        // Only byte order differs
-        write_sample<DstFormat, DstByteOrder>(dst, read_sample<SrcFormat, SrcByteOrder>(src));
-    } else {
-        const auto src_sample = read_sample<SrcFormat, SrcByteOrder>(src);
-        auto dst_sample = convert_sample_value<SrcFormat, DstFormat>(src_sample);
-        write_sample<DstFormat, DstByteOrder>(dst, dst_sample);
+    template<class SrcFormat, class SrcByteOrder, class DstFormat, class DstByteOrder>
+    static void convert_sample(const uint8_t* src, uint8_t* dst) {
+        if constexpr (std::is_same_v<SrcFormat, DstFormat> && std::is_same_v<SrcByteOrder, DstByteOrder>) {
+            std::memcpy(dst, src, SrcFormat::sample_size);
+        } else if (std::is_same_v<SrcFormat, DstFormat>) {
+            // Only byte order differs
+            write_sample<DstFormat, DstByteOrder>(
+                dst, static_cast<typename DstFormat::type>(read_sample<SrcFormat, SrcByteOrder>(src))
+            );
+        } else {
+            const auto src_sample = read_sample<SrcFormat, SrcByteOrder>(src);
+            write_sample<DstFormat, DstByteOrder>(dst, DstFormat::convert(src_sample));
+        }
     }
-}
+}  // namespace detail
 
 template<
     class SrcFormat, class SrcByteOrder, class SrcInterleaving, class DstFormat, class DstByteOrder,
@@ -196,6 +411,20 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
         }
         std::copy_n(src, src_size, dst);
         return true;
+    } else if (std::is_same_v<SrcFormat, DstFormat> && std::is_same_v<SrcInterleaving, DstInterleaving>) {
+        RAV_ASSERT(src_size == dst_size);
+
+        std::memcpy(dst, src, src_size);
+
+        if constexpr (SrcByteOrder::is_little_endian == DstByteOrder::is_little_endian) {
+            return true;  // No need for swapping
+        }
+
+        for (size_t i = 0; i < dst_size; i += SrcFormat::sample_size) {
+            rav::byte_order::swap_bytes(dst + i, SrcFormat::sample_size);
+        }
+
+        return true;
     }
 
     auto num_frames = src_size / SrcFormat::sample_size / num_channels;
@@ -210,7 +439,7 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
                 const auto src_i = i * SrcFormat::sample_size;
                 const auto dst_i = i * DstFormat::sample_size;
-                convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
+                detail::convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
             }
         } else {
             // Interleaved src, noninterleaved dst
@@ -218,7 +447,7 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
                 const auto ch = i % num_channels;
                 const auto src_i = i * SrcFormat::sample_size;
                 const auto dst_i = (ch * num_frames + i / num_channels) * DstFormat::sample_size;
-                convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
+                detail::convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
             }
         }
     } else {
@@ -228,7 +457,7 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
                 const auto ch = i % num_frames;
                 const auto src_i = (ch * num_frames + i / num_channels) * SrcFormat::sample_size;
                 const auto dst_i = i * DstFormat::sample_size;
-                convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
+                detail::convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
             }
         } else {
             // Noninterleaved src, noninterleaved dst
@@ -236,7 +465,7 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
                 const auto ch = i % num_frames;
                 const auto src_i = (ch * num_frames + i / num_channels) * SrcFormat::sample_size;
                 const auto dst_i = (ch * num_frames + i / num_channels) * DstFormat::sample_size;
-                convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
+                detail::convert_sample<SrcFormat, SrcByteOrder, DstFormat, DstByteOrder>(src + src_i, dst + dst_i);
             }
         }
     }

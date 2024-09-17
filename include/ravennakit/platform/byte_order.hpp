@@ -96,6 +96,23 @@ inline double swap_bytes<double>(const double value) {
 }
 
 /**
+ * Swaps given amount of bytes in the given data, in place.
+ * @param data The data to swap.
+ * @param size The size of the data (in bytes).
+ */
+inline void swap_bytes(uint8_t* data, const size_t size) {
+    // Check for null data pointer or zero size
+    if (data == nullptr || size == 0) {
+        return;
+    }
+
+    // Swap the bytes
+    for (size_t i = 0; i < size / 2; ++i) {
+        std::swap(data[i], data[size - i - 1]);
+    }
+}
+
+/**
  * Reads a value from the given data in native byte order (not to be confused with network-endian).
  * @tparam Type The type of the value to read.
  * @param data The data which holds the encoded value.

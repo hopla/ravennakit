@@ -14,61 +14,75 @@
 
 #include "ravennakit/core/util.hpp"
 
-TEST_CASE("byte_order::swap_bytes()", "[byte_order]") {
-    constexpr uint16_t u16 = 0x1234;
-    constexpr uint32_t u32 = 0x12345678;
-    constexpr uint64_t u64 = 0x1234567890abcdef;
-    constexpr float f32 = -1.1f;
-    constexpr double f64 = -1.1;
+TEST_CASE("byte_order | swap_bytes()", "[byte_order]") {
+    SECTION("Types") {
+        constexpr uint16_t u16 = 0x1234;
+        constexpr uint32_t u32 = 0x12345678;
+        constexpr uint64_t u64 = 0x1234567890abcdef;
+        constexpr float f32 = -1.1f;
+        constexpr double f64 = -1.1;
 
-    REQUIRE(rav::byte_order::swap_bytes(u16) == 0x3412);
-    REQUIRE(rav::byte_order::swap_bytes(u32) == 0x78563412);
-    REQUIRE(rav::byte_order::swap_bytes(u64) == 0xefcdab9078563412);
+        REQUIRE(rav::byte_order::swap_bytes(u16) == 0x3412);
+        REQUIRE(rav::byte_order::swap_bytes(u32) == 0x78563412);
+        REQUIRE(rav::byte_order::swap_bytes(u64) == 0xefcdab9078563412);
 
-    auto swapped_float = rav::byte_order::swap_bytes(f32);
-    auto swapped_float_data = reinterpret_cast<const unsigned char*>(&swapped_float);
-#if RAV_LITTLE_ENDIAN
-    REQUIRE(swapped_float_data[0] == 0xbf);
-    REQUIRE(swapped_float_data[1] == 0x8c);
-    REQUIRE(swapped_float_data[2] == 0xcc);
-    REQUIRE(swapped_float_data[3] == 0xcd);
-#else
-    #warning "Big endian systems have not been tested yet"
-    REQUIRE(swapped_float_data[0] == 0xcd);
-    REQUIRE(swapped_float_data[1] == 0xcc);
-    REQUIRE(swapped_float_data[2] == 0x8c);
-    REQUIRE(swapped_float_data[3] == 0xbf);
-#endif
+        auto swapped_float = rav::byte_order::swap_bytes(f32);
+        auto swapped_float_data = reinterpret_cast<const unsigned char*>(&swapped_float);
+        #if RAV_LITTLE_ENDIAN
+        REQUIRE(swapped_float_data[0] == 0xbf);
+        REQUIRE(swapped_float_data[1] == 0x8c);
+        REQUIRE(swapped_float_data[2] == 0xcc);
+        REQUIRE(swapped_float_data[3] == 0xcd);
+        #else
+        #warning "Big endian systems have not been tested yet"
+        REQUIRE(swapped_float_data[0] == 0xcd);
+        REQUIRE(swapped_float_data[1] == 0xcc);
+        REQUIRE(swapped_float_data[2] == 0x8c);
+        REQUIRE(swapped_float_data[3] == 0xbf);
+        #endif
 
-    auto swapped_double = rav::byte_order::swap_bytes(f64);
-    auto swapped_double_data = reinterpret_cast<const unsigned char*>(&swapped_double);
-#if RAV_LITTLE_ENDIAN
-    REQUIRE(swapped_double_data[0] == 0xbf);
-    REQUIRE(swapped_double_data[1] == 0xf1);
-    REQUIRE(swapped_double_data[2] == 0x99);
-    REQUIRE(swapped_double_data[3] == 0x99);
-    REQUIRE(swapped_double_data[4] == 0x99);
-    REQUIRE(swapped_double_data[5] == 0x99);
-    REQUIRE(swapped_double_data[6] == 0x99);
-    REQUIRE(swapped_double_data[7] == 0x9a);
-#else
-    #warning "Big endian systems have not been tested yet"
-    REQUIRE(swapped_double_data[0] == 0x9a);
-    REQUIRE(swapped_double_data[1] == 0x99);
-    REQUIRE(swapped_double_data[2] == 0x99);
-    REQUIRE(swapped_double_data[3] == 0x99);
-    REQUIRE(swapped_double_data[4] == 0x99);
-    REQUIRE(swapped_double_data[5] == 0x99);
-    REQUIRE(swapped_double_data[6] == 0xf1);
-    REQUIRE(swapped_double_data[7] == 0xbf);
-#endif
+        auto swapped_double = rav::byte_order::swap_bytes(f64);
+        auto swapped_double_data = reinterpret_cast<const unsigned char*>(&swapped_double);
+        #if RAV_LITTLE_ENDIAN
+        REQUIRE(swapped_double_data[0] == 0xbf);
+        REQUIRE(swapped_double_data[1] == 0xf1);
+        REQUIRE(swapped_double_data[2] == 0x99);
+        REQUIRE(swapped_double_data[3] == 0x99);
+        REQUIRE(swapped_double_data[4] == 0x99);
+        REQUIRE(swapped_double_data[5] == 0x99);
+        REQUIRE(swapped_double_data[6] == 0x99);
+        REQUIRE(swapped_double_data[7] == 0x9a);
+        #else
+        #warning "Big endian systems have not been tested yet"
+        REQUIRE(swapped_double_data[0] == 0x9a);
+        REQUIRE(swapped_double_data[1] == 0x99);
+        REQUIRE(swapped_double_data[2] == 0x99);
+        REQUIRE(swapped_double_data[3] == 0x99);
+        REQUIRE(swapped_double_data[4] == 0x99);
+        REQUIRE(swapped_double_data[5] == 0x99);
+        REQUIRE(swapped_double_data[6] == 0xf1);
+        REQUIRE(swapped_double_data[7] == 0xbf);
+        #endif
 
-    // Swap back and forth and check if the result is within a tolerance of the original value
-    REQUIRE(rav::util::is_within(rav::byte_order::swap_bytes(rav::byte_order::swap_bytes(f32)), f32, 0.f));
-    REQUIRE(rav::util::is_within(rav::byte_order::swap_bytes(rav::byte_order::swap_bytes(f64)), f64, 0.0));
+        // Swap back and forth and check if the result is within a tolerance of the original value
+        REQUIRE(rav::util::is_within(rav::byte_order::swap_bytes(rav::byte_order::swap_bytes(f32)), f32, 0.f));
+        REQUIRE(rav::util::is_within(rav::byte_order::swap_bytes(rav::byte_order::swap_bytes(f64)), f64, 0.0));
+    }
+
+    SECTION("24 bit swapping") {
+        std::array<uint8_t, 3> u24 = {0x12, 0x34, 0x56};
+        rav::byte_order::swap_bytes(u24.data(), u24.size());
+        REQUIRE(u24 == std::array<uint8_t, 3>{0x56, 0x34, 0x12});
+    }
+
+    SECTION("32 bit swapping") {
+        std::array<uint8_t, 4> u24 = {0x12, 0x34, 0x56, 0x78};
+        rav::byte_order::swap_bytes(u24.data(), u24.size());
+        REQUIRE(u24 == std::array<uint8_t, 4>{0x78, 0x56, 0x34, 0x12});
+    }
 }
 
-TEST_CASE("byte_order::read()", "[byte_order]") {
+TEST_CASE("byte_order | read()", "[byte_order]") {
     constexpr uint8_t u16be[] = {0x12, 0x34};
     constexpr uint8_t u16le[] = {0x34, 0x12};
 
@@ -98,7 +112,7 @@ TEST_CASE("byte_order::read()", "[byte_order]") {
     REQUIRE(rav::util::is_within(rav::byte_order::read_le<double>(f64_be), -1.1, 0.0));
 }
 
-TEST_CASE("byte_order::write()", "[byte_order]") {
+TEST_CASE("byte_order | write()", "[byte_order]") {
     uint8_t u16[] = {0x0, 0x0};
 
     rav::byte_order::write_be<uint16_t>(u16, 0x1234);

@@ -12,6 +12,8 @@
 
 #include <catch2/catch_all.hpp>
 
+#include "ravennakit/core/util.hpp"
+
 using namespace rav::audio_data;
 
 TEST_CASE("audio_data | interleaving", "[audio_data]") {
@@ -71,10 +73,11 @@ TEST_CASE("audio_data | interleaving", "[audio_data]") {
         constexpr std::array<uint8_t, 8> src {0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7};
         std::array<uint8_t, 8> dst {};
 
-        REQUIRE(rav::audio_data::convert<
-                format::int16, byte_order::le, interleaving::interleaved, format::int16, byte_order::le,
-                interleaving::noninterleaved>(src.data(), src.size(), dst.data(), dst.size(), 2));
+        auto result = rav::audio_data::convert<
+            format::int16, byte_order::le, interleaving::interleaved, format::int16, byte_order::le,
+            interleaving::noninterleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
 
+        REQUIRE(result);
         REQUIRE(dst == std::array<uint8_t, 8> {0x0, 0x1, 0x4, 0x5, 0x2, 0x3, 0x6, 0x7});
     }
 
@@ -192,8 +195,8 @@ TEST_CASE("audio_data | specific conversions", "[audio_data]") {
             std::array<uint8_t, 4> dst {};
 
             auto result = rav::audio_data::convert<
-                    format::uint8, byte_order::be, interleaving::interleaved, format::int8, byte_order::be,
-                    interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
+                format::uint8, byte_order::be, interleaving::interleaved, format::int8, byte_order::be,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
 
             REQUIRE(result);
             REQUIRE(dst == std::array<uint8_t, 4> {0x7f, 0x0, 0x1, 0x80});
@@ -204,8 +207,8 @@ TEST_CASE("audio_data | specific conversions", "[audio_data]") {
             std::array<uint8_t, 4> dst {};
 
             auto result = rav::audio_data::convert<
-                    format::uint8, byte_order::be, interleaving::interleaved, format::int8, byte_order::le,
-                    interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
+                format::uint8, byte_order::be, interleaving::interleaved, format::int8, byte_order::le,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
 
             REQUIRE(result);
             REQUIRE(dst == std::array<uint8_t, 4> {0x7f, 0x0, 0x1, 0x80});
@@ -216,8 +219,8 @@ TEST_CASE("audio_data | specific conversions", "[audio_data]") {
             std::array<uint8_t, 4> dst {};
 
             auto result = rav::audio_data::convert<
-                    format::uint8, byte_order::le, interleaving::interleaved, format::int8, byte_order::be,
-                    interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
+                format::uint8, byte_order::le, interleaving::interleaved, format::int8, byte_order::be,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
 
             REQUIRE(result);
             REQUIRE(dst == std::array<uint8_t, 4> {0x7f, 0x0, 0x1, 0x80});
@@ -295,8 +298,8 @@ TEST_CASE("audio_data | specific conversions", "[audio_data]") {
             std::array<uint8_t, 12> dst {};
 
             auto result = rav::audio_data::convert<
-                    format::int16, byte_order::be, interleaving::interleaved, format::int24, byte_order::le,
-                    interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
+                format::int16, byte_order::be, interleaving::interleaved, format::int24, byte_order::le,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 2);
 
             REQUIRE(result);
             REQUIRE(dst == std::array<uint8_t, 12> {
@@ -400,19 +403,33 @@ TEST_CASE("audio_data | specific conversions", "[audio_data]") {
             std::array<uint8_t, 12> dst {};
 
             auto result = rav::audio_data::convert<
-                    format::int24, byte_order::be, interleaving::interleaved, format::f32, byte_order::be,
-                    interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 1);
+                format::int24, byte_order::be, interleaving::interleaved, format::f32, byte_order::be,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 1);
 
             REQUIRE(result);
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<float>(dst.data() + 0), -1.f, 0.000001f));
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<float>(dst.data() + 4), +1.f, 0.000001f));
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<float>(dst.data() + 8), +0.f, 0.000001f));
+        }
+    }
 
-            auto f1 = rav::byte_order::read_be<float>(dst.data());
-            auto f2 = rav::byte_order::read_be<float>(dst.data() + 4);
-            auto f3 = rav::byte_order::read_be<float>(dst.data() + 8);
+    SECTION("int24 to double") {
+        SECTION("Convert int24 to float be to be") {
+            constexpr std::array<uint8_t, 9> src {0x80, 0x00, 0x0, 0x7f, 0xff, 0xff, 0x0, 0x0, 0x0};  // Min, max, zero
+            std::array<uint8_t, 24> dst {};
 
-            // REQUIRE(dst == std::array<uint8_t, 16> {
-                // 0x80, 0x0, 0x0, 0x0,
-                // 0x7f, 0xff,
-            // });  // Remaining bytes are zero
+            auto result = rav::audio_data::convert<
+                format::int24, byte_order::be, interleaving::interleaved, format::f64, byte_order::be,
+                interleaving::interleaved>(src.data(), src.size(), dst.data(), dst.size(), 1);
+
+            auto f1 = rav::byte_order::read_be<double>(dst.data() + 0);
+            auto f2 = rav::byte_order::read_be<double>(dst.data() + 8);
+            auto f3 = rav::byte_order::read_be<double>(dst.data() + 16);
+
+            REQUIRE(result);
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<double>(dst.data() + 0), -1.0, 0.000001));
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<double>(dst.data() + 8), +1.0, 0.000001));
+            REQUIRE(rav::util::is_within(rav::byte_order::read_be<double>(dst.data() + 16), +0.0, 0.000001));
         }
     }
 }

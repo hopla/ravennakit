@@ -19,10 +19,21 @@
 #if (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) || (defined(__BIG_ENDIAN__) && __BIG_ENDIAN__)
     #define RAV_LITTLE_ENDIAN 0
     #define RAV_BIG_ENDIAN 1
+
+namespace rav {
+static constexpr bool little_endian = false;
+static constexpr bool big_endian = true;
+}  // namespace rav
+
     #warning "Big endian systems have not been tested yet"
 #else
     #define RAV_LITTLE_ENDIAN 1
     #define RAV_BIG_ENDIAN 0
+
+namespace rav {
+static constexpr bool little_endian = true;
+static constexpr bool big_endian = false;
+}  // namespace rav
 #endif
 
 // This defines the byte swap functions for 16, 32, and 64 bit integers, using platform-specific implementations if
@@ -135,7 +146,7 @@ Type read_ne(const uint8_t* data) {
  */
 template<typename Type>
 Type read_be(const uint8_t* data) {
-    if constexpr (RAV_BIG_ENDIAN) {
+    if constexpr (big_endian) {
         return read_ne<Type>(data);
     } else {
         return swap_bytes(read_ne<Type>(data));
@@ -150,7 +161,7 @@ Type read_be(const uint8_t* data) {
  */
 template<typename Type>
 Type read_le(const uint8_t* data) {
-    if constexpr (RAV_LITTLE_ENDIAN) {
+    if constexpr (little_endian) {
         return read_ne<Type>(data);
     } else {
         return swap_bytes(read_ne<Type>(data));
@@ -176,7 +187,7 @@ void write_ne(uint8_t* dst, const Type value) {
  */
 template<typename Type>
 void write_be(uint8_t* dst, const Type value) {
-    if constexpr (RAV_BIG_ENDIAN) {
+    if constexpr (big_endian) {
         write_ne(dst, value);
     } else {
         write_ne(dst, swap_bytes(value));
@@ -191,7 +202,7 @@ void write_be(uint8_t* dst, const Type value) {
  */
 template<typename Type>
 void write_le(uint8_t* dst, const Type value) {
-    if constexpr (RAV_LITTLE_ENDIAN) {
+    if constexpr (little_endian) {
         write_ne(dst, value);
     } else {
         write_ne(dst, swap_bytes(value));

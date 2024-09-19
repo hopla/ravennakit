@@ -24,6 +24,8 @@ template<class T>
 class vector_stream {
   public:
     vector_stream() = default;
+    explicit vector_stream(size_t size) : data_(size) {}
+    vector_stream(std::initializer_list<T> values) : data_(values) {}
 
     vector_stream(const vector_stream& other) = default;
     vector_stream(vector_stream&& other) noexcept = default;
@@ -145,10 +147,25 @@ class vector_stream {
     }
 
     /**
+     * @return Returns a pointer to the data in the stream.
+     */
+    [[nodiscard]] T* data() {
+        return data_.data();
+    }
+
+    /**
      * @return Returns the size of the data in the stream.
      */
     [[nodiscard]] size_t size() const {
         return data_.size();
+    }
+
+    /**
+     * Resizes the stream to the given size.
+     * @param size The new size of the stream.
+     */
+    void resize(size_t size) {
+        data_.resize(size);
     }
 
     /**

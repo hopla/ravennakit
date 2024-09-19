@@ -49,6 +49,10 @@ public:
     int24_t& operator=(const int24_t& other) = default;
     int24_t& operator=(int24_t&& other) noexcept = default;
 
+    bool operator==(const int32_t other) const {
+        return static_cast<int32_t>(*this) == other;
+    }
+
     /**
      * @returns The value stored in the int24_t as an int32_t.
      */

@@ -40,13 +40,12 @@ namespace byte_order {
         /**
          * Reads a uint64_t value from a byte array.
          * @param data The data to read.
-         * @param size The size of the data.
          * @return A uint64_t containing the read value, placed in the most significant bytes.
          */
-        static uint64_t read(const uint8_t* data, const size_t size) {
+        template<class T>
+        static uint64_t read(const T* data) {
             uint64_t value {};
-            RAV_ASSERT(size <= sizeof(value));
-            std::memcpy(std::addressof(value), data, size);
+            std::memcpy(std::addressof(value), data, sizeof(T));
             if constexpr (big_endian) {
                 value = rav::byte_order::swap_bytes(value);
             }
@@ -61,8 +60,8 @@ namespace byte_order {
          * written.
          * @param value The value to write.
          */
-        template<class T>
-        static void write(uint8_t* data, const size_t size, T value) {
+        template<class DstType, class T>
+        static void write(DstType* data, const size_t size, T value) {
             RAV_ASSERT(size <= sizeof(value));
             if constexpr (big_endian) {
                 value = rav::byte_order::swap_bytes(value);
@@ -77,17 +76,18 @@ namespace byte_order {
         /**
          * Reads a uint64_t value from a byte array.
          * @param data The data to read.
-         * @param size The size of the data.
          * @return A uint64_t containing the read value, placed in the least significant bytes.
          */
-        static uint64_t read(const uint8_t* data, const size_t size) {
+        template<class T>
+        static uint64_t read(const T* data) {
             uint64_t value {};
-            RAV_ASSERT(size <= sizeof(value));
             if constexpr (little_endian) {
-                std::memcpy(reinterpret_cast<uint8_t*>(std::addressof(value)) + (sizeof(value) - size), data, size);
+                std::memcpy(
+                    reinterpret_cast<uint8_t*>(std::addressof(value)) + (sizeof(value) - sizeof(T)), data, sizeof(T)
+                );
                 value = rav::byte_order::swap_bytes(value);
             } else {
-                std::memcpy(std::addressof(value), data, size);
+                std::memcpy(std::addressof(value), data, sizeof(T));
             }
             return value;
         }
@@ -100,8 +100,8 @@ namespace byte_order {
          * written.
          * @param value The value to write.
          */
-        template<class T>
-        static void write(uint8_t* data, const size_t size, T value) {
+        template<class DstType, class T>
+        static void write(DstType* data, const size_t size, T value) {
             RAV_ASSERT(size <= sizeof(value));
             if constexpr (little_endian) {
                 value = rav::byte_order::swap_bytes(value);
@@ -118,14 +118,13 @@ namespace byte_order {
         /**
          * Reads a uint64_t value from a byte array.
          * @param data The data to read.
-         * @param size The size of the data.
          * @return A uint64_t containing the read value, placed in the least significant bytes.
          */
-        static uint64_t read(const uint8_t* data, const size_t size) {
+        template<class T>
+        static uint64_t read(const T* data) {
             uint64_t value {};
-            RAV_ASSERT(size <= sizeof(value));
             if constexpr (little_endian) {
-                std::memcpy(std::addressof(value), data, size);
+                std::memcpy(std::addressof(value), data, sizeof(T));
             } else {
                 RAV_ASSERT_FALSE("Implement me");
             }
@@ -140,8 +139,8 @@ namespace byte_order {
          * written.
          * @param value The value to write.
          */
-        template<class T>
-        static void write(uint8_t* data, const size_t size, T value) {
+        template<class DstType, class T>
+        static void write(DstType* data, const size_t size, T value) {
             RAV_ASSERT(size <= sizeof(value));
             if constexpr (little_endian) {
                 std::memcpy(data, std::addressof(value), size);
@@ -162,14 +161,14 @@ namespace byte_order {
  * @param dst The destination data.
  */
 template<class SrcType, class SrcByteOrder, class DstType, class DstByteOrder>
-static void convert_sample(const uint8_t* src, uint8_t* dst) {
+static void convert_sample(const SrcType* src, DstType* dst) {
     if constexpr (std::is_same_v<SrcType, DstType> && std::is_same_v<SrcByteOrder, DstByteOrder>) {
         std::memcpy(dst, src, sizeof(SrcType));
     } else if constexpr (std::is_same_v<SrcType, DstType>) {
         // Only byte order differs
-        DstByteOrder::write(dst, sizeof(DstType), SrcByteOrder::read(src, sizeof(SrcType)));
+        DstByteOrder::write(dst, sizeof(DstType), SrcByteOrder::read(src));
     } else {
-        const auto src_sample = SrcByteOrder::read(src, sizeof(SrcType));
+        const auto src_sample = SrcByteOrder::read(src);
 
         if constexpr (std::is_same_v<SrcType, uint8_t>) {
             if constexpr (std::is_same_v<DstType, int8_t>) {
@@ -247,14 +246,9 @@ static void convert_sample(const uint8_t* src, uint8_t* dst) {
 template<
     class SrcType, class SrcByteOrder, class SrcInterleaving, class DstType, class DstByteOrder, class DstInterleaving>
 static bool
-convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t dst_size, const size_t num_channels) {
-    if (src_size % sizeof(SrcType) != 0) {
-        return false;  // src_size is not a multiple of sample size
-    }
-
-    if (dst_size % sizeof(DstType) != 0) {
-        return false;  // dst_size is not a multiple of sample size
-    }
+convert(const SrcType* src, const size_t src_size, DstType* dst, const size_t dst_size, const size_t num_channels) {
+    const auto src_size_bytes = src_size * sizeof(SrcType);
+    const auto dst_size_bytes = dst_size * sizeof(DstType);
 
     // Shortcut for when no conversion is needed
     if constexpr (std::is_same_v<SrcType, DstType> && std::is_same_v<SrcByteOrder, DstByteOrder> && std::is_same_v<SrcInterleaving, DstInterleaving>) {
@@ -264,24 +258,24 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
         std::copy_n(src, src_size, dst);
         return true;
     } else if (std::is_same_v<SrcType, DstType> && std::is_same_v<SrcInterleaving, DstInterleaving>) {
-        RAV_ASSERT(src_size == dst_size);
+        RAV_ASSERT(src_size_bytes == dst_size_bytes);
 
-        std::memcpy(dst, src, src_size);
+        std::memcpy(dst, src, src_size_bytes);
 
         if constexpr (SrcByteOrder::is_little_endian == DstByteOrder::is_little_endian) {
             return true;  // No need for swapping
         }
 
-        for (size_t i = 0; i < dst_size; i += sizeof(SrcType)) {
-            rav::byte_order::swap_bytes(dst + i, sizeof(SrcType));
+        for (size_t i = 0; i < dst_size; ++i) {
+            dst[i] = rav::byte_order::swap_bytes(dst[i]);
         }
 
         return true;
     }
 
-    auto num_frames = src_size / sizeof(SrcType) / num_channels;
+    const auto num_frames = src_size / num_channels;
 
-    if (num_frames != dst_size / sizeof(DstType) / num_channels) {
+    if (num_frames != dst_size / num_channels) {
         return false;  // Unequal amount of frames between src and dst
     }
 
@@ -289,17 +283,14 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
         if constexpr (std::is_same_v<DstInterleaving, interleaving::interleaved>) {
             // Interleaved src, interleaved dst
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
-                const auto src_i = i * sizeof(SrcType);
-                const auto dst_i = i * sizeof(DstType);
-                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + src_i, dst + dst_i);
+                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + i, dst + i);
             }
         } else {
             // Interleaved src, noninterleaved dst
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
                 const auto ch = i % num_channels;
-                const auto src_i = i * sizeof(SrcType);
-                const auto dst_i = (ch * num_frames + i / num_channels) * sizeof(DstType);
-                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + src_i, dst + dst_i);
+                const auto dst_i = ch * num_frames + i / num_channels;
+                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + i, dst + dst_i);
             }
         }
     } else {
@@ -307,16 +298,15 @@ convert(const uint8_t* src, const size_t src_size, uint8_t* dst, const size_t ds
             // Noninterleaved src, interleaved dst
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
                 const auto ch = i % num_frames;
-                const auto src_i = (ch * num_frames + i / num_channels) * sizeof(SrcType);
-                const auto dst_i = i * sizeof(DstType);
-                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + src_i, dst + dst_i);
+                const auto src_i = ch * num_frames + i / num_channels;
+                convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + src_i, dst + i);
             }
         } else {
             // Noninterleaved src, noninterleaved dst
             for (size_t i = 0; i < num_frames * num_channels; ++i) {
                 const auto ch = i % num_frames;
-                const auto src_i = (ch * num_frames + i / num_channels) * sizeof(SrcType);
-                const auto dst_i = (ch * num_frames + i / num_channels) * sizeof(DstType);
+                const auto src_i = ch * num_frames + i / num_channels;
+                const auto dst_i = ch * num_frames + i / num_channels;
                 convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(src + src_i, dst + dst_i);
             }
         }

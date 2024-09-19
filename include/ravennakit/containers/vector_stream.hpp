@@ -20,6 +20,7 @@ namespace rav {
 /**
  * Simple stream implementation that writes to and reads from a vector.
  */
+template<class T>
 class vector_stream {
   public:
     vector_stream() = default;
@@ -29,32 +30,50 @@ class vector_stream {
     vector_stream& operator=(const vector_stream& other) = default;
     vector_stream& operator=(vector_stream&& other) noexcept = default;
 
+    bool operator==(const std::vector<T>& other) const {
+        return data_ == other;
+    }
+
     /**
      * Writes the given value to the stream in native byte order.
-     * @tparam T The type of the value to write.
      * @param value The value to write.
-     * @return True if the value was written successfully, false otherwise.
      */
-    template<class T>
-    bool write(T value) {
-        add_capacity(sizeof(T));
-        std::memcpy(data_.data() + write_position_, &value, sizeof(T));
-        write_position_ += sizeof(T);
-        return true;
+    void push_back(T value) {
+        data_.push_back(value);
+    }
+
+    /**
+     * Writes the given values to the stream in native byte order.
+     * @param values The values to write.
+     */
+    void push_back(std::initializer_list<T> values) {
+        for (const auto& value : values) {
+            push_back(value);
+        }
     }
 
     /**
      * Writes the given value to the stream in big endian byte order.
      * @tparam T The type of the value to write.
      * @param value The value to write.
-     * @return True if the value was written successfully, false otherwise.
      */
-    template<class T>
-    bool write_be(T value) {
+    void push_back_be(T value) {
         if constexpr (little_endian) {
-            return write(byte_order::swap_bytes(value));
+            push_back(byte_order::swap_bytes(value));
+        } else {
+            push_back(value);
         }
-        return write(value);
+    }
+
+    /**
+     * Writes the given value to the stream in big endian byte order.
+     * @tparam T The type of the value to write.
+     * @param values The values to write.
+     */
+    void push_back_be(std::initializer_list<T> values) {
+        for (const auto& value : values) {
+            push_back_be(value);
+        }
     }
 
     /**
@@ -63,12 +82,23 @@ class vector_stream {
      * @param value The value to write.
      * @return True if the value was written successfully, false otherwise.
      */
-    template<class T>
-    bool write_le(T value) {
+    void push_back_le(T value) {
         if constexpr (big_endian) {
-            return write(byte_order::swap_bytes(value));
+            push_back(byte_order::swap_bytes(value));
+        } else {
+            push_back(value);
         }
-        return write(value);
+    }
+
+    /**
+     * Writes the given value to the stream in little endian byte order.
+     * @tparam T The type of the value to write.
+     * @param values The values to write.
+     */
+    void push_back_le(std::initializer_list<T> values) {
+        for (const auto& value : values) {
+            push_back_le(value);
+        }
     }
 
     /**
@@ -76,15 +106,11 @@ class vector_stream {
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
-    template<class T>
     T read() {
-        if (read_position_ + sizeof(T) > write_position_) {
+        if (read_position_ >= data_.size()) {
             return T {};
         }
-        T value;
-        std::memcpy(&value, data_.data() + read_position_, sizeof(T));
-        read_position_ += sizeof(T);
-        return value;
+        return data_[read_position_++];
     }
 
     /**
@@ -92,12 +118,11 @@ class vector_stream {
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
-    template<class T>
     T read_be() {
         if constexpr (little_endian) {
-            return byte_order::swap_bytes(read<T>());
+            return byte_order::swap_bytes(read());
         }
-        return read<T>();
+        return read();
     }
 
     /**
@@ -105,18 +130,17 @@ class vector_stream {
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
-    template<class T>
     T read_le() {
         if constexpr (big_endian) {
-            return byte_order::swap_bytes(read<T>());
+            return byte_order::swap_bytes(read());
         }
-        return read<T>();
+        return read();
     }
 
     /**
      * @return Returns a pointer to the data in the stream.
      */
-    [[nodiscard]] const uint8_t* data() const {
+    [[nodiscard]] const T* data() const {
         return data_.data();
     }
 
@@ -124,7 +148,7 @@ class vector_stream {
      * @return Returns the size of the data in the stream.
      */
     [[nodiscard]] size_t size() const {
-        return std::min(data_.size(), read_position_);
+        return data_.size();
     }
 
     /**
@@ -132,18 +156,12 @@ class vector_stream {
      */
     void reset() {
         read_position_ = 0;
-        write_position_ = 0;
         data_.clear();
     }
 
   private:
-    std::vector<uint8_t> data_;
+    std::vector<T> data_;
     size_t read_position_ = 0;
-    size_t write_position_ = 0;
-
-    void add_capacity(const size_t size) {
-        data_.resize(data_.size() + size);
-    }
 };
 
 }  // namespace rav

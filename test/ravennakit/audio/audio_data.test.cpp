@@ -759,7 +759,7 @@ TEST_CASE("audio_data | channel buffer conversions contiguous to channels", "[au
         rav::audio_buffer<int16_t> dst(2, 3);
 
         auto result = convert<int16_t, byte_order::ne, interleaving::interleaved, int16_t, byte_order::ne>(
-            src.data(), src.size(), 2, dst.data(), 0
+            src.data(), 3, 2, dst.data()
         );
 
         REQUIRE(result);
@@ -771,12 +771,12 @@ TEST_CASE("audio_data | channel buffer conversions contiguous to channels", "[au
         REQUIRE(dst[1][2] == 6);
     }
 
-    SECTION("Convert interleaved to noninterleaved channels with start frame") {
+    SECTION("Convert interleaved to noninterleaved channels with dst start frame") {
         std::vector<int16_t> src {1, 2, 3, 4, 5, 6};
         rav::audio_buffer<int16_t> dst(2, 4);
 
         auto result = convert<int16_t, byte_order::ne, interleaving::interleaved, int16_t, byte_order::ne>(
-            src.data(), src.size(), 2, dst.data(), 1
+            src.data(), 3, 2, dst.data(), 0, 1
         );
 
         REQUIRE(result);
@@ -790,12 +790,29 @@ TEST_CASE("audio_data | channel buffer conversions contiguous to channels", "[au
         REQUIRE(dst[1][3] == 6);
     }
 
+    SECTION("Convert interleaved to noninterleaved channels with src start frame") {
+        std::vector<int16_t> src {1, 2, 3, 4, 5, 6, 7, 8};
+        rav::audio_buffer<int16_t> dst(2, 3);
+
+        auto result = convert<int16_t, byte_order::ne, interleaving::interleaved, int16_t, byte_order::ne>(
+            src.data(), 3, 2, dst.data(), 1, 0
+        );
+
+        REQUIRE(result);
+        REQUIRE(dst[0][0] == 3);
+        REQUIRE(dst[0][1] == 5);
+        REQUIRE(dst[0][2] == 7);
+        REQUIRE(dst[1][0] == 4);
+        REQUIRE(dst[1][1] == 6);
+        REQUIRE(dst[1][2] == 8);
+    }
+
     SECTION("Convert noninterleaved to noninterleaved channel buffer") {
         std::vector<int16_t> src {1, 2, 3, 4, 5, 6};
         rav::audio_buffer<int16_t> dst(2, 3);
 
         auto result = convert<int16_t, byte_order::ne, interleaving::noninterleaved, int16_t, byte_order::ne>(
-            src.data(), src.size(), 2, dst.data(), 0
+            src.data(), 3, 2, dst.data()
         );
 
         REQUIRE(result);
@@ -807,12 +824,12 @@ TEST_CASE("audio_data | channel buffer conversions contiguous to channels", "[au
         REQUIRE(dst[1][2] == 6);
     }
 
-    SECTION("Convert noninterleaved to noninterleaved channel buffer with start frame") {
+    SECTION("Convert noninterleaved to noninterleaved channel buffer with dst start frame") {
         std::vector<int16_t> src {1, 2, 3, 4, 5, 6};
         rav::audio_buffer<int16_t> dst(2, 4);
 
         auto result = convert<int16_t, byte_order::ne, interleaving::noninterleaved, int16_t, byte_order::ne>(
-            src.data(), src.size(), 2, dst.data(), 1
+            src.data(), 3, 2, dst.data(), 0, 1
         );
 
         REQUIRE(result);
@@ -824,6 +841,23 @@ TEST_CASE("audio_data | channel buffer conversions contiguous to channels", "[au
         REQUIRE(dst[1][1] == 4);
         REQUIRE(dst[1][2] == 5);
         REQUIRE(dst[1][3] == 6);
+    }
+
+    SECTION("Convert noninterleaved to noninterleaved channel buffer with src start frame") {
+        std::vector<int16_t> src {1, 2, 3, 4, 5, 6, 7, 8};
+        rav::audio_buffer<int16_t> dst(2, 3);
+
+        auto result = convert<int16_t, byte_order::ne, interleaving::noninterleaved, int16_t, byte_order::ne>(
+            src.data(), 3, 2, dst.data(), 1, 0
+        );
+
+        REQUIRE(result);
+        REQUIRE(dst[0][0] == 3);
+        REQUIRE(dst[0][1] == 4);
+        REQUIRE(dst[0][2] == 5);
+        REQUIRE(dst[1][0] == 6);
+        REQUIRE(dst[1][1] == 7);
+        REQUIRE(dst[1][2] == 8);
     }
 }
 
@@ -840,7 +874,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         std::vector<int16_t> dst(6);
 
         auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::interleaved>(
-            src.data(), src.num_frames(), src.num_channels(), 0, dst.data()
+            src.data(), src.num_frames(), src.num_channels(), dst.data(), 0
         );
 
         REQUIRE(result);
@@ -852,7 +886,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         REQUIRE(dst[5] == 6);
     }
 
-    SECTION("Convert noninterleaved channel buffer to interleaved with start index") {
+    SECTION("Convert noninterleaved channel buffer to interleaved with src start index") {
         rav::audio_buffer<int16_t> src(2, 4);
         src.set_sample(0, 0, 1);
         src.set_sample(0, 1, 2);
@@ -866,7 +900,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         std::vector<int16_t> dst(6);
 
         auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::interleaved>(
-            src.data(), src.num_frames() - 1, src.num_channels(), 1, dst.data()
+            src.data(), src.num_frames() - 1, src.num_channels(), dst.data(), 1
         );
 
         REQUIRE(result);
@@ -876,6 +910,32 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         REQUIRE(dst[3] == 7);
         REQUIRE(dst[4] == 4);
         REQUIRE(dst[5] == 8);
+    }
+
+    SECTION("Convert noninterleaved channel buffer to interleaved with dst start index") {
+        rav::audio_buffer<int16_t> src(2, 3);
+        src.set_sample(0, 0, 1);
+        src.set_sample(0, 1, 2);
+        src.set_sample(0, 2, 3);
+        src.set_sample(1, 0, 4);
+        src.set_sample(1, 1, 5);
+        src.set_sample(1, 2, 6);
+
+        std::vector<int16_t> dst(8);
+
+        auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::interleaved>(
+            src.data(), src.num_frames(), src.num_channels(), dst.data(), 0, 1
+        );
+
+        REQUIRE(result);
+        REQUIRE(dst[0] == 0);
+        REQUIRE(dst[1] == 0);
+        REQUIRE(dst[2] == 1);
+        REQUIRE(dst[3] == 4);
+        REQUIRE(dst[4] == 2);
+        REQUIRE(dst[5] == 5);
+        REQUIRE(dst[6] == 3);
+        REQUIRE(dst[7] == 6);
     }
 
     SECTION("Convert noninterleaved channel buffer to noninterleaved") {
@@ -890,7 +950,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         std::vector<int16_t> dst(6);
 
         auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::noninterleaved>(
-            src.data(), src.num_frames(), src.num_channels(), 0, dst.data()
+            src.data(), src.num_frames(), src.num_channels(), dst.data(), 0
         );
 
         REQUIRE(result);
@@ -902,7 +962,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         REQUIRE(dst[5] == 6);
     }
 
-    SECTION("Convert noninterleaved channel buffer to noninterleaved with start index") {
+    SECTION("Convert noninterleaved channel buffer to noninterleaved with src start index") {
         rav::audio_buffer<int16_t> src(2, 4);
         src.set_sample(0, 0, 1);
         src.set_sample(0, 1, 2);
@@ -916,7 +976,7 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         std::vector<int16_t> dst(6);
 
         auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::noninterleaved>(
-            src.data(), src.num_frames() - 1, src.num_channels(), 1, dst.data()
+            src.data(), src.num_frames() - 1, src.num_channels(), dst.data(), 1
         );
 
         REQUIRE(result);
@@ -926,5 +986,31 @@ TEST_CASE("audio_data | channel buffer conversions channels to contiguous", "[au
         REQUIRE(dst[3] == 6);
         REQUIRE(dst[4] == 7);
         REQUIRE(dst[5] == 8);
+    }
+
+    SECTION("Convert noninterleaved channel buffer to noninterleaved with dst start index") {
+        rav::audio_buffer<int16_t> src(2, 3);
+        src.set_sample(0, 0, 1);
+        src.set_sample(0, 1, 2);
+        src.set_sample(0, 2, 3);
+        src.set_sample(1, 0, 4);
+        src.set_sample(1, 1, 5);
+        src.set_sample(1, 2, 6);
+
+        std::vector<int16_t> dst(8);
+
+        auto result = convert<int16_t, byte_order::ne, int16_t, byte_order::ne, interleaving::noninterleaved>(
+            src.data(), src.num_frames(), src.num_channels(), dst.data(), 0, 1
+        );
+
+        REQUIRE(result);
+        REQUIRE(dst[0] == 0);
+        REQUIRE(dst[1] == 0);
+        REQUIRE(dst[2] == 1);
+        REQUIRE(dst[3] == 2);
+        REQUIRE(dst[4] == 3);
+        REQUIRE(dst[5] == 4);
+        REQUIRE(dst[6] == 5);
+        REQUIRE(dst[7] == 6);
     }
 }

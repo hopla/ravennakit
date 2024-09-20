@@ -27,7 +27,7 @@ rav::fifo::single::lock rav::fifo::single::prepare_for_write(const size_t number
     }
 
     lock write_lock(this);
-    write_lock.position.update(tail_, capacity_, number_of_elements);
+    write_lock.position.update(write_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -37,7 +37,7 @@ rav::fifo::single::lock rav::fifo::single::prepare_for_read(const size_t number_
     }
 
     lock read_lock(this);
-    read_lock.position.update(head_, capacity_, number_of_elements);
+    read_lock.position.update(read_, capacity_, number_of_elements);
     return read_lock;
 }
 
@@ -47,13 +47,13 @@ size_t rav::fifo::single::size() const {
 
 void rav::fifo::single::commit_write(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    tail_ = (tail_ + size) % capacity_;
+    write_ = (write_ + size) % capacity_;
     size_ += size;
 }
 
 void rav::fifo::single::commit_read(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    head_ = (head_ + size) % capacity_;
+    read_ = (read_ + size) % capacity_;
     size_ -= size;
 }
 
@@ -63,8 +63,8 @@ void rav::fifo::single::resize(const size_t capacity) {
 }
 
 void rav::fifo::single::reset() {
-    head_ = 0;
-    tail_ = 0;
+    read_ = 0;
+    write_ = 0;
     size_ = 0;
 }
 
@@ -74,7 +74,7 @@ rav::fifo::spsc::lock rav::fifo::spsc::prepare_for_write(const size_t number_of_
     }
 
     lock write_lock(this);
-    write_lock.position.update(tail_, capacity_, number_of_elements);
+    write_lock.position.update(write_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -84,19 +84,19 @@ rav::fifo::spsc::lock rav::fifo::spsc::prepare_for_read(const size_t number_of_e
     }
 
     lock read_lock(this);
-    read_lock.position.update(head_, capacity_, number_of_elements);
+    read_lock.position.update(read_, capacity_, number_of_elements);
     return read_lock;
 }
 
 void rav::fifo::spsc::commit_write(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    tail_ = (tail_ + size) % capacity_;
+    write_ = (write_ + size) % capacity_;
     size_.fetch_add(size, std::memory_order_release);
 }
 
 void rav::fifo::spsc::commit_read(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    head_ = (head_ + size) % capacity_;
+    read_ = (read_ + size) % capacity_;
     size_.fetch_sub(size, std::memory_order_release);
 }
 
@@ -106,8 +106,8 @@ void rav::fifo::spsc::resize(const size_t capacity) {
 }
 
 void rav::fifo::spsc::reset() {
-    head_ = 0;
-    tail_ = 0;
+    read_ = 0;
+    write_ = 0;
     size_ = 0;
 }
 
@@ -119,7 +119,7 @@ rav::fifo::mpsc::lock rav::fifo::mpsc::prepare_for_write(const size_t number_of_
     }
 
     lock write_lock(this, std::move(guard));
-    write_lock.position.update(tail_, capacity_, number_of_elements);
+    write_lock.position.update(write_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -129,19 +129,19 @@ rav::fifo::mpsc::lock rav::fifo::mpsc::prepare_for_read(const size_t number_of_e
     }
 
     lock read_lock(this);
-    read_lock.position.update(head_, capacity_, number_of_elements);
+    read_lock.position.update(read_, capacity_, number_of_elements);
     return read_lock;
 }
 
 void rav::fifo::mpsc::commit_write(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    tail_ = (tail_ + size) % capacity_;
+    write_ = (write_ + size) % capacity_;
     size_.fetch_add(size, std::memory_order_release);
 }
 
 void rav::fifo::mpsc::commit_read(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    head_ = (head_ + size) % capacity_;
+    read_ = (read_ + size) % capacity_;
     size_.fetch_sub(size, std::memory_order_release);
 }
 
@@ -151,8 +151,8 @@ void rav::fifo::mpsc::resize(const size_t capacity) {
 }
 
 void rav::fifo::mpsc::reset() {
-    head_ = 0;
-    tail_ = 0;
+    read_ = 0;
+    write_ = 0;
     size_ = 0;
 }
 
@@ -162,7 +162,7 @@ rav::fifo::spmc::lock rav::fifo::spmc::prepare_for_write(const size_t number_of_
     }
 
     lock write_lock(this);
-    write_lock.position.update(tail_, capacity_, number_of_elements);
+    write_lock.position.update(write_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -174,19 +174,19 @@ rav::fifo::spmc::lock rav::fifo::spmc::prepare_for_read(const size_t number_of_e
     }
 
     lock read_lock(this, std::move(guard));
-    read_lock.position.update(head_, capacity_, number_of_elements);
+    read_lock.position.update(read_, capacity_, number_of_elements);
     return read_lock;
 }
 
 void rav::fifo::spmc::commit_write(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    tail_ = (tail_ + size) % capacity_;
+    write_ = (write_ + size) % capacity_;
     size_.fetch_add(size, std::memory_order_release);
 }
 
 void rav::fifo::spmc::commit_read(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    head_ = (head_ + size) % capacity_;
+    read_ = (read_ + size) % capacity_;
     size_.fetch_sub(size, std::memory_order_release);
 }
 
@@ -196,8 +196,8 @@ void rav::fifo::spmc::resize(const size_t capacity) {
 }
 
 void rav::fifo::spmc::reset() {
-    head_ = 0;
-    tail_ = 0;
+    read_ = 0;
+    write_ = 0;
     size_ = 0;
 }
 
@@ -209,7 +209,7 @@ rav::fifo::mpmc::lock rav::fifo::mpmc::prepare_for_write(const size_t number_of_
     }
 
     lock write_lock(this, std::move(guard));
-    write_lock.position.update(tail_, capacity_, number_of_elements);
+    write_lock.position.update(write_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -221,19 +221,19 @@ rav::fifo::mpmc::lock rav::fifo::mpmc::prepare_for_read(const size_t number_of_e
     }
 
     lock read_lock(this, std::move(guard));
-    read_lock.position.update(head_, capacity_, number_of_elements);
+    read_lock.position.update(read_, capacity_, number_of_elements);
     return read_lock;
 }
 
 void rav::fifo::mpmc::commit_write(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    tail_ = (tail_ + size) % capacity_;
+    write_ = (write_ + size) % capacity_;
     size_ += size;
 }
 
 void rav::fifo::mpmc::commit_read(const lock& lock) {
     const auto size = lock.position.size1 + lock.position.size2;
-    head_ = (head_ + size) % capacity_;
+    read_ = (read_ + size) % capacity_;
     size_ -= size;
 }
 
@@ -243,7 +243,7 @@ void rav::fifo::mpmc::resize(const size_t capacity) {
 }
 
 void rav::fifo::mpmc::reset() {
-    head_ = 0;
-    tail_ = 0;
+    read_ = 0;
+    write_ = 0;
     size_ = 0;
 }

@@ -37,7 +37,7 @@ struct position {
  */
 struct single {
     /**
-     * A lock returned by a prepared oparation.
+     * A lock returned by a prepared operation.
      */
     struct lock {
         fifo::position position {};
@@ -126,8 +126,8 @@ struct single {
     void reset();
 
   private:
-    size_t head_ = 0;  // Consumer index
-    size_t tail_ = 0;  // Producer index
+    size_t read_ = 0;   // Consumer index
+    size_t write_ = 0;  // Producer index
     size_t capacity_ = 0;
     size_t size_ = 0;
 };
@@ -210,8 +210,8 @@ struct spsc {
     void reset();
 
   private:
-    size_t head_ = 0;               // Consumer index
-    size_t tail_ = 0;               // Producer index
+    size_t read_ = 0;               // Consumer index
+    size_t write_ = 0;              // Producer index
     std::atomic<size_t> size_ = 0;  // Number of elements in the buffer
     size_t capacity_ = 0;
 };
@@ -298,8 +298,8 @@ struct mpsc {
     void reset();
 
   private:
-    size_t head_ = 0;  // Consumer index
-    size_t tail_ = 0;  // Producer index
+    size_t read_ = 0;   // Consumer index
+    size_t write_ = 0;  // Producer index
     size_t capacity_ = 0;
     std::atomic<size_t> size_ = 0;  // Number of elements in the buffer
     std::mutex mutex_;
@@ -387,8 +387,8 @@ struct spmc {
     void reset();
 
   private:
-    size_t head_ = 0;  // Consumer index
-    size_t tail_ = 0;  // Producer index
+    size_t read_ = 0;   // Consumer index
+    size_t write_ = 0;  // Producer index
     size_t capacity_ = 0;
     std::atomic<size_t> size_ = 0;  // Number of elements in the buffer
     std::mutex mutex_;
@@ -474,8 +474,8 @@ struct mpmc {
     void reset();
 
   private:
-    size_t head_ = 0;  // Consumer index
-    size_t tail_ = 0;  // Producer index
+    size_t read_ = 0;   // Consumer index
+    size_t write_ = 0;  // Producer index
     size_t capacity_ = 0;
     size_t size_ = 0;  // Number of elements in the buffer
     std::mutex mutex_;

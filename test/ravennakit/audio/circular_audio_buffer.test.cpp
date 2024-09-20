@@ -12,6 +12,8 @@
 #include <ravennakit/audio/circular_audio_buffer.hpp>
 #include <thread>
 
+#include "ravennakit/containers/vector_stream.hpp"
+
 namespace {
 
 constexpr size_t k_num_channels = 2;
@@ -345,4 +347,43 @@ TEST_CASE("circular_audio_buffer", "[circular_audio_buffer]") {
 
         REQUIRE(total == expected_total);
     }
+}
+
+TEST_CASE("circular_audio_buffer | read from data", "[circular_audio_buffer]") {
+    rav::vector_stream<int16_t> src({1, 2, 3, 4, 5, 6});
+    rav::circular_audio_buffer<int16_t> ring(2, 5);
+
+    auto result =
+        ring.write_from_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+            src.data(), 3
+        );
+
+    REQUIRE(result);
+
+    rav::audio_buffer<int16_t> dst(2, 3);
+    auto read_result = ring.read(dst);
+    REQUIRE(read_result);
+    REQUIRE(dst[0][0] == 1);
+    REQUIRE(dst[0][1] == 3);
+    REQUIRE(dst[0][2] == 5);
+    REQUIRE(dst[1][0] == 2);
+    REQUIRE(dst[1][1] == 4);
+    REQUIRE(dst[1][2] == 6);
+
+    result =
+        ring.write_from_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+            src.data(), 3
+        );
+
+    REQUIRE(result);
+
+    dst.clear();
+    read_result = ring.read(dst);
+    REQUIRE(read_result);
+    REQUIRE(dst[0][0] == 1);
+    REQUIRE(dst[0][1] == 3);
+    REQUIRE(dst[0][2] == 5);
+    REQUIRE(dst[1][0] == 2);
+    REQUIRE(dst[1][1] == 4);
+    REQUIRE(dst[1][2] == 6);
 }

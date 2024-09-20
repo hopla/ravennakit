@@ -337,8 +337,6 @@ static bool convert(
 ) {
     RAV_ASSERT(src != nullptr);
     RAV_ASSERT(dst != nullptr);
-    RAV_ASSERT(src_start_frame <= num_frames);
-    RAV_ASSERT(dst_start_frame <= num_frames);
 
     if constexpr (std::is_same_v<SrcInterleaving, interleaving::interleaved>) {
         // interleaved to non-interleaved
@@ -388,8 +386,6 @@ static bool convert(
 ) {
     RAV_ASSERT(src != nullptr);
     RAV_ASSERT(dst != nullptr);
-    RAV_ASSERT(src_start_frame <= num_frames);
-    RAV_ASSERT(dst_start_frame <= num_frames);
 
     if constexpr (std::is_same_v<DstInterleaving, interleaving::interleaved>) {
         // non-interleaved to interleaved

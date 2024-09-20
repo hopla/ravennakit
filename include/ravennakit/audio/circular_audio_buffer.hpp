@@ -13,6 +13,7 @@
 #include <ravennakit/containers/detail/fifo.hpp>
 
 #include "audio_buffer.hpp"
+#include "audio_data.hpp"
 
 namespace rav {
 
@@ -87,6 +88,40 @@ class circular_audio_buffer {
             }
 
             fifo_.commit_read(lock);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Reads audio data from the buffer.
+     * @tparam SrcType The type of the source data.
+     * @tparam SrcByteOrder The byte order of the source data.
+     * @tparam SrcInterleaving The interleaving of the source data.
+     * @param data The destination buffer.
+     * @param num_frames The number of frames to read and write.
+     * @return True if reading was successful, false if there was not enough data to read.
+     */
+    template<class SrcType, class SrcByteOrder, class SrcInterleaving>
+    bool write_from_data(const SrcType* data, const size_t num_frames) {
+        RAV_ASSERT(buffer_.num_channels() > 0);
+        RAV_ASSERT(data != nullptr);
+        auto num_channels = buffer_.num_channels();
+
+        if (auto lock = fifo_.prepare_for_write(num_frames)) {
+            audio_data::convert<SrcType, SrcByteOrder, SrcInterleaving, T, audio_data::byte_order::ne>(
+                data, lock.position.size1, num_channels, buffer_.data(), 0, lock.position.index1
+            );
+
+            if (lock.position.size2 > 0) {
+                audio_data::convert<SrcType, SrcByteOrder, SrcInterleaving, T, audio_data::byte_order::ne>(
+                    data, lock.position.size2, num_channels, buffer_.data(), lock.position.size1, 0
+                );
+            }
+
+            fifo_.commit_write(lock);
 
             return true;
         }

@@ -18,8 +18,6 @@ https://datatracker.ietf.org/doc/html/rfc3190
 
 ## Quick commands
 
-### Send audio as RTP stream
+### Send audio as RTP stream example command
 
-    ffmpeg -re -stream_loop -1 -f s16le -ar 44100 -ac 2 -i BrownNoise@0dB16bit44100HzS.caf -f rtp -payload_type 10 rtp://127.0.0.1:5004
-
-    ffmpeg -re -stream_loop -1 -i BrownNoise@0dB16bit44100HzS.caf -f rtp -payload_type 10 rtp://127.0.0.1:5004
+    ffmpeg -re -stream_loop -1 -f s16le -ar 48000 -ac 2 -i Sin420Hz@0dB16bit48kHzS.wav -c:a pcm_s16le -f rtp -payload_type 10 rtp://127.0.0.1:5004

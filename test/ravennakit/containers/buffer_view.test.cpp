@@ -18,7 +18,7 @@ static_assert(std::is_trivially_copyable_v<rav::buffer_view<float>> == true);
 static_assert(std::is_trivially_copyable_v<rav::buffer_view<int>> == true);
 static_assert(std::is_trivially_copyable_v<rav::buffer_view<char>> == true);
 
-TEST_CASE("buffer_view::buffer_view()", "[buffer_view]") {
+TEST_CASE("buffer_view | buffer_view()", "[buffer_view]") {
     SECTION("Test int buffer") {
         int data[] = {1, 2, 3, 4, 5};
         const rav::buffer_view buffer_view(data, rav::util::num_elements_in_array(data));
@@ -68,4 +68,14 @@ TEST_CASE("buffer_view::buffer_view()", "[buffer_view]") {
         REQUIRE(buffer_view.size_bytes() == buffer_view_copy.size_bytes());
         REQUIRE(buffer_view.empty() == buffer_view_copy.empty());
     }
+}
+
+TEST_CASE("buffer_view | reinterpret()", "[buffer_view]") {
+    std::array<int16_t, 4> data{};
+    const rav::buffer_view buffer_view(data.data(), data.size());
+
+    const auto reinterpreted = buffer_view.reinterpret<int32_t>();
+    REQUIRE(reinterpreted.data() == reinterpret_cast<const int32_t*>(data.data()));
+    REQUIRE(reinterpreted.size() == 2);
+    REQUIRE(reinterpreted.size_bytes() == 2 * sizeof(int32_t));
 }

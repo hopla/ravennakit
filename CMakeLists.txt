@@ -60,6 +60,22 @@ if (WIN32)
 endif ()
 
 #########
+# Tracy #
+#########
+
+option(TRACY_ENABLE "Enable Tracy as profiler" OFF)
+if (TRACY_ENABLE)
+    message(STATUS "Tracy enabled")
+    if (APPLE)
+        include_directories(/opt/homebrew/include)
+        link_directories(/opt/homebrew/lib)
+    endif ()
+else ()
+    message(STATUS "Tracy disabled")
+endif ()
+
+
+#########
 # VCPKG #
 #########
 
@@ -67,6 +83,8 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(uvw CONFIG REQUIRED)
+find_package(CLI11 CONFIG REQUIRED)
+find_package(portaudio CONFIG REQUIRED)
 
 ##############
 # RAVENNAKIT #
@@ -100,9 +118,9 @@ if (RAV_ENABLE_SPDLOG)
     target_link_libraries(ravennakit PUBLIC spdlog::spdlog)
 endif()
 
-####################
-# Receiver example #
-####################
+########################
+# RTP Receiver example #
+########################
 
 add_executable(rtp_receiver_example
         examples/rtp_receiver_example.cpp
@@ -111,7 +129,16 @@ add_executable(rtp_receiver_example
 target_link_libraries(rtp_receiver_example
         PUBLIC
         ravennakit
+        portaudio_static
+        CLI11::CLI11
+        rav_recommended_warning_flags
+        rav_recommended_lto_flags
 )
+
+if (TRACY_ENABLE)
+    target_link_libraries(rtp_receiver_example PUBLIC TracyClient)
+    target_compile_definitions(rtp_receiver_example PRIVATE TRACY_ENABLE=1)
+endif ()
 
 ##############
 # Unit Tests #

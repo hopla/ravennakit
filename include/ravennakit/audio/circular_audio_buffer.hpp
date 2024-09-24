@@ -96,7 +96,7 @@ class circular_audio_buffer {
     }
 
     /**
-     * Reads audio data from the buffer.
+     * Writes audio data into the buffer, converting the source data to the buffer's format.
      * @tparam SrcType The type of the source data.
      * @tparam SrcByteOrder The byte order of the source data.
      * @tparam SrcInterleaving The interleaving of the source data.
@@ -110,18 +110,52 @@ class circular_audio_buffer {
         RAV_ASSERT(data != nullptr);
         auto num_channels = buffer_.num_channels();
 
-        if (auto lock = fifo_.prepare_for_write(num_frames)) {
+        if (auto write = fifo_.prepare_for_write(num_frames)) {
             audio_data::convert<SrcType, SrcByteOrder, SrcInterleaving, T, audio_data::byte_order::ne>(
-                data, lock.position.size1, num_channels, buffer_.data(), 0, lock.position.index1
+                data, write.position.size1, num_channels, buffer_.data(), 0, write.position.index1
             );
 
-            if (lock.position.size2 > 0) {
+            if (write.position.size2 > 0) {
                 audio_data::convert<SrcType, SrcByteOrder, SrcInterleaving, T, audio_data::byte_order::ne>(
-                    data, lock.position.size2, num_channels, buffer_.data(), lock.position.size1, 0
+                    data, write.position.size2, num_channels, buffer_.data(), write.position.size1, 0
                 );
             }
 
-            lock.commit();
+            write.commit();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Reads audio data from the buffer, converting the data to the destination format.
+     * @tparam DstType The type of the destination data.
+     * @tparam DstByteOrder The byte order of the destination data.
+     * @tparam DstInterleaving The interleaving of the destination data.
+     * @param data The destination buffer.
+     * @param num_frames The number of frames to read and write.
+     * @return True if reading was successful, false if there was not enough data to read.
+     */
+    template<class DstType, class DstByteOrder, class DstInterleaving>
+    bool read_to_data(DstType* data, const size_t num_frames) {
+        RAV_ASSERT(buffer_.num_channels() > 0);
+        RAV_ASSERT(data != nullptr);
+        auto num_channels = buffer_.num_channels();
+
+        if (auto read = fifo_.prepare_for_read(num_frames)) {
+            audio_data::convert<T, audio_data::byte_order::ne, DstType, DstByteOrder, DstInterleaving>(
+                buffer_.data(), read.position.size1, num_channels, data, read.position.index1, 0
+            );
+
+            if (read.position.size2 > 0) {
+                audio_data::convert<T, audio_data::byte_order::ne, DstType, DstByteOrder, DstInterleaving>(
+                    buffer_.data(), read.position.size2, num_channels, data, 0, read.position.size1
+                );
+            }
+
+            read.commit();
 
             return true;
         }

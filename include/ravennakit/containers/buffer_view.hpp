@@ -41,6 +41,14 @@ class buffer_view {
     }
 
     /**
+     * @param index The index to access.
+     * @returns Value for given index, without bounds checking.
+     */
+    Type operator[](size_t index) const {
+        return data_[index];
+    }
+
+    /**
      * @returns A pointer to the data, or nullptr if this view is not pointing at any data.
      */
     [[nodiscard]] const Type* data() const {
@@ -66,6 +74,17 @@ class buffer_view {
      */
     [[nodiscard]] bool empty() const {
         return size_ == 0;
+    }
+
+    /**
+     * Returns a new buffer_view pointing to the same data, but reinterpreted as a different type.
+     * WARNING! Reinterpreting data can potentially lead to undefined behavior. Rules for reinterpret_cast apply.
+     * @tparam NewType The type of the reinterpretation.
+     * @return The new buffer_view.
+     */
+    template<class NewType>
+    buffer_view<NewType> reinterpret() const {
+        return buffer_view<NewType>(reinterpret_cast<NewType*>(data_), size_ * sizeof(Type) / sizeof(NewType));
     }
 
   private:

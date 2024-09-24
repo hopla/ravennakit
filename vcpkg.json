@@ -5,6 +5,8 @@
     "spdlog",
     "fmt",
     "catch2",
-    "uvw"
+    "uvw",
+    "portaudio",
+    "cli11"
   ]
 }

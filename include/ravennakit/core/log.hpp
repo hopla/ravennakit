@@ -12,6 +12,8 @@
 
 #ifdef RAV_ENABLE_SPDLOG
 
+    #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
     #include <spdlog/spdlog.h>
 
     #ifndef RAV_TRACE

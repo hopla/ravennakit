@@ -24,6 +24,9 @@ rav::rtp_receiver::rtp_receiver(const std::shared_ptr<uvw::loop>& loop) :
         [this](const uvw::udp_data_event& event, [[maybe_unused]] uvw::udp_handle& handle) {
             // This is the last point where exceptions can be caught before going back into c-land and crashing
             try {
+                if (event.partial) {
+                    RAV_WARNING("Partial packet received");
+                }
                 const rtp_packet_view rtp_packet(reinterpret_cast<const uint8_t*>(event.data.get()), event.length);
                 publish(rtp_packet_event {rtp_packet});
             }

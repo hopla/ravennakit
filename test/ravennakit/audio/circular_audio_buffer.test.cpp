@@ -370,10 +370,9 @@ TEST_CASE("circular_audio_buffer | read from data", "[circular_audio_buffer]") {
     REQUIRE(dst[1][1] == 4);
     REQUIRE(dst[1][2] == 6);
 
-    result =
-        ring.write_from_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
-            src.data(), 3
-        );
+    result = ring.write_from_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+        src.data(), 3
+    );
 
     REQUIRE(result);
 
@@ -386,4 +385,30 @@ TEST_CASE("circular_audio_buffer | read from data", "[circular_audio_buffer]") {
     REQUIRE(dst[1][0] == 2);
     REQUIRE(dst[1][1] == 4);
     REQUIRE(dst[1][2] == 6);
+}
+
+TEST_CASE("circular_audio_buffer | write to data", "[circular_audio_buffer]") {
+    rav::vector_stream<int16_t> src({1, 2, 3, 4, 5, 6});
+    rav::circular_audio_buffer<int16_t> ring(2, 5);
+
+    auto result =
+        ring.write_from_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+            src.data(), 3
+        );
+
+    REQUIRE(result);
+
+    std::vector<int16_t> dst(6);
+    result = ring.read_to_data<int16_t, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+        dst.data(), 3
+    );
+
+    REQUIRE(result);
+
+    REQUIRE(dst[0] == 1);
+    REQUIRE(dst[1] == 2);
+    REQUIRE(dst[2] == 3);
+    REQUIRE(dst[3] == 4);
+    REQUIRE(dst[4] == 5);
+    REQUIRE(dst[5] == 6);
 }

@@ -4,7 +4,7 @@ include(submodules/build_tools/cmake/git_version.cmake)
 
 project(ravennakit VERSION ${GIT_VERSION_MAJOR}.${GIT_VERSION_MINOR}.${GIT_VERSION_PATCH} LANGUAGES C CXX)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/HelperTargets.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/helper_targets.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_VISIBILITY_PRESET hidden)

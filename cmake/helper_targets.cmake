@@ -1,7 +1,7 @@
 add_library(rav_recommended_warning_flags INTERFACE)
 
 if ((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") OR (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC"))
-    target_compile_options(rav_recommended_warning_flags INTERFACE "/W4")
+    target_compile_options(rav_recommended_warning_flags INTERFACE "/W4" "/wd4702")
 elseif ((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
     target_compile_options(rav_recommended_warning_flags INTERFACE
             -Wall

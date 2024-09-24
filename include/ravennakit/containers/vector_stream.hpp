@@ -25,7 +25,9 @@ template<class T>
 class vector_stream {
   public:
     vector_stream() = default;
+
     explicit vector_stream(size_t size) : data_(size) {}
+
     vector_stream(std::initializer_list<T> values) : data_(values) {}
 
     vector_stream(const vector_stream& other) = default;
@@ -61,11 +63,11 @@ class vector_stream {
      * @param value The value to write.
      */
     void push_back_be(T value) {
-        if constexpr (little_endian) {
-            push_back(byte_order::swap_bytes(value));
-        } else {
-            push_back(value);
-        }
+#if RAV_LITTLE_ENDIAN
+        push_back(byte_order::swap_bytes(value));
+#else
+        push_back(value);
+#endif
     }
 
     /**
@@ -86,11 +88,11 @@ class vector_stream {
      * @return True if the value was written successfully, false otherwise.
      */
     void push_back_le(T value) {
-        if constexpr (big_endian) {
-            push_back(byte_order::swap_bytes(value));
-        } else {
-            push_back(value);
-        }
+#if RAV_BIG_ENDIAN
+        push_back(byte_order::swap_bytes(value));
+#else
+        push_back(value);
+#endif
     }
 
     /**
@@ -122,10 +124,11 @@ class vector_stream {
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
     T read_be() {
-        if constexpr (little_endian) {
-            return byte_order::swap_bytes(read());
-        }
+#if RAV_LITTLE_ENDIAN
+        return byte_order::swap_bytes(read());
+#else
         return read();
+#endif
     }
 
     /**
@@ -134,10 +137,11 @@ class vector_stream {
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
     T read_le() {
-        if constexpr (big_endian) {
-            return byte_order::swap_bytes(read());
-        }
+#if RAV_BIG_ENDIAN
+        return byte_order::swap_bytes(read());
+#else
         return read();
+#endif
     }
 
     /**

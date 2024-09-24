@@ -11,6 +11,7 @@
 #pragma once
 
 #include <vector>
+#include <cstring>
 
 #include "ravennakit/core/assert.hpp"
 

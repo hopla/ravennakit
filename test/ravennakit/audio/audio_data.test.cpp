@@ -454,8 +454,8 @@ TEST_CASE("audio_data | int16 to int32", "[audio_data]") {
 TEST_CASE("audio_data | int16 to float", "[audio_data]") {
     SECTION("Convert int16 to float be to be") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::be, interleaving::interleaved>(
@@ -466,12 +466,14 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_be(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_be(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read_be(), -0.f, 1.f));
     }
 
     SECTION("Convert int16 to float be to le") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::le, interleaving::interleaved>(
@@ -482,12 +484,14 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_le(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_le(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read_le(), -0.f, 1.f));
     }
 
     SECTION("Convert int16 to float be to ne") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::ne, interleaving::interleaved>(
@@ -498,14 +502,16 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read(), -0.f, 1.f));
     }
 }
 
 TEST_CASE("audio_data | int24 to float", "[audio_data]") {
     SECTION("Convert int24 to float be to be") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::be, interleaving::interleaved>(
@@ -516,12 +522,14 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_be(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_be(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read_be(), -0.f, 1.f));
     }
 
     SECTION("Convert int24 to float be to le") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::le, interleaving::interleaved>(
@@ -532,12 +540,14 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_le(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_le(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read_le(), -0.f, 1.f));
     }
 
     SECTION("Convert int24 to float be to ne") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<float> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::ne, interleaving::interleaved>(
@@ -548,14 +558,16 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read(), -1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +1.f, f32_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +0.f, f32_tolerance));
+        REQUIRE(rav::util::is_between(dst.read(), -1.f, 0.f));
+        REQUIRE(rav::util::is_between(dst.read(), -0.f, 1.f));
     }
 }
 
 TEST_CASE("audio_data | int16 to double", "[audio_data]") {
     SECTION("Convert int16 to double be to be") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::be, interleaving::interleaved>(
@@ -566,12 +578,14 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_be(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_be(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read_be(), -0.0, 1.0));
     }
 
     SECTION("Convert int16 to double be to le") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::le, interleaving::interleaved>(
@@ -582,12 +596,14 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_le(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_le(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read_le(), -0.0, 1.0));
     }
 
     SECTION("Convert int16 to double be to ne") {
         rav::vector_stream<int16_t> src;
-        src.push_back_be({-32768, 32767, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-32768, 32767, 0, -15000, 15000});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::ne, interleaving::interleaved>(
@@ -598,14 +614,16 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read(), -0.0, 1.0));
     }
 }
 
 TEST_CASE("audio_data | int24 to double", "[audio_data]") {
     SECTION("Convert int24 to double be to be") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::be, interleaving::interleaved>(
@@ -616,12 +634,14 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_be(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_be(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_be(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read_be(), -0.0, 1.0));
     }
 
     SECTION("Convert int24 to double be to le") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::le, interleaving::interleaved>(
@@ -632,12 +652,14 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read_le(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read_le(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read_le(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read_le(), -0.0, 1.0));
     }
 
     SECTION("Convert int24 to double be to ne") {
         rav::vector_stream<rav::int24_t> src;
-        src.push_back_be({-8388608, 8388607, 0});
-        rav::vector_stream<double> dst(3);
+        src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
+        rav::vector_stream<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::ne, interleaving::interleaved>(
@@ -648,6 +670,8 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
         REQUIRE(rav::util::is_within(dst.read(), -1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +1.0, f64_tolerance));
         REQUIRE(rav::util::is_within(dst.read(), +0.0, f64_tolerance));
+        REQUIRE(rav::util::is_between(dst.read(), -1.0, 0.0));
+        REQUIRE(rav::util::is_between(dst.read(), -0.0, 1.0));
     }
 }
 

@@ -188,24 +188,24 @@ static void convert_sample(const SrcType* src, DstType* dst) {
             } else if constexpr (std::is_same_v<DstType, int32_t>) {
                 DstByteOrder::write(dst, sizeof(DstType), src_sample << 16);
             } else if constexpr (std::is_same_v<DstType, float>) {
-                const bool is_negative = static_cast<int64_t>(src_sample) << 48 < 0;
-                auto f = static_cast<float>(src_sample) * 0.000030517578125f * (is_negative ? -1 : 1);
+                const auto int64 = static_cast<int64_t>(src_sample) << 48 >> 48;
+                auto f = static_cast<float>(int64) * 0.000030517578125f;
                 DstByteOrder::write(dst, sizeof(DstType), f);
             } else if constexpr (std::is_same_v<DstType, double>) {
-                const bool is_negative = static_cast<int64_t>(src_sample) << 48 < 0;
-                auto f = static_cast<double>(src_sample) * 0.000030517578125f * (is_negative ? -1 : 1);
+                const auto int64 = static_cast<int64_t>(src_sample) << 48 >> 48;
+                auto f = static_cast<double>(int64) * 0.000030517578125f;
                 DstByteOrder::write(dst, sizeof(DstType), f);
             } else {
                 RAV_ASSERT_FALSE("Conversion not available");
             }
         } else if constexpr (std::is_same_v<SrcType, int24_t>) {
             if constexpr (std::is_same_v<DstType, float>) {
-                const bool is_negative = static_cast<int64_t>(src_sample) << 40 < 0;
-                auto f = static_cast<float>(src_sample) * 0.00000011920928955078125f * (is_negative ? -1 : 1);
+                const auto int64 = static_cast<int64_t>(src_sample) << 40 >> 40;
+                auto f = static_cast<float>(int64) * 0.00000011920928955078125f;
                 DstByteOrder::write(dst, sizeof(DstType), f);
             } else if constexpr (std::is_same_v<DstType, double>) {
-                const bool is_negative = static_cast<int64_t>(src_sample) << 40 < 0;
-                auto f = static_cast<double>(src_sample) * 0.00000011920928955078125f * (is_negative ? -1 : 1);
+                const auto int64 = static_cast<int64_t>(src_sample) << 40 >> 40;
+                auto f = static_cast<double>(int64) * 0.00000011920928955078125f;
                 DstByteOrder::write(dst, sizeof(DstType), f);
             } else {
                 RAV_ASSERT_FALSE("Conversion not available");
@@ -264,17 +264,13 @@ convert(const SrcType* src, const size_t src_size, DstType* dst, const size_t ds
         return true;
     } else if constexpr (std::is_same_v<SrcType, DstType> && std::is_same_v<SrcInterleaving, DstInterleaving>) {
         RAV_ASSERT(src_size == dst_size);
-
         std::copy_n(src, src_size, dst);
-
         if constexpr (SrcByteOrder::is_little_endian == DstByteOrder::is_little_endian) {
             return true;  // No need for swapping
         }
-
         for (size_t i = 0; i < dst_size; ++i) {
             dst[i] = rav::byte_order::swap_bytes(dst[i]);
         }
-
         return true;
     }
 

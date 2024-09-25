@@ -12,75 +12,128 @@
 
 #include <sstream>
 
-#include "ravennakit/core/log.hpp"
+#include "ravennakit/core/result.hpp"
 #include "ravennakit/core/string.hpp"
-#include "ravennakit/core/util.hpp"
 
 namespace rav {
 
+/**
+ * A class that represents an SDP session description.
+ */
 class session_description {
   public:
-    enum class parse_result { ok, invalid_version, invalid_line };
+    enum class network_type { undefined, internet };
+    enum class address_type { undefined, ipv4, ipv6 };
 
-    static std::pair<parse_result, session_description> parse(const std::string& sdp_text) {
-        session_description sd;
-        std::istringstream stream(sdp_text);
-        std::string line;
-        while (std::getline(stream, line)) {
-            if (line.empty()) {
-                continue;
-            }
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
 
-            if (line.back() == '\r') {  // Remove trailing '\r' if present (because of CRLF)
-                line.pop_back();
-            }
+    /**
+     * A type which represents the origin field (o=*) of an SDP session description.
+     * In general, the origin serves as a globally unique identifier for this version of the session description, and
+     * the subfields excepting the version, taken together identify the session irrespective of any modifications.
+     */
+    struct origin {
+        /// The user's login on the originating host, or "-" if the originating host does not support the concept of
+        /// user IDs.
+        std::string username;
 
-            if (line.size() < 2) {
-                RAV_ERROR("Invalid line: {}", line);
-                return {parse_result::invalid_line, {}};
-            }
+        /// Holds a numeric string such that the tuple of <username>, <sess-id>, <nettype>, <addrtype>, and
+        /// <unicast-address> forms a globally unique identifier for the session.
+        std::string session_id;
 
-            switch (line.front()) {
-                case 'v':
-                    if (auto result = sd.parse_version(line); result != parse_result::ok) {
-                        return {result, {}};
-                    }
-                    break;
-                case 'o':
-                    if (auto result = sd.parse_origin(line); result != parse_result::ok) {
-                        return {result, {}};
-                    }
-                    break;
-                default:
-                    continue;
-            }
-        }
+        /// The version number for this session description.
+        int session_version {};
 
-        return {parse_result::ok, sd};
-    }
+        /// Specifies the type of network.
+        network_type network_type {network_type::undefined};
 
-    [[nodiscard]] int version() const {
-        return version_;
-    }
+        /// Specifies the type of address.
+        address_type address_type {address_type::undefined};
+
+        /// The address of the machine from which the session was created.
+        std::string unicast_address;
+
+        /**
+         * Parses an origin field from a string.
+         * @param line The string to parse.
+         * @return A result indicating success or failure. When parsing fails, the error message will contain a
+         * description of the error.
+         */
+        static parse_result<origin> parse(const std::string& line);
+    };
+
+    /**
+     * A type representing the connection information (c=*) of an SDP session description.
+     */
+    struct connection {
+        /// Specifies the type of network.
+        network_type network_type {network_type::undefined};
+        /// Specifies the type of address.
+        address_type address_type {address_type::undefined};
+        /// The address at which the media can be found.
+        std::string address;
+        /// Optional ttl
+        std::optional<int> ttl;
+        /// Optional number of addresses
+        std::optional<int> number_of_addresses;
+
+        /**
+         * Parses a connection info field from a string.
+         * @param line The string to parse.
+         * @return A pair containing the parse result and the connection info. When parsing fails, the connection info
+         * will be a default-constructed object.
+         */
+        static parse_result<connection> parse(const std::string& line);
+    };
+
+    struct address {
+        std::string ip_address;
+        std::optional<int> ttl;
+        std::optional<int> number_of_addresses;
+    };
+
+    /**
+     * Parses an SDP session description from a string.
+     * @param sdp_text The SDP text to parse.
+     * @return A pair containing the parse result and the session description. When parsing fails, the session
+     * description is a default-constructed object.
+     */
+    static parse_result<session_description> parse(const std::string& sdp_text);
+
+    /**
+     * @returns The version of the SDP session description.
+     */
+    [[nodiscard]] int version() const;
+
+    /**
+     * @returns The origin of the SDP session description.
+     */
+    [[nodiscard]] const origin& get_origin() const;
+
+    /**
+     * @return The connection information of the SDP session description.
+     */
+    [[nodiscard]] std::optional<connection> get_connection() const;
+
+    /**
+     * @returns The session name of the SDP session description.
+     */
+    [[nodiscard]] std::string session_name() const;
+
+    /**
+     * @returns The connection information of the SDP session description.
+     */
+    [[nodiscard]] std::optional<connection> connection_info() const;
 
   private:
     int version_ {};
+    origin origin_;
+    std::string session_name_;
+    std::optional<connection> connection_info_;
 
-    parse_result parse_version(const std::string_view line) {
-        const auto value = from_first_occurrence_of(line, "=", false);
-        const auto v = rav::from_string_strict<int>(value);
-        if (!v) {
-            return parse_result::invalid_version;
-        }
-        version_ = *v;
-        return parse_result::ok;
-    }
-
-    parse_result parse_origin(const std::string_view line) {
-        const auto value = from_first_occurrence_of(line, "=", false);
-
-        return parse_result::ok;
-    }
+    static parse_result<int> parse_version(std::string_view line);
 };
 
 }  // namespace rav

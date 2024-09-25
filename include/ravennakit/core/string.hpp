@@ -10,10 +10,12 @@
 
 #pragma once
 
-#include <string_view>
+#include <algorithm>
 #include <charconv>
 #include <optional>
-#include <algorithm>
+#include <string_view>
+#include <vector>
+#include <sstream>
 
 namespace rav {
 
@@ -36,8 +38,7 @@ inline bool starts_with(const std::string_view text, const std::string_view star
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view up_to_first_occurrence_of(
-    std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.find(string_to_search_for);
@@ -58,9 +59,7 @@ inline std::string_view up_to_first_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view up_to_the_nth_occurrence_of(
-    const size_t nth,
-    std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    const size_t nth, std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool include_sub_string_in_result
 ) {
     size_t pos = std::string_view::npos;
@@ -89,8 +88,7 @@ inline std::string_view up_to_the_nth_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view up_to_last_occurrence_of(
-    const std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    const std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.rfind(string_to_search_for);
@@ -110,8 +108,7 @@ inline std::string_view up_to_last_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view from_first_occurrence_of(
-    std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.find(string_to_search_for);
@@ -131,9 +128,7 @@ inline std::string_view from_first_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view from_nth_occurrence_of(
-    const size_t nth,
-    std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    const size_t nth, std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool includeSubStringInResult
 ) {
     size_t pos = std::string_view::npos;
@@ -151,8 +146,7 @@ inline std::string_view from_nth_occurrence_of(
     }
 
     return string_to_search_in.substr(
-        includeSubStringInResult ? pos : pos + string_to_search_for.size(),
-        string_to_search_in.size()
+        includeSubStringInResult ? pos : pos + string_to_search_for.size(), string_to_search_in.size()
     );
 }
 
@@ -164,8 +158,7 @@ inline std::string_view from_nth_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view from_last_occurrence_of(
-    const std::string_view string_to_search_in,
-    const std::string_view string_to_search_for,
+    const std::string_view string_to_search_in, const std::string_view string_to_search_for,
     const bool includeSubStringInResult
 ) {
     const auto pos = string_to_search_in.rfind(string_to_search_for);
@@ -249,7 +242,46 @@ std::optional<Type> from_string_strict(std::string_view string) {
  * @return True if character was found, of false if character was not found.
  */
 inline bool string_contains(const std::string_view string, char c) {
-    return std::any_of(string.begin(), string.end(), [c](const char& item) { return item == c; });
+    return std::any_of(string.begin(), string.end(), [c](const char& item) {
+        return item == c;
+    });
 }
 
+/**
+ * Splits a string into a vector of strings based on a delimiter.
+ * @param string The string to split.
+ * @param delimiter The delimiter to split the string by.
+ * @return A vector of strings.
+ */
+inline std::vector<std::string> split_string(const std::string& string, const char* delimiter) {
+    std::vector<std::string> results;
+
+    size_t prev = 0;
+    size_t next = 0;
+
+    while ((next = string.find_first_of(delimiter, prev)) != std::string::npos) {
+        if (next - prev != 0) {
+            results.push_back(string.substr(prev, next - prev));
+        }
+        prev = next + 1;
+    }
+
+    if (prev < string.size()) {
+        results.push_back(string.substr(prev));
+    }
+
+    return results;
 }
+
+/**
+ * Splits a string into a vector of strings based on a delimiter.
+ * @param string The string to split.
+ * @param delimiter The delimiter to split the string by.
+ * @return A vector of strings.
+ */
+inline std::vector<std::string> split_string(const std::string& string, const char delimiter) {
+    const char delimiter_string[2] = {delimiter, '\0'};
+    return split_string(string, delimiter_string);
+}
+
+}  // namespace rav

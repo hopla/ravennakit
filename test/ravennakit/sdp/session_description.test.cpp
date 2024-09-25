@@ -39,49 +39,44 @@ constexpr auto k_anubis_sdp =
 
 }
 
-TEST_CASE("session_description | test basic assumptions", "[session_description]") {
-    SECTION("Test newline delimited string") {
-        std::string text = "line1\nline2\nline3\n";
-        std::istringstream stream(text);
-        std::string line;
-        std::vector<std::string> lines;
-        while (std::getline(stream, line)) {
-            // Remove trailing '\r' if present (because of CRLF)
-            if (!line.empty() && line.back() == '\r') {
-                line.pop_back();
-            }
-            lines.push_back(line);
-        }
-        REQUIRE(lines.size() == 3);
-        REQUIRE(lines[0] == "line1");
-        REQUIRE(lines[1] == "line2");
-        REQUIRE(lines[2] == "line3");
-    }
-
-    SECTION("Test crlf delimited string") {
-        std::string text = "line1\r\nline2\r\nline3\r\n";
-        std::istringstream stream(text);
-        std::string line;
-        std::vector<std::string> lines;
-        while (std::getline(stream, line)) {
-            // Remove trailing '\r' if present (because of CRLF)
-            if (!line.empty() && line.back() == '\r') {
-                line.pop_back();
-            }
-            lines.push_back(line);
-        }
-        REQUIRE(lines.size() == 3);
-        REQUIRE(lines[0] == "line1");
-        REQUIRE(lines[1] == "line2");
-        REQUIRE(lines[2] == "line3");
-    }
-}
-
 TEST_CASE("session_description", "[session_description]") {
-    SECTION("Parse a description from Anubis") {
-        auto [result, sd] = rav::session_description::parse(k_anubis_sdp);
-        REQUIRE(result == rav::session_description::parse_result::ok);
-        REQUIRE(sd.version() == 0);
+    SECTION("Test Anubis description") {
+        auto result = rav::session_description::parse(k_anubis_sdp);
+        REQUIRE(result.is_ok());
+
+        SECTION("Parse a description from an Anubis") {
+            REQUIRE(result.get_ok().version() == 0);
+        }
+
+        SECTION("Test version") {
+            constexpr auto sdp =
+                "v=1\r\n"
+                "o=- 13 0 IN IP4 192.168.15.52\r\n"
+                "s=Anubis_610120_13\r\n";
+            REQUIRE(rav::session_description::parse(sdp).is_err());
+        }
+
+        SECTION("Test origin") {
+            const auto& origin = result.get_ok().get_origin();
+            REQUIRE(origin.username == "-");
+            REQUIRE(origin.session_id == "13");
+            REQUIRE(origin.session_version == 0);
+            REQUIRE(origin.network_type == rav::session_description::network_type::internet);
+            REQUIRE(origin.address_type == rav::session_description::address_type::ipv4);
+            REQUIRE(origin.unicast_address == "192.168.15.52");
+        }
+
+        SECTION("Test connection") {
+            const auto& connection = result.get_ok().get_connection();
+            REQUIRE(connection.has_value());
+            REQUIRE(connection->network_type == rav::session_description::network_type::internet);
+            REQUIRE(connection->address_type == rav::session_description::address_type::ipv4);
+            REQUIRE(connection->address == "239.1.15.52/15");
+        }
+
+        SECTION("Test session name") {
+            REQUIRE(result.get_ok().session_name() == "Anubis_610120_13");
+        }
     }
 
     SECTION("Test crlf delimited string") {
@@ -89,16 +84,87 @@ TEST_CASE("session_description", "[session_description]") {
             "v=0\r\n"
             "o=- 13 0 IN IP4 192.168.15.52\r\n"
             "s=Anubis_610120_13\r\n";
-        auto sd = rav::session_description::parse(crlf);
-        // TODO: Verify
+        auto result = rav::session_description::parse(crlf);
+        REQUIRE(result.is_ok());
+        REQUIRE(result.get_ok().version() == 0);
     }
 
     SECTION("Test n delimited string") {
-        constexpr auto crlf =
+        constexpr auto n =
             "v=0\n"
             "o=- 13 0 IN IP4 192.168.15.52\n"
             "s=Anubis_610120_13\n";
-        auto sd = rav::session_description::parse(crlf);
-        // TODO: Verify
+        auto result = rav::session_description::parse(n);
+        REQUIRE(result.is_ok());
+        REQUIRE(result.get_ok().version() == 0);
+    }
+}
+
+TEST_CASE("session_description | origin", "[session_description]") {
+    SECTION("Parse origin line") {
+        auto result = rav::session_description::origin::parse("o=- 13 0 IN IP4 192.168.15.52");
+        REQUIRE(result.is_ok());
+        auto origin = result.move_ok();
+        REQUIRE(origin.username == "-");
+        REQUIRE(origin.session_id == "13");
+        REQUIRE(origin.session_version == 0);
+        REQUIRE(origin.network_type == rav::session_description::network_type::internet);
+        REQUIRE(origin.address_type == rav::session_description::address_type::ipv4);
+        REQUIRE(origin.unicast_address == "192.168.15.52");
+    }
+}
+
+TEST_CASE("session_description | connection", "[session_description]") {
+    SECTION("Parse connection line") {
+        auto result = rav::session_description::connection::parse("c=IN IP4 239.1.15.52");
+        REQUIRE(result.is_ok());
+        auto connection = result.move_ok();
+        REQUIRE(connection.network_type == rav::session_description::network_type::internet);
+        REQUIRE(connection.address_type == rav::session_description::address_type::ipv4);
+        REQUIRE(connection.address == "239.1.15.52");
+        REQUIRE(connection.ttl.has_value() == false);
+        REQUIRE(connection.number_of_addresses.has_value() == false);
+    }
+
+    SECTION("Parse connection line with ttl") {
+        auto result = rav::session_description::connection::parse("c=IN IP4 239.1.15.52/15");
+        REQUIRE(result.is_ok());
+        auto connection = result.move_ok();
+        REQUIRE(connection.network_type == rav::session_description::network_type::internet);
+        REQUIRE(connection.address_type == rav::session_description::address_type::ipv4);
+        REQUIRE(connection.address == "239.1.15.52");
+        REQUIRE(connection.ttl.has_value());
+        REQUIRE(*connection.ttl == 15);
+        REQUIRE(connection.number_of_addresses.has_value() == false);
+    }
+
+    SECTION("Parse connection line with ttl and number of addresses") {
+        auto result = rav::session_description::connection::parse("c=IN IP4 239.1.15.52/15/3");
+        REQUIRE(result.is_ok());
+        auto connection = result.move_ok();
+        REQUIRE(connection.network_type == rav::session_description::network_type::internet);
+        REQUIRE(connection.address_type == rav::session_description::address_type::ipv4);
+        REQUIRE(connection.address == "239.1.15.52");
+        REQUIRE(connection.ttl.has_value());
+        REQUIRE(*connection.ttl == 15);
+        REQUIRE(connection.number_of_addresses.has_value());
+        REQUIRE(*connection.number_of_addresses == 3);
+    }
+
+    SECTION("Parse ipv6 connection line with number of addresses") {
+        auto result = rav::session_description::connection::parse("c=IN IP6 ff00::db8:0:101/3");
+        REQUIRE(result.is_ok());
+        auto connection = result.move_ok();
+        REQUIRE(connection.network_type == rav::session_description::network_type::internet);
+        REQUIRE(connection.address_type == rav::session_description::address_type::ipv6);
+        REQUIRE(connection.address == "ff00::db8:0:101");
+        REQUIRE(connection.ttl.has_value() == false);
+        REQUIRE(connection.number_of_addresses.has_value());
+        REQUIRE(*connection.number_of_addresses == 3);
+    }
+
+    SECTION("Parse ipv6 connection line with ttl and number of addresses") {
+        auto result = rav::session_description::connection::parse("c=IN IP6 ff00::db8:0:101/127/3");
+        REQUIRE_FALSE(result.is_ok());
     }
 }

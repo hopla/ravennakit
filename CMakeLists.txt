@@ -132,11 +132,12 @@ add_executable(rtp_receiver_example
 
 target_link_libraries(rtp_receiver_example
         PUBLIC
+        rav_recommended_warning_flags
+        rav_recommended_lto_flags
+        PRIVATE
         ravennakit
         portaudio_static
         CLI11::CLI11
-        rav_recommended_warning_flags
-        rav_recommended_lto_flags
 )
 
 if (TRACY_ENABLE)

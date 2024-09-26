@@ -11,6 +11,7 @@
 #pragma once
 
 #include <sstream>
+#include <vector>
 
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/core/string.hpp"
@@ -107,44 +108,73 @@ class session_description {
     };
 
     /**
-     * A type representing (and holding) the attributes of an SDP session description.
+     * Holds the information of an RTP map.
      */
-    struct attribute_fields {
-        /**
-         * Holds the parts of an attribute.
-         */
-        struct attribute {
-            std::string key;
-            std::string value;
-        };
+    struct format {
+        int8_t payload_type {-1};
+        std::string encoding_name;
+        int32_t clock_rate {};
+        int32_t channels {};
 
-        /**
-         * Adds an attribute to the attributes.
-         * @param key The key of the attribute.
-         * @param value The value of the attribute.
-         */
-        void add(std::string key, std::string value);
+        static parse_result<format> parse(const std::string& line);
+    };
 
+    /**
+     * A type representing a media description (m=*) of an SDP session description.
+     */
+    struct media_description {
         /**
-         * Parses an attribute from a string, and adds it to the attributes. Expects the line to start with "a=".
+         * Parses a media description from a string (i.e. the line starting with m=*). Does not parse the connection
+         * into or attributes.
          * @param line The string to parse.
-         * @return A pair containing the parse result and the attribute.
+         * @returns A result indicating success or failure. When parsing fails, the error message will contain a
+         * description of the error.
          */
-        parse_result<void> parse_add(const std::string& line);
+        static parse_result<media_description> parse_new(const std::string& line);
 
         /**
-         * Gets the value of an attribute.
-         * @param key The key of the attribute.
-         * @return The value of the attribute, or an empty optional if the attribute does not exist.
+         * Parse an attribute from a string.
+         * @param line The string to parse.
+         * @return A result indicating success or failure. When parsing fails, the error message will contain a
+         * description of the error.
          */
-        [[nodiscard]] std::optional<std::string> get(const std::string& key) const;
+        parse_result<void> parse_attribute(const std::string& line);
 
         /**
-         * Checks if an attribute exists.
-         * @param key The key of the attribute.
-         * @return True if the attribute exists, false otherwise.
+         * @returns The media type of the media description (i.e. audio, video, text, application, message).
          */
-        [[nodiscard]] bool has_attribute(const std::string& key) const;
+        [[nodiscard]] const std::string& media_type() const;
+
+        /**
+         * @return The port number of the media description.
+         */
+        [[nodiscard]] uint16_t port() const;
+
+        /**
+         * @return The number of ports
+         */
+        [[nodiscard]] uint16_t number_of_ports() const;
+
+        /**
+         * @return The protocol of the media description.
+         */
+        [[nodiscard]] const std::string& protocol() const;
+
+        /**
+         * @return The formats of the media description.
+         */
+        [[nodiscard]] const std::vector<format>& formats() const;
+
+        /**
+         * @return The connection information of the media description.
+         */
+        [[nodiscard]] const std::vector<connection_info_field>& connection_infos() const;
+
+        /**
+         * Adds a connection info to the media description.
+         * @param connection_info The connection info to add.
+         */
+        void add_connection_info(connection_info_field connection_info);
 
         /**
          * @returns The value of the "ptime" attribute, or an empty optional if the attribute does not exist or the
@@ -153,36 +183,20 @@ class session_description {
         [[nodiscard]] std::optional<double> ptime() const;
 
       private:
-        std::vector<attribute> attributes_;
-    };
-
-    /**
-     * A type representing a media description (m=*) of an SDP session description.
-     */
-    struct media_description {
         /// The media type of the media description (i.e. audio, video, text, application, message).
-        std::string media_type;
+        std::string media_type_;
         /// The port number of the media description.
-        uint16_t port {};
+        uint16_t port_ {};
         /// Number of ports
-        uint16_t number_of_ports {};
+        uint16_t number_of_ports_ {};
         /// The protocol of the media description.
-        std::string protocol;
+        std::string protocol_;
         /// The formats of the media description.
-        std::vector<std::string> formats;
+        std::vector<format> formats_;
         /// The connection information of the media description.
-        std::vector<connection_info_field> connection_infos;
-        /// Attributes of the media description.
-        attribute_fields attributes;
-
-        /**
-         * Parses a media description from a string (i.e. the line starting with m=*). Does not parse the connection
-         * into or attributes.
-         * @param line The string to parse.
-         * @returns A result indicating success or failure. When parsing fails, the error message will contain a
-         * description of the error.
-         */
-        static parse_result<media_description> parse(const std::string& line);
+        std::vector<connection_info_field> connection_infos_;
+        /// Packet time in milliseconds
+        std::optional<double> ptime_;
     };
 
     /**
@@ -191,7 +205,7 @@ class session_description {
      * @return A pair containing the parse result and the session description. When parsing fails, the session
      * description is a default-constructed object.
      */
-    static parse_result<session_description> parse(const std::string& sdp_text);
+    static parse_result<session_description> parse_new(const std::string& sdp_text);
 
     /**
      * @returns The version of the SDP session description.
@@ -223,11 +237,6 @@ class session_description {
      */
     [[nodiscard]] const std::vector<media_description>& media_descriptions() const;
 
-    /**
-     * @return The attributes of the SDP session description.
-     */
-    [[nodiscard]] const attribute_fields& attributes() const;
-
   private:
     /// Type to specify which section of the SDP we are parsing
     enum class section { session_description, media_description };
@@ -238,9 +247,9 @@ class session_description {
     std::optional<connection_info_field> connection_info_;
     time_active_field time_active_;
     std::vector<media_description> media_descriptions_;
-    attribute_fields attributes_;
 
     static parse_result<int> parse_version(std::string_view line);
+    parse_result<void> parse_attribute(const std::string& line);
 };
 
 }  // namespace rav

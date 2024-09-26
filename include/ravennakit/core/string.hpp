@@ -224,7 +224,7 @@ std::optional<Type> ston(std::string_view string, const bool strict = false) {
 }
 
 /**
- * Converts a string to a double, or returns an empty optional if the conversion failed.
+ * String to double - converts a string to a double, or returns an empty optional if the conversion failed.
  * @param str String to convert.
  * @return The converted double, or an empty optional if the conversion failed.
  */

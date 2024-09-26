@@ -237,17 +237,48 @@ TEST_CASE("session_description | media_description", "[session_description]") {
     SECTION("Test media field with multiple formats") {
         auto result = rav::session_description::media_description::parse_new("m=audio 5004/2 RTP/AVP 98 99 100");
         REQUIRE(result.is_ok());
-        const auto media = result.move_ok();
+
+        auto media = result.move_ok();
         REQUIRE(media.media_type() == "audio");
         REQUIRE(media.port() == 5004);
         REQUIRE(media.number_of_ports() == 2);
         REQUIRE(media.protocol() == "RTP/AVP");
         REQUIRE(media.formats().size() == 3);
-        auto format1 = media.formats()[0];
-        auto format2 = media.formats()[1];
-        auto format3 = media.formats()[2];
+
+        const auto& format1 = media.formats()[0];
         REQUIRE(format1.payload_type == 98);
+        REQUIRE(format1.encoding_name.empty());
+        REQUIRE(format1.clock_rate == 0);
+        REQUIRE(format1.channels == 0);
+
+        const auto& format2 = media.formats()[1];
         REQUIRE(format2.payload_type == 99);
+        REQUIRE(format2.encoding_name.empty());
+        REQUIRE(format2.clock_rate == 0);
+        REQUIRE(format2.channels == 0);
+
+        const auto& format3 = media.formats()[2];
         REQUIRE(format3.payload_type == 100);
+        REQUIRE(format3.encoding_name.empty());
+        REQUIRE(format3.clock_rate == 0);
+        REQUIRE(format3.channels == 0);
+
+        media.parse_attribute("a=rtpmap:98 L16/48000/2");
+        REQUIRE(format1.payload_type == 98);
+        REQUIRE(format1.encoding_name == "L16");
+        REQUIRE(format1.clock_rate == 48000);
+        REQUIRE(format1.channels == 2);
+
+        media.parse_attribute("a=rtpmap:99 L16/96000/2");
+        REQUIRE(format2.payload_type == 99);
+        REQUIRE(format2.encoding_name == "L16");
+        REQUIRE(format2.clock_rate == 96000);
+        REQUIRE(format2.channels == 2);
+
+        media.parse_attribute("a=rtpmap:100 L24/44100");
+        REQUIRE(format3.payload_type == 100);
+        REQUIRE(format3.encoding_name == "L24");
+        REQUIRE(format3.clock_rate == 44100);
+        REQUIRE(format3.channels == 1);
     }
 }

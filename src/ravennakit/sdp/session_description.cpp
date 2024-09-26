@@ -358,6 +358,8 @@ rav::session_description::format::parse(const std::string& line) {
         } else {
             return parse_result<format>::err("rtpmap: invalid encoding parameters");
         }
+    } else {
+        map.channels = 1;
     }
 
     return parse_result<format>::ok(map);

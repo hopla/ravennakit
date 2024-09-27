@@ -15,6 +15,7 @@
 
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/core/string.hpp"
+#include "reference_clock.hpp"
 
 namespace rav {
 
@@ -268,6 +269,7 @@ class session_description {
     time_active_field time_active_;
     std::vector<media_description> media_descriptions_;
     std::optional<media_direction> media_direction_;
+    std::optional<sdp::reference_clock> reference_clock_;
 
     static parse_result<int> parse_version(std::string_view line);
     parse_result<void> parse_attribute(std::string_view line);

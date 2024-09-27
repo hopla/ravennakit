@@ -15,6 +15,7 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/core/todo.hpp"
+#include "ravennakit/sdp/reference_clock.hpp"
 
 namespace {
 constexpr auto k_sdp_ptime = "ptime";
@@ -559,7 +560,13 @@ rav::session_description::parse_result<void> rav::session_description::parse_att
     } else if (key == k_sdp_inactive) {
         media_direction_ = media_direction::inactive;
     } else if (key == k_sdp_ts_refclk) {
-        // TODO("Implement!");
+        if (const auto value = parser.read_until_end()) {
+            auto ref_clock = sdp::reference_clock::parse_new(*value);
+            if (ref_clock.is_err()) {
+                return parse_result<void>::err(ref_clock.get_err());
+            }
+            reference_clock_ = ref_clock.move_ok();
+        }
     } else {
         RAV_WARNING("Ignoring unknown attribute on session: {}", *key);
     }

@@ -202,6 +202,11 @@ class session_description {
          */
         [[nodiscard]] std::optional<media_direction> direction() const;
 
+        /**
+         * @return The reference clock of the media description.
+         */
+        [[nodiscard]] std::optional<sdp::reference_clock> reference_clock() const;
+
       private:
         std::string media_type_;
         uint16_t port_ {};
@@ -212,6 +217,7 @@ class session_description {
         std::optional<double> ptime_;
         std::optional<double> max_ptime_;
         std::optional<media_direction> media_direction_;
+        std::optional<sdp::reference_clock> reference_clock_;
     };
 
     /**
@@ -257,6 +263,11 @@ class session_description {
      * which is the default as specified in RFC 8866 section 6.7).
      */
     [[nodiscard]] media_direction direction() const;
+
+    /**
+     * @return The reference clock of the session description.
+     */
+    [[nodiscard]] std::optional<sdp::reference_clock> reference_clock() const;
 
   private:
     /// Type to specify which section of the SDP we are parsing

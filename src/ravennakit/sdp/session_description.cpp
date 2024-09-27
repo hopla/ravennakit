@@ -321,6 +321,14 @@ rav::session_description::media_description::parse_attribute(const std::string_v
         media_direction_ = media_direction::recvonly;
     } else if (key == k_sdp_inactive) {
         media_direction_ = media_direction::inactive;
+    } else if (key == k_sdp_ts_refclk) {
+        if (const auto value = parser.read_until_end()) {
+            auto ref_clock = sdp::reference_clock::parse_new(*value);
+            if (ref_clock.is_err()) {
+                return parse_result<void>::err(ref_clock.get_err());
+            }
+            reference_clock_ = ref_clock.move_ok();
+        }
     } else {
         RAV_WARNING("Ignoring unknown attribute on media: {}", *key);
     }
@@ -370,6 +378,10 @@ rav::session_description::media_description::direction() const {
     return media_direction_;
 }
 
+std::optional<rav::sdp::reference_clock> rav::session_description::media_description::reference_clock() const {
+    return reference_clock_;
+}
+
 rav::session_description::parse_result<rav::session_description::format>
 rav::session_description::format::parse_new(const std::string_view line) {
     string_parser parser(line);
@@ -399,7 +411,8 @@ rav::session_description::format::parse_new(const std::string_view line) {
 
     if (parser.skip('/')) {
         if (const auto num_channels = parser.read_int<int32_t>()) {
-            // Note: strictly speaking the encoding parameters can be anything, but as of now it's only used for channels.
+            // Note: strictly speaking the encoding parameters can be anything, but as of now it's only used for
+            // channels.
             map.num_channels = *num_channels;
         } else {
             return parse_result<format>::err("rtpmap: failed to parse number of channels");
@@ -521,6 +534,10 @@ rav::session_description::media_direction rav::session_description::direction() 
         return *media_direction_;
     }
     return media_direction::sendrecv;
+}
+
+std::optional<rav::sdp::reference_clock> rav::session_description::reference_clock() const {
+    return reference_clock_;
 }
 
 rav::session_description::parse_result<int> rav::session_description::parse_version(const std::string_view line) {

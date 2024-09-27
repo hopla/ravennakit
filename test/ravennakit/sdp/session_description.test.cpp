@@ -128,10 +128,28 @@ TEST_CASE("session_description | description from anubis", "[session_description
         REQUIRE(conn.ttl.has_value() == true);
         REQUIRE(*conn.ttl == 15);
         REQUIRE(static_cast<int64_t>(media.ptime().value()) == 1);
+
+        SECTION("Test refclk on media") {
+            const auto& refclk = media.reference_clock();
+            REQUIRE(refclk.has_value());
+            REQUIRE(refclk->source() == rav::sdp::reference_clock::clock_source::ptp);
+            REQUIRE(refclk->ptp_version() == rav::sdp::reference_clock::ptp_ver::IEEE_1588_2008);
+            REQUIRE(refclk->gmid() == "00-1D-C1-FF-FE-51-9E-F7");
+            REQUIRE(refclk->domain() == 0);
+        }
     }
 
     SECTION("Media direction") {
         REQUIRE(result.get_ok().direction() == rav::session_description::media_direction::sendrecv);
+    }
+
+    SECTION("Test refclk on session") {
+        const auto& refclk = result.get_ok().reference_clock();
+        REQUIRE(refclk.has_value());
+        REQUIRE(refclk->source() == rav::sdp::reference_clock::clock_source::ptp);
+        REQUIRE(refclk->ptp_version() == rav::sdp::reference_clock::ptp_ver::IEEE_1588_2008);
+        REQUIRE(refclk->gmid() == "00-1D-C1-FF-FE-51-9E-F7");
+        REQUIRE(refclk->domain() == 0);
     }
 }
 

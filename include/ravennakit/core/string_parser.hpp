@@ -16,6 +16,8 @@
 #include <string>
 #include <string_view>
 
+#include "assert.hpp"
+#include "constants.hpp"
 #include "string.hpp"
 
 namespace rav {
@@ -60,7 +62,7 @@ class string_parser {
      * @param include_delimiter Whether to include the delimiter in the returned string.
      * @return The read string, or an empty optional if the string is exhausted.
      */
-    std::optional<std::string_view> read_string_until(const char delimiter, const bool include_delimiter = false) {
+    std::optional<std::string_view> read_until(const char delimiter, const bool include_delimiter = false) {
         if (str_.empty()) {
             return std::nullopt;
         }
@@ -83,7 +85,7 @@ class string_parser {
      * @param include_delimiter Whether to include the delimiter in the returned string.
      * @return The read string.
      */
-    std::optional<std::string_view> read_string_until(const char* delimiter, const bool include_delimiter = false) {
+    std::optional<std::string_view> read_until(const char* delimiter, const bool include_delimiter = false) {
         if (str_.empty()) {
             return std::nullopt;
         }
@@ -114,7 +116,7 @@ class string_parser {
         if (pos == std::string_view::npos) {
             const auto str = str_;
             str_ = {};
-            return str; // NOLINT: The address of the local variable 'substr' may escape the function
+            return str;  // NOLINT: The address of the local variable 'substr' may escape the function
         }
 
         auto substr = str_.substr(0, pos);
@@ -127,13 +129,16 @@ class string_parser {
 
     /**
      * Tries to read an integer from the string. If successful, the integer is returned, otherwise an empty optional is
-     * returned.
+     * returned. If the string starts with spaces, they are skipped before parsing the number.
      * @tparam T The type of the integer to read.
      * @return The read integer or an empty optional.
      */
     template<class T>
     std::optional<T> read_int() {
         T value;
+        if (skip_n(' ', RAV_LOOP_UPPER_BOUND) == RAV_LOOP_UPPER_BOUND) {
+            RAV_ASSERT_FALSE("Loop upper bound reached while skipping spaces");
+        }
         const auto result = std::from_chars(str_.data(), str_.data() + str_.size(), value);
         if (result.ec == std::errc()) {
             str_.remove_prefix(static_cast<size_t>(result.ptr - str_.data()));
@@ -210,6 +215,30 @@ class string_parser {
         }
 
         return false;
+    }
+
+    /**
+     * Skips n amount of characters from the beginning of the string.
+     * @param chr The character to skip.
+     * @param count The number of characters to skip.
+     * @return The number of characters skipped.
+     */
+    uint64_t skip_n(const char chr, const size_t count) {
+        uint64_t i = 0;
+        for (; i < std::min(count, str_.size()); ++i) {
+            if (str_[i] != chr) {
+                break;
+            }
+        }
+        str_.remove_prefix(i);
+        return i;
+    }
+
+    /**
+     * @return True if the string is exhausted, or false otherwise.
+     */
+    [[nodiscard]] bool exhausted() const {
+        return str_.empty();
     }
 
   private:

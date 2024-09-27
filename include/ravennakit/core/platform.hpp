@@ -44,3 +44,5 @@
         #error "Please define NOMINMAX as compile constant in your build system."
     #endif
 #endif
+
+static_assert(sizeof(size_t) == sizeof(uint64_t), "size_t must be 64-bit");

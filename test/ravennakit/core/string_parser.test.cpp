@@ -18,54 +18,54 @@ TEST_CASE("string_parser", "[string_parser]") {
     SECTION("Test delimited string without include_delimiter") {
         const auto str = "this is just a random string";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until("just") == "this is ");
-        REQUIRE(parser.read_string_until("string") == " a random ");
+        REQUIRE(parser.read_until("just") == "this is ");
+        REQUIRE(parser.read_until("string") == " a random ");
     }
 
     SECTION("Test delimited string with include_delimiter") {
         const auto str = "this is just a random string";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until("just", true) == "this is just");
-        REQUIRE(parser.read_string_until("string", true) == " a random string");
+        REQUIRE(parser.read_until("just", true) == "this is just");
+        REQUIRE(parser.read_until("string", true) == " a random string");
     }
 
     SECTION("Test delimited string without include_delimiter") {
         const auto str = "key1=value1;key2=value2;key3=value3";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until('=') == "key1");
-        REQUIRE(parser.read_string_until(';') == "value1");
-        REQUIRE(parser.read_string_until('=') == "key2");
-        REQUIRE(parser.read_string_until(';') == "value2");
-        REQUIRE(parser.read_string_until('=') == "key3");
-        REQUIRE(parser.read_string_until(';') == "value3");
+        REQUIRE(parser.read_until('=') == "key1");
+        REQUIRE(parser.read_until(';') == "value1");
+        REQUIRE(parser.read_until('=') == "key2");
+        REQUIRE(parser.read_until(';') == "value2");
+        REQUIRE(parser.read_until('=') == "key3");
+        REQUIRE(parser.read_until(';') == "value3");
     }
 
     SECTION("Test delimited string with include_delimiter") {
         const auto str = "0.1.2.3";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until('1', true) == "0.1");
-        REQUIRE(parser.read_string_until('.', true) == ".");
-        REQUIRE(parser.read_string_until('3', true) == "2.3");
+        REQUIRE(parser.read_until('1', true) == "0.1");
+        REQUIRE(parser.read_until('.', true) == ".");
+        REQUIRE(parser.read_until('3', true) == "2.3");
     }
 
     SECTION("Test delimited string with include_delimiter") {
         const auto str = "0.1.2.3";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until('1') == "0.");
-        REQUIRE(parser.read_string_until('.') == "");
-        REQUIRE(parser.read_string_until('3') == "2.");
+        REQUIRE(parser.read_until('1') == "0.");
+        REQUIRE(parser.read_until('.') == "");
+        REQUIRE(parser.read_until('3') == "2.");
     }
 
     SECTION("Test delimited string where delimiter is not found") {
         SECTION("Single char") {
             const auto str = "0.1.2.3";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until('4') == "0.1.2.3");
+            REQUIRE(parser.read_until('4') == "0.1.2.3");
         }
         SECTION("Multi char") {
             const auto str = "0.1.2.3";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until("4") == "0.1.2.3");
+            REQUIRE(parser.read_until("4") == "0.1.2.3");
         }
     }
 
@@ -73,21 +73,21 @@ TEST_CASE("string_parser", "[string_parser]") {
         SECTION("Single char") {
             const auto str = "0.1.2.3";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until('.') == "0");
-            REQUIRE(parser.read_string_until('.') == "1");
-            REQUIRE(parser.read_string_until('.') == "2");
-            REQUIRE(parser.read_string_until('.') == "3");
-            REQUIRE_FALSE(parser.read_string_until('.').has_value());
+            REQUIRE(parser.read_until('.') == "0");
+            REQUIRE(parser.read_until('.') == "1");
+            REQUIRE(parser.read_until('.') == "2");
+            REQUIRE(parser.read_until('.') == "3");
+            REQUIRE_FALSE(parser.read_until('.').has_value());
         }
 
         SECTION("Multiple chars") {
             const auto str = "0.1.2.3";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until(".") == "0");
-            REQUIRE(parser.read_string_until(".") == "1");
-            REQUIRE(parser.read_string_until(".") == "2");
-            REQUIRE(parser.read_string_until(".") == "3");
-            REQUIRE_FALSE(parser.read_string_until(".").has_value());
+            REQUIRE(parser.read_until(".") == "0");
+            REQUIRE(parser.read_until(".") == "1");
+            REQUIRE(parser.read_until(".") == "2");
+            REQUIRE(parser.read_until(".") == "3");
+            REQUIRE_FALSE(parser.read_until(".").has_value());
         }
     }
 
@@ -95,13 +95,13 @@ TEST_CASE("string_parser", "[string_parser]") {
         SECTION("Include delimiter") {
             const auto str = ".";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until('.', true) == ".");
+            REQUIRE(parser.read_until('.', true) == ".");
         }
 
         SECTION("Exclude delimiter") {
             const auto str = ".";
             rav::string_parser parser(str);
-            REQUIRE(parser.read_string_until('.') == "");
+            REQUIRE(parser.read_until('.') == "");
         }
     }
 
@@ -110,11 +110,19 @@ TEST_CASE("string_parser", "[string_parser]") {
         rav::string_parser parser(str);
         REQUIRE(parser.read_int<int32_t>().value() == 0);
         REQUIRE_FALSE(parser.read_int<int32_t>().has_value());
-        REQUIRE(parser.read_string_until('.')->empty());
+        REQUIRE(parser.read_until('.')->empty());
         REQUIRE(parser.read_int<int32_t>().value() == 1);
-        REQUIRE(parser.read_string_until('.')->empty());
+        REQUIRE(parser.read_until('.')->empty());
         REQUIRE(parser.read_int<int32_t>().value() == 23456);
         REQUIRE_FALSE(parser.read_int<int32_t>().has_value());
+    }
+
+    SECTION("Parse some ints") {
+        const auto str = "11 22 33";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_int<int32_t>().value() == 11);
+        REQUIRE(parser.read_int<int32_t>().value() == 22);
+        REQUIRE(parser.read_int<int32_t>().value() == 33);
     }
 
     SECTION("Parse some floats") {
@@ -211,12 +219,46 @@ TEST_CASE("string_parser", "[string_parser]") {
         REQUIRE_FALSE(parser.read_line().has_value());
     }
 
+    SECTION("Skip n characters") {
+        const auto str = "++++++++a";
+        rav::string_parser parser(str);
+        REQUIRE(parser.skip_n('+', 4) == 4);
+        REQUIRE(parser.read_line() == "++++a");
+    }
+
+    SECTION("Skip n characters") {
+        const auto str = "++++a";
+        rav::string_parser parser(str);
+        REQUIRE(parser.skip_n('+', 4) == 4);
+        REQUIRE(parser.read_line() == "a");
+    }
+
+    SECTION("Skip n characters") {
+        const auto str = "+++a";
+        rav::string_parser parser(str);
+        REQUIRE(parser.skip_n('+', 4) == 3);
+        REQUIRE(parser.read_line() == "a");
+    }
+
+    SECTION("Skip n characters") {
+        const auto str = "a";
+        rav::string_parser parser(str);
+        REQUIRE(parser.skip_n('+', 4) == 0);
+        REQUIRE(parser.read_line() == "a");
+    }
+
+    SECTION("Skip n characters") {
+        const auto str = "";
+        rav::string_parser parser(str);
+        REQUIRE(parser.skip_n('+', 4) == 0);
+    }
+
     SECTION("Parse some refclk strings") {
         const auto str = "ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:5";
         rav::string_parser parser(str);
-        REQUIRE(parser.read_string_until('=') == "ptp");
-        REQUIRE(parser.read_string_until(':') == "IEEE1588-2008");
-        REQUIRE(parser.read_string_until(':') == "39-A7-94-FF-FE-07-CB-D0");
+        REQUIRE(parser.read_until('=') == "ptp");
+        REQUIRE(parser.read_until(':') == "IEEE1588-2008");
+        REQUIRE(parser.read_until(':') == "39-A7-94-FF-FE-07-CB-D0");
         REQUIRE(parser.read_int<int32_t>().value() == 5);
     }
 }

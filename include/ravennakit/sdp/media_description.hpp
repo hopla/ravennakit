@@ -1,0 +1,252 @@
+/*
+ * Owllab License Agreement
+ *
+ * This software is provided by Owllab and may not be used, copied, modified,
+ * merged, published, distributed, sublicensed, or sold without a valid and
+ * explicit agreement with Owllab.
+ *
+ * Copyright (c) 2024 Owllab. All rights reserved.
+ */
+
+#pragma once
+#include <cstdint>
+#include <string>
+
+#include "media_clock.hpp"
+#include "ravennakit/core/result.hpp"
+#include "ravennakit/core/string_parser.hpp"
+#include "reference_clock.hpp"
+
+namespace rav::sdp {
+
+constexpr auto k_sdp_ptime = "ptime";
+constexpr auto k_sdp_max_ptime = "maxptime";
+constexpr auto k_sdp_rtp_map = "rtpmap";
+constexpr auto k_sdp_sendrecv = "sendrecv";
+constexpr auto k_sdp_sendonly = "sendonly";
+constexpr auto k_sdp_recvonly = "recvonly";
+constexpr auto k_sdp_inactive = "recvonly";
+constexpr auto k_sdp_ts_refclk = "ts-refclk";
+constexpr auto k_sdp_inet = "IN";
+constexpr auto k_sdp_ipv4 = "IP4";
+constexpr auto k_sdp_ipv6 = "IP6";
+
+enum class netw_type { undefined, internet };
+enum class addr_type { undefined, ipv4, ipv6 };
+enum class media_direction { sendrecv, sendonly, recvonly, inactive };
+
+/**
+ * Holds the information of an RTP map.
+ */
+struct format {
+    int8_t payload_type {-1};
+    std::string encoding_name;
+    int32_t clock_rate {};
+    int32_t num_channels {};
+
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    /**
+     * Parses a format from a string.
+     * @param line The string to parse.
+     * @return A result indicating success or failure. When parsing fails, the error message will contain a
+     * description of what went wrong.
+     */
+    static parse_result<format> parse_new(const std::string_view line);
+};
+
+/**
+ * A type representing the connection information (c=*) of an SDP session description.
+ */
+struct connection_info_field {
+    /// Specifies the type of network.
+    netw_type network_type {netw_type::undefined};
+    /// Specifies the type of address.
+    addr_type address_type {addr_type::undefined};
+    /// The address at which the media can be found.
+    std::string address;
+    /// Optional ttl
+    std::optional<int> ttl;
+    /// Optional number of addresses
+    std::optional<int> number_of_addresses;
+
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    /**
+     * Parses a connection info field from a string.
+     * @param line The string to parse.
+     * @return A pair containing the parse result and the connection info. When parsing fails, the connection info
+     * will be a default-constructed object.
+     */
+    static parse_result<connection_info_field> parse_new(std::string_view line);
+};
+
+/**
+ * A type which represents the origin field (o=*) of an SDP session description.
+ * In general, the origin serves as a globally unique identifier for this version of the session description, and
+ * the subfields excepting the version, taken together identify the session irrespective of any modifications.
+ */
+struct origin_field {
+    /// The user's login on the originating host, or "-" if the originating host does not support the concept of
+    /// user IDs.
+    std::string username;
+
+    /// Holds a numeric string such that the tuple of <username>, <sess-id>, <nettype>, <addrtype>, and
+    /// <unicast-address> forms a globally unique identifier for the session.
+    std::string session_id;
+
+    /// The version number for this session description.
+    int session_version {};
+
+    /// Specifies the type of network.
+    netw_type network_type {netw_type::undefined};
+
+    /// Specifies the type of address.
+    addr_type address_type {addr_type::undefined};
+
+    /// The address of the machine from which the session was created.
+    std::string unicast_address;
+
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    /**
+     * Parses an origin field from a string.
+     * @param line The string to parse.
+     * @return A result indicating success or failure. When parsing fails, the error message will contain a
+     * description of the error.
+     */
+    static parse_result<origin_field> parse_new(std::string_view line);
+};
+
+/**
+ * A type representing the time field (t=*) of an SDP session description.
+ * Defined as seconds since January 1, 1900, UTC.
+ */
+struct time_active_field {
+    /// The start time of the session.
+    int64_t start_time {-1};
+    /// The stop time of the session.
+    int64_t stop_time {-1};
+
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    /**
+     * Parses a time field from a string.
+     * @param line The string to parse.
+     * @return A pair containing the parse result and the time field.
+     */
+    static parse_result<time_active_field> parse_new(std::string_view line);
+};
+
+/**
+ * A type representing a media description (m=*) as part of an SDP session description.
+ */
+class media_description {
+  public:
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    /**
+     * Parses a media description from a string (i.e. the line starting with m=*). Does not parse the connection
+     * into or attributes.
+     * @param line The string to parse.
+     * @returns A result indicating success or failure. When parsing fails, the error message will contain a
+     * description of the error.
+     */
+    static parse_result<media_description> parse_new(std::string_view line);
+
+    /**
+     * Parse an attribute from a string.
+     * @param line The string to parse.
+     * @return A result indicating success or failure. When parsing fails, the error message will contain a
+     * description of the error.
+     */
+    parse_result<void> parse_attribute(std::string_view line);
+
+    /**
+     * @returns The media type of the media description (i.e. audio, video, text, application, message).
+     */
+    [[nodiscard]] const std::string& media_type() const;
+
+    /**
+     * @return The port number of the media description.
+     */
+    [[nodiscard]] uint16_t port() const;
+
+    /**
+     * @return The number of ports
+     */
+    [[nodiscard]] uint16_t number_of_ports() const;
+
+    /**
+     * @return The protocol of the media description.
+     */
+    [[nodiscard]] const std::string& protocol() const;
+
+    /**
+     * @return The formats of the media description.
+     */
+    [[nodiscard]] const std::vector<format>& formats() const;
+
+    /**
+     * @return The connection information of the media description.
+     */
+    [[nodiscard]] const std::vector<connection_info_field>& connection_infos() const;
+
+    /**
+     * Adds a connection info to the media description.
+     * @param connection_info The connection info to add.
+     */
+    void add_connection_info(connection_info_field connection_info);
+
+    /**
+     * @returns The value of the "ptime" attribute, or an empty optional if the attribute does not exist or the
+     * value is invalid.
+     */
+    [[nodiscard]] std::optional<double> ptime() const;
+
+    /**
+     * @return The value of the "maxptime" attribute, or an empty optional if the attribute does not exist or the
+     * value is invalid.
+     */
+    [[nodiscard]] std::optional<double> max_ptime() const;
+
+    /**
+     * @return The direction of the media description.
+     */
+    [[nodiscard]] const std::optional<media_direction>& direction() const;
+
+    /**
+     * @return The reference clock of the media description.
+     */
+    [[nodiscard]] const std::optional<reference_clock>& reference_clock() const;
+
+    /**
+     * @return The media clock of the media description.
+     */
+    [[nodiscard]] const std::optional<media_clock>& media_clock() const;
+
+  private:
+    std::string media_type_;
+    uint16_t port_ {};
+    uint16_t number_of_ports_ {};
+    std::string protocol_;
+    std::vector<format> formats_;
+    std::vector<connection_info_field> connection_infos_;
+    std::optional<double> ptime_;
+    std::optional<double> max_ptime_;
+    std::optional<media_direction> media_direction_;
+    std::optional<sdp::reference_clock> reference_clock_;
+    std::optional<sdp::media_clock> media_clock_;
+};
+
+}  // namespace rav::sdp

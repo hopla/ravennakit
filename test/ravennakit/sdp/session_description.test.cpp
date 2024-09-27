@@ -20,7 +20,7 @@ TEST_CASE("session_description", "[session_description]") {
             "v=0\r\n"
             "o=- 13 0 IN IP4 192.168.15.52\r\n"
             "s=Anubis_610120_13\r\n";
-        auto result = rav::session_description::parse_new(crlf);
+        auto result = rav::sdp::session_description::parse_new(crlf);
         REQUIRE(result.is_ok());
         REQUIRE(result.get_ok().version() == 0);
     }
@@ -30,7 +30,7 @@ TEST_CASE("session_description", "[session_description]") {
             "v=0\n"
             "o=- 13 0 IN IP4 192.168.15.52\n"
             "s=Anubis_610120_13\n";
-        auto result = rav::session_description::parse_new(n);
+        auto result = rav::sdp::session_description::parse_new(n);
         REQUIRE(result.is_ok());
         REQUIRE(result.get_ok().version() == 0);
     }
@@ -60,7 +60,7 @@ TEST_CASE("session_description | description from anubis", "[session_description
         "a=recvonly\r\n"
         "a=midi-pre2:50040 0,0;0,1\r\n";
 
-    auto result = rav::session_description::parse_new(k_anubis_sdp);
+    auto result = rav::sdp::session_description::parse_new(k_anubis_sdp);
     REQUIRE(result.is_ok());
 
     SECTION("Parse a description from an Anubis") {
@@ -72,7 +72,7 @@ TEST_CASE("session_description | description from anubis", "[session_description
             "v=1\r\n"
             "o=- 13 0 IN IP4 192.168.15.52\r\n"
             "s=Anubis_610120_13\r\n";
-        REQUIRE(rav::session_description::parse_new(sdp).is_err());
+        REQUIRE(rav::sdp::session_description::parse_new(sdp).is_err());
     }
 
     SECTION("Test origin") {
@@ -165,6 +165,12 @@ TEST_CASE("session_description | description from anubis", "[session_description
         REQUIRE(media_clock.offset().value() == 0);
         REQUIRE_FALSE(media_clock.rate().has_value());
     }
+
+    SECTION("Test clock-domain") {
+        auto clock_domain = result.get_ok().clock_domain().value();
+        REQUIRE(clock_domain.source == rav::sdp::ravenna_clock_domain::sync_source::ptp_v2);
+        REQUIRE(clock_domain.domain == 0);
+    }
 }
 
 TEST_CASE("session_description | description from AES67 spec", "[session_description]") {
@@ -182,7 +188,7 @@ TEST_CASE("session_description | description from AES67 spec", "[session_descrip
         "a=ts-refclk:ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:0\n"
         "a=mediaclk:direct=963214424\n";
 
-    auto result = rav::session_description::parse_new(k_aes67_sdp);
+    auto result = rav::sdp::session_description::parse_new(k_aes67_sdp);
     REQUIRE(result.is_ok());
     auto session = result.move_ok();
     REQUIRE(session.version() == 0);
@@ -243,7 +249,7 @@ TEST_CASE("session_description | description from AES67 spec 2", "[session_descr
         "a=ts-refclk:ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:0\n"
         "a=mediaclk:direct=2216659908\n";
 
-    auto result = rav::session_description::parse_new(k_aes67_sdp);
+    auto result = rav::sdp::session_description::parse_new(k_aes67_sdp);
     if (result.is_err()) {
         FAIL(result.get_err());
     }

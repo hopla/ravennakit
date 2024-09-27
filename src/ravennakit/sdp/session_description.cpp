@@ -18,8 +18,8 @@
 #include "ravennakit/sdp/media_description.hpp"
 #include "ravennakit/sdp/reference_clock.hpp"
 
-rav::session_description::parse_result<rav::session_description>
-rav::session_description::parse_new(const std::string& sdp_text) {
+rav::sdp::session_description::parse_result<rav::sdp::session_description>
+rav::sdp::session_description::parse_new(const std::string& sdp_text) {
     session_description sd;
     string_parser parser(sdp_text);
 
@@ -107,46 +107,51 @@ rav::session_description::parse_new(const std::string& sdp_text) {
     return parse_result<session_description>::ok(std::move(sd));
 }
 
-int rav::session_description::version() const {
+int rav::sdp::session_description::version() const {
     return version_;
 }
 
-const rav::sdp::origin_field& rav::session_description::origin() const {
+const rav::sdp::origin_field& rav::sdp::session_description::origin() const {
     return origin_;
 }
 
-std::optional<rav::sdp::connection_info_field> rav::session_description::connection_info() const {
+std::optional<rav::sdp::connection_info_field> rav::sdp::session_description::connection_info() const {
     return connection_info_;
 }
 
-std::string rav::session_description::session_name() const {
+std::string rav::sdp::session_description::session_name() const {
     return session_name_;
 }
 
-rav::sdp::time_active_field rav::session_description::time_active() const {
+rav::sdp::time_active_field rav::sdp::session_description::time_active() const {
     return time_active_;
 }
 
-const std::vector<rav::sdp::media_description>& rav::session_description::media_descriptions() const {
+const std::vector<rav::sdp::media_description>& rav::sdp::session_description::media_descriptions() const {
     return media_descriptions_;
 }
 
-rav::sdp::media_direction rav::session_description::direction() const {
+rav::sdp::media_direction rav::sdp::session_description::direction() const {
     if (media_direction_.has_value()) {
         return *media_direction_;
     }
     return sdp::media_direction::sendrecv;
 }
 
-std::optional<rav::sdp::reference_clock> rav::session_description::ref_clock() const {
+std::optional<rav::sdp::reference_clock> rav::sdp::session_description::ref_clock() const {
     return reference_clock_;
 }
 
-const std::optional<rav::sdp::media_clock>& rav::session_description::media_clock() const {
+const std::optional<rav::sdp::media_clock>& rav::sdp::session_description::media_clock() const {
     return media_clock_;
 }
 
-rav::session_description::parse_result<int> rav::session_description::parse_version(const std::string_view line) {
+const std::optional<rav::sdp::ravenna_clock_domain>& rav::sdp::session_description::clock_domain() const {
+    return clock_domain_;
+}
+
+rav::sdp::session_description::parse_result<int>
+rav::sdp::session_description::parse_version(const std::string_view line) {
     if (!starts_with(line, "v=")) {
         return parse_result<int>::err("expecting line to start with 'v='");
     }
@@ -161,7 +166,8 @@ rav::session_description::parse_result<int> rav::session_description::parse_vers
     return parse_result<int>::err("failed to parse integer from string");
 }
 
-rav::session_description::parse_result<void> rav::session_description::parse_attribute(const std::string_view line) {
+rav::sdp::session_description::parse_result<void>
+rav::sdp::session_description::parse_attribute(const std::string_view line) {
     string_parser parser(line);
 
     if (!parser.skip("a=")) {
@@ -198,8 +204,15 @@ rav::session_description::parse_result<void> rav::session_description::parse_att
             }
             media_clock_ = clock.move_ok();
         }
-    }
-    else {
+    } else if (key == ravenna_clock_domain::k_attribute_name) {
+        if (const auto value = parser.read_until_end()) {
+            auto clock_domain = ravenna_clock_domain::parse_new(*value);
+            if (clock_domain.is_err()) {
+                return parse_result<void>::err(clock_domain.get_err());
+            }
+            clock_domain_ = clock_domain.move_ok();
+        }
+    } else {
         RAV_WARNING("Ignoring unknown attribute on session: {}", *key);
     }
 

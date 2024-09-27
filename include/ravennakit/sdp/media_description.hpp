@@ -147,6 +147,23 @@ struct time_active_field {
 };
 
 /**
+ * Defines a clock source and domain. This is a RAVENNA-specific attribute extension to the SDP specification.
+ */
+struct ravenna_clock_domain {
+    static constexpr auto k_attribute_name = "clock-domain";
+    enum class sync_source { undefined, ptp_v2 };
+
+    /// A type alias for a parse result.
+    template<class T>
+    using parse_result = result<T, const char*>;
+
+    sync_source source {sync_source::undefined};
+    int32_t domain {};
+
+    static parse_result<ravenna_clock_domain> parse_new(std::string_view line);
+};
+
+/**
  * A type representing a media description (m=*) as part of an SDP session description.
  */
 class media_description {
@@ -259,6 +276,7 @@ class media_description {
     std::optional<sdp::reference_clock> reference_clock_;
     std::optional<sdp::media_clock> media_clock_;
     std::optional<std::string> session_information_;
+    std::optional<ravenna_clock_domain> clock_domain_;
 };
 
 }  // namespace rav::sdp

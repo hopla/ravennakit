@@ -224,6 +224,29 @@ rav::sdp::time_active_field::parse_new(const std::string_view line) {
     return parse_result<time_active_field>::ok(time);
 }
 
+rav::sdp::ravenna_clock_domain::parse_result<rav::sdp::ravenna_clock_domain>
+rav::sdp::ravenna_clock_domain::parse_new(const std::string_view line) {
+    string_parser parser(line);
+
+    ravenna_clock_domain clock_domain;
+
+    if (const auto sync_source = parser.read_until(' ')) {
+        if (sync_source == "PTPv2") {
+            if (const auto domain = parser.read_int<int32_t>()) {
+                clock_domain = ravenna_clock_domain {sync_source::ptp_v2, *domain};
+            } else {
+                return parse_result<ravenna_clock_domain>::err("clock_domain: invalid domain");
+            }
+        } else {
+            return parse_result<ravenna_clock_domain>::err("clock_domain: unsupported sync source");
+        }
+    } else {
+        return parse_result<ravenna_clock_domain>::err("clock_domain: failed to parse sync source");
+    }
+
+    return parse_result<ravenna_clock_domain>::ok(clock_domain);
+}
+
 rav::sdp::media_description::parse_result<rav::sdp::media_description>
 rav::sdp::media_description::parse_new(const std::string_view line) {
     string_parser parser(line);
@@ -324,6 +347,8 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
             } else {
                 return parse_result<void>::err("media: failed to parse ptime as double");
             }
+        } else {
+            return parse_result<void>::err("media: failed to parse ptime value");
         }
     } else if (key == k_sdp_max_ptime) {
         if (const auto value = parser.read_until_end()) {
@@ -335,6 +360,8 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
             } else {
                 return parse_result<void>::err("media: failed to parse ptime as double");
             }
+        } else {
+            return parse_result<void>::err("media: failed to parse maxptime value");
         }
     } else if (key == k_sdp_sendrecv) {
         media_direction_ = media_direction::sendrecv;
@@ -351,6 +378,8 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
                 return parse_result<void>::err(ref_clock.get_err());
             }
             reference_clock_ = ref_clock.move_ok();
+        } else {
+            return parse_result<void>::err("media: failed to parse ts-refclk value");
         }
     } else if (key == sdp::media_clock::k_attribute_name) {
         if (const auto value = parser.read_until_end()) {
@@ -359,6 +388,18 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
                 return parse_result<void>::err(clock.get_err());
             }
             media_clock_ = clock.move_ok();
+        } else {
+            return parse_result<void>::err("media: failed to parse media clock value");
+        }
+    } else if (key == ravenna_clock_domain::k_attribute_name) {
+        if (const auto value = parser.read_until_end()) {
+            auto clock_domain = ravenna_clock_domain::parse_new(*value);
+            if (clock_domain.is_err()) {
+                return parse_result<void>::err(clock_domain.get_err());
+            }
+            clock_domain_ = clock_domain.move_ok();
+        } else {
+            return parse_result<void>::err("media: failed to parse clock domain value");
         }
     }
 

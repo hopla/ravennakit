@@ -92,6 +92,7 @@ class session_description {
     std::string session_name_;
     std::optional<sdp::connection_info_field> connection_info_;
     sdp::time_active_field time_active_;
+    std::optional<std::string> session_information_;
     std::vector<sdp::media_description> media_descriptions_;
     std::optional<sdp::media_direction> media_direction_;
     std::optional<sdp::reference_clock> reference_clock_;

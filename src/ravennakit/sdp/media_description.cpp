@@ -34,7 +34,7 @@ rav::sdp::format::parse_result<rav::sdp::format> rav::sdp::format::parse_new(con
         return parse_result<format>::err("rtpmap: failed to parse encoding name");
     }
 
-    if (const auto clock_rate = parser.read_int<int>()) {
+    if (const auto clock_rate = parser.read_int<int32_t>()) {
         map.clock_rate = *clock_rate;
     } else {
         return parse_result<format>::err("rtpmap: invalid clock rate");
@@ -155,7 +155,7 @@ rav::sdp::origin_field::parse_result<rav::sdp::origin_field> rav::sdp::origin_fi
     }
 
     // Session version
-    if (const auto version = parser.read_int<int>()) {
+    if (const auto version = parser.read_int<int32_t>()) {
         o.session_version = *version;
         parser.skip(' ');
     } else {
@@ -397,6 +397,10 @@ void rav::sdp::media_description::add_connection_info(connection_info_field conn
     connection_infos_.push_back(std::move(connection_info));
 }
 
+void rav::sdp::media_description::set_session_information(std::string session_information) {
+    session_information_ = std::move(session_information);
+}
+
 std::optional<double> rav::sdp::media_description::ptime() const {
     return ptime_;
 }
@@ -415,4 +419,8 @@ const std::optional<rav::sdp::reference_clock>& rav::sdp::media_description::ref
 
 const std::optional<rav::sdp::media_clock>& rav::sdp::media_description::media_clock() const {
     return media_clock_;
+}
+
+const std::optional<std::string>& rav::sdp::media_description::session_information() const {
+    return session_information_;
 }

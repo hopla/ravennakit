@@ -34,7 +34,7 @@ rav::sdp::media_clock::parse_result<rav::sdp::media_clock> rav::sdp::media_clock
         }
 
         if (!mode_parser.exhausted()) {
-            if (const auto offset = mode_parser.read_int<int32_t>()) {
+            if (const auto offset = mode_parser.read_int<int64_t>()) {
                 clock.offset_ = *offset;
             } else {
                 return parse_result<media_clock>::err("media_clock: invalid offset");
@@ -74,7 +74,7 @@ rav::sdp::media_clock::clock_mode rav::sdp::media_clock::mode() const {
     return mode_;
 }
 
-std::optional<int32_t> rav::sdp::media_clock::offset() const {
+std::optional<int64_t> rav::sdp::media_clock::offset() const {
     return offset_;
 }
 

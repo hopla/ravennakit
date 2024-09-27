@@ -54,7 +54,7 @@ struct format {
      * @return A result indicating success or failure. When parsing fails, the error message will contain a
      * description of what went wrong.
      */
-    static parse_result<format> parse_new(const std::string_view line);
+    static parse_result<format> parse_new(std::string_view line);
 };
 
 /**
@@ -68,9 +68,9 @@ struct connection_info_field {
     /// The address at which the media can be found.
     std::string address;
     /// Optional ttl
-    std::optional<int> ttl;
+    std::optional<int32_t> ttl;
     /// Optional number of addresses
-    std::optional<int> number_of_addresses;
+    std::optional<int32_t> number_of_addresses;
 
     /// A type alias for a parse result.
     template<class T>
@@ -209,6 +209,12 @@ class media_description {
     void add_connection_info(connection_info_field connection_info);
 
     /**
+     * Sets the session information of the media description.
+     * @param session_information The session information to set.
+     */
+    void set_session_information(std::string session_information);
+
+    /**
      * @returns The value of the "ptime" attribute, or an empty optional if the attribute does not exist or the
      * value is invalid.
      */
@@ -235,6 +241,11 @@ class media_description {
      */
     [[nodiscard]] const std::optional<media_clock>& media_clock() const;
 
+    /**
+     * @return The session information of the media description.
+     */
+    [[nodiscard]] const std::optional<std::string>& session_information() const;
+
   private:
     std::string media_type_;
     uint16_t port_ {};
@@ -247,6 +258,7 @@ class media_description {
     std::optional<media_direction> media_direction_;
     std::optional<sdp::reference_clock> reference_clock_;
     std::optional<sdp::media_clock> media_clock_;
+    std::optional<std::string> session_information_;
 };
 
 }  // namespace rav::sdp

@@ -42,7 +42,7 @@ class media_clock {
     /**
      * @return The offset of the media clock.
      */
-    [[nodiscard]] std::optional<int32_t> offset() const;
+    [[nodiscard]] std::optional<int64_t> offset() const;
 
     /**
      * @return The rate numerator of the media clock.
@@ -51,7 +51,7 @@ class media_clock {
 
   private:
     clock_mode mode_ {clock_mode::undefined};
-    std::optional<int32_t> offset_;
+    std::optional<int64_t> offset_;
     std::optional<fraction<int32_t>> rate_;
 };
 

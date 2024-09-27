@@ -91,6 +91,14 @@ rav::session_description::parse_new(const std::string& sdp_text) {
                 }
                 break;
             }
+            case 'i': {
+                if (!sd.media_descriptions_.empty()) {
+                    sd.media_descriptions_.back().set_session_information(std::string(line->substr(2)));
+                } else {
+                    sd.session_information_ = line->substr(2);
+                }
+                break;
+            }
             default:
                 continue;
         }

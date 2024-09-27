@@ -1,0 +1,87 @@
+/*
+ * Owllab License Agreement
+ *
+ * This software is provided by Owllab and may not be used, copied, modified,
+ * merged, published, distributed, sublicensed, or sold without a valid and
+ * explicit agreement with Owllab.
+ *
+ * Copyright (c) 2024 Owllab. All rights reserved.
+ */
+
+#include "ravennakit/core/string_parser.hpp"
+
+#include <catch2/catch_all.hpp>
+
+#include "ravennakit/core/util.hpp"
+
+TEST_CASE("string_parser", "[string_parser]") {
+    SECTION("Test delimited string without include_delimiter") {
+        const auto str = "this is just a random string";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_string("just") == "this is ");
+        REQUIRE(parser.read_string("string") == " a random ");
+    }
+
+    SECTION("Test delimited string with include_delimiter") {
+        const auto str = "this is just a random string";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_string("just", true) == "this is just");
+        REQUIRE(parser.read_string("string", true) == " a random string");
+    }
+
+    SECTION("Test delimited string without include_delimiter") {
+        const auto str = "key1=value1;key2=value2;key3=value3";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_string('=') == "key1");
+        REQUIRE(parser.read_string(';') == "value1");
+        REQUIRE(parser.read_string('=') == "key2");
+        REQUIRE(parser.read_string(';') == "value2");
+        REQUIRE(parser.read_string('=') == "key3");
+        REQUIRE(parser.read_string(';') == "value3");
+    }
+
+    SECTION("Test delimited string with include_delimiter") {
+        const auto str = "0.1.2.3";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_string('1', true) == "0.1");
+        REQUIRE(parser.read_string('.', true) == ".");
+        REQUIRE(parser.read_string('3', true) == "2.3");
+    }
+
+    SECTION("Parse some ints") {
+        const auto str = "0.1.23456";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_int<int32_t>().value() == 0);
+        REQUIRE_FALSE(parser.read_int<int32_t>().has_value());
+        REQUIRE(parser.read_string('.').empty());
+        REQUIRE(parser.read_int<int32_t>().value() == 1);
+        REQUIRE(parser.read_string('.').empty());
+        REQUIRE(parser.read_int<int32_t>().value() == 23456);
+        REQUIRE_FALSE(parser.read_int<int32_t>().has_value());
+    }
+
+    SECTION("Parse some floats") {
+        const auto str = "0.1.23456";
+        rav::string_parser parser(str);
+        REQUIRE(rav::util::is_within(parser.read_float().value(), 0.1f, 00001.f));
+        REQUIRE(rav::util::is_within(parser.read_float().value(), 0.23456f, 00001.f));
+        REQUIRE_FALSE(parser.read_float().has_value());
+    }
+
+    SECTION("Parse some doubles") {
+        const auto str = "0.1.23456";
+        rav::string_parser parser(str);
+        REQUIRE(rav::util::is_within(parser.read_double().value(), 0.1, 00001.0));
+        REQUIRE(rav::util::is_within(parser.read_double().value(), 0.23456, 00001.0));
+        REQUIRE_FALSE(parser.read_float().has_value());
+    }
+
+    SECTION("Parse some refclk strings") {
+        const auto str = "ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:5";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_string('=') == "ptp");
+        REQUIRE(parser.read_string(':') == "IEEE1588-2008");
+        REQUIRE(parser.read_string(':') == "39-A7-94-FF-FE-07-CB-D0");
+        REQUIRE(parser.read_int<int32_t>().value() == 5);
+    }
+}

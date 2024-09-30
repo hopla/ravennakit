@@ -101,11 +101,11 @@ int main(int const argc, char* argv[]) {
         exit(0);
     }
 
-    io_context_runner io_context_runner;
+    asio::io_context io_context;
 
-    rav::rtp_receiver receiver(io_context_runner.io_context());
+    rav::rtp_receiver receiver(io_context);
 
-    asio::signal_set signals(io_context_runner.io_context(), SIGINT, SIGTERM);
+    asio::signal_set signals(io_context, SIGINT, SIGTERM);
 
     receiver.on<rav::rtp_packet_event>([&audio_context](
                                            const rav::rtp_packet_event& event, [[maybe_unused]] rav::rtp_receiver& recv
@@ -186,7 +186,7 @@ int main(int const argc, char* argv[]) {
         receiver.stop();
     });
 
-    io_context_runner.run_to_completion();
+    io_context.run();
 
     if (auto error = Pa_StopStream(stream); error != paNoError) {
         RAV_ERROR("PortAudio failed to stop stream! Error: {}", Pa_GetErrorText(error));

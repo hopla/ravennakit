@@ -41,9 +41,11 @@ DNSServiceRef rav::dnssd::bonjour_scoped_dns_service_ref::service_ref() const no
     return service_ref_;
 }
 
-void rav::dnssd::bonjour_scoped_dns_service_ref::reset() const noexcept {
-    if (service_ref_ != nullptr)
+void rav::dnssd::bonjour_scoped_dns_service_ref::reset() noexcept {
+    if (service_ref_ != nullptr) {
         DNSServiceRefDeallocate(service_ref_);
+        service_ref_ = nullptr;
+    }
 }
 
 #endif

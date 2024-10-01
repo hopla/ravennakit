@@ -35,7 +35,7 @@
 
 #define DNSSD_THROW_IF_ERROR(error) \
     if (error != kDNSServiceErr_NoError) { \
-        throw rav::exception("DNSServiceError: (" + std::to_string(error) + ")", __FILE__, __LINE__, RAV_FUNCTION); \
+        throw rav::exception(std::string("DNSServiceError: ") + dns_service_error_to_string(error), __FILE__, __LINE__, RAV_FUNCTION); \
     }
 
 namespace rav::dnssd {

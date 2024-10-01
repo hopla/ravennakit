@@ -38,7 +38,7 @@ class bonjour_scoped_dns_service_ref {
     /**
      * Resets the contained DNSServiceRef to nullptr.
      */
-    void reset() const noexcept;
+    void reset() noexcept;
 
   private:
     DNSServiceRef service_ref_ = nullptr;

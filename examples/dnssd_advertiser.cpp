@@ -33,6 +33,9 @@ int main(int const argc, char* argv[]) {
         return -1;
     }
 
+    spdlog::default_logger()->flush_on(spdlog::level::info);
+    spdlog::default_logger()->set_level(spdlog::level::trace);
+
     // Parse port number
     int port_number = 0;
     try {
@@ -48,10 +51,10 @@ int main(int const argc, char* argv[]) {
         parse_txt_record(txt_record, *it);
     }
 
-    auto advertiser = rav::dnssd::dnssd_advertiser::create();
+    const auto advertiser = rav::dnssd::dnssd_advertiser::create();
 
     if (advertiser == nullptr) {
-        std::cout << "Error: no dnssd advertiser implementation available for this platform" << std::endl;
+        RAV_ERROR("Error: no dnssd advertiser implementation available for this platform");
         return -1;
     }
 
@@ -64,7 +67,7 @@ int main(int const argc, char* argv[]) {
         args[0], "001122334455@SomeName", nullptr, static_cast<uint16_t>(port_number), txt_record
     );
 
-    std::cout << "Enter key=value to update the TXT record, or q to exit..." << std::endl;
+    RAV_INFO("Enter key=value to update the TXT record, or q to exit...");
 
     std::string cmd;
     while (true) {
@@ -73,13 +76,22 @@ int main(int const argc, char* argv[]) {
             break;
         }
 
-        if (parse_txt_record(txt_record, cmd)) {
-            std::cout << "Updated txt record: " << std::endl;
-            for (auto& pair : txt_record) {
-                std::cout << pair.first << "=" << pair.second << std::endl;
-            }
+        if (cmd == "r" || cmd == "R") {
+            advertiser->unregister_service();
+            continue;
+        }
 
-            advertiser->update_txt_record(txt_record);
+        try {
+            if (parse_txt_record(txt_record, cmd)) {
+                advertiser->update_txt_record(txt_record);
+                RAV_INFO("Updated txt record:");
+
+                for (auto& pair : txt_record) {
+                    RAV_INFO("{}={}", pair.first, pair.second);
+                }
+            }
+        } catch (const std::exception& e) {
+            RAV_CRITICAL("Exception caught: {}", e.what());
         }
     }
 

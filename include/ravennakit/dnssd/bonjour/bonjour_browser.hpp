@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bonjour.hpp"
+#include "ravennakit/platform/posix/pipe.hpp"
 
 #if RAV_HAS_APPLE_DNSSD
 
@@ -116,6 +117,7 @@ class bonjour_browser: public dnssd_browser {
 
   private:
     bonjour_shared_connection shared_connection_;
+    posix::pipe pipe_;
     std::map<std::string, bonjour_scoped_dns_service_ref> browsers_;
     std::map<std::string, service> services_;
     std::atomic<bool> keep_going_ = {true};

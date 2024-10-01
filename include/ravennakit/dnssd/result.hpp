@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bonjour/scoped_dns_service_ref.hpp"
+#include "bonjour/bonjour_scoped_dns_service_ref.hpp"
 
 #include <exception>
 #include <string>

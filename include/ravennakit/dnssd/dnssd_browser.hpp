@@ -2,110 +2,101 @@
 
 #include "result.hpp"
 #include "service_description.hpp"
-#include "bonjour/service.hpp"
+#include "ravennakit/core/event_emitter.hpp"
 
 #include <functional>
 
-namespace rav::dnssd
-{
+namespace rav::dnssd {
+
+namespace events {
+
+    /**
+     * Event for when a service was discovered.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_discovered {
+        /// The service description of the discovered service.
+        const service_description& service_description;
+    };
+
+    /**
+     * Event for when a service was removed.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_removed {
+        /// The service description of the removed service.
+        const service_description& service_description;
+    };
+
+    /**
+     * Event for when a service was resolved (i.e. address information was resolved).
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_resolved {
+        /// The service description of the resolved service.
+        const service_description& service_description;
+        /// The index of the interface on which the service was resolved on.
+        uint32_t interfaceIndex;
+    };
+
+    /**
+     * Event for when the service became available on given address.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct address_added {
+        /// The service description of the service for which the address was added.
+        const service_description& service_description;
+        /// The address which was added.
+        const std::string& address;
+        /// The index of the interface on which the address was added.
+        uint32_t interfaceIndex;
+    };
+
+    /**
+     * Event for when the service became unavailable on given address.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct address_removed {
+        /// The service description of the service for which the address was removed.
+        const service_description& service_description;
+        /// The address which was removed.
+        const std::string& address;
+        /// The index of the interface on which the address was removed.
+        uint32_t interfaceIndex;
+    };
+
+    /**
+     * Event for when an error occurred during browsing for a service.
+     * Note: this event might be emitted asynchronously from a background thread.
+     */
+    struct browse_error {
+        /// The error that occurred.
+        const result& error;
+    };
+}  // namespace events
 
 /**
  * Interface class which represents a Bonjour browser.
  */
-class dnssd_browser
-{
-public:
-    using ServiceDiscoveredAsyncCallback = std::function<void (const service_description& serviceDescription)>;
-    using ServiceRemovedAsyncCallback = std::function<void (const service_description& serviceDescription)>;
-    using ServiceResolvedAsyncCallback =
-        std::function<void (const service_description& serviceDescription, uint32_t interfaceIndex)>;
-    using AddressAddedAsyncCallback = std::function<
-        void (const service_description& serviceDescription, const std::string& address, uint32_t interfaceIndex)>;
-    using AddressRemovedAsyncCallback = std::function<
-        void (const service_description& serviceDescription, const std::string& address, uint32_t interfaceIndex)>;
-    using BrowseErrorAsyncCallback = std::function<void (const result& error)>;
-
-    dnssd_browser() = default;
-    virtual ~dnssd_browser() = default;
+class dnssd_browser:
+    public event_emitter<
+        dnssd_browser, events::service_discovered, events::service_removed, events::service_resolved,
+        events::address_added, events::address_removed, events::browse_error> {
+  public:
+    ~dnssd_browser() override = default;
 
     /**
      * Starts browsing for a service
      * @param service_type The service type (i.e. _http._tcp.).
      * @return Returns a result indicating success or failure.
      */
-    virtual result browse_for (const std::string& service_type) = 0;
+    [[nodiscard]] virtual result browse_for(const std::string& service_type) = 0;
 
     /**
-     * Sets a callback which gets called when a service was discovered.
-     * Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback Callback with a reference to the ServiceDescription of this service.
+     * Creates the most appropriate dnssd_browser implementation for the platform.
+     * @return The created dnssd_browser instance, or nullptr if no implementation is available.
      */
-    virtual void on_service_discovered (ServiceDiscoveredAsyncCallback callback)
-    {
-        onServiceDiscoveredCallback = std::move (callback);
-    }
-
-    /**
-     * Sets a callback which gets called when a service was removed.
-     * Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback Callback with the ServiceDescription of the removed service, which will also get removed after
-     * this call.
-     */
-    virtual void on_service_removed (ServiceRemovedAsyncCallback callback)
-    {
-        onServiceRemovedCallback = std::move (callback);
-    }
-
-    /**
-     * Sets a callback which gets called when a service was resolved (i.e. address information was resolved).
-     * Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback Callback with the service description and the index of the interface on which the service was
-     * resolved on.
-     */
-    virtual void on_service_resolved (ServiceResolvedAsyncCallback callback)
-    {
-        onServiceResolvedCallback = std::move (callback);
-    }
-
-    /**
-     * Sets a callback which gets called when an address became available (i.e. service became reachable on this
-     * address). Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback Callback with the service description, the added address and the interface index.
-     */
-    virtual void on_address_added (AddressAddedAsyncCallback callback)
-    {
-        onAddressAddedCallback = std::move (callback);
-    }
-
-    /**
-     * Sets a callback which gets called when an address became unavailable (i.e. service no longer reachable on this
-     * address). Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback Callback with the service description, the added address and the interface index.
-     */
-    virtual void on_address_removed (AddressRemovedAsyncCallback callback)
-    {
-        onAddressRemovedCallback = std::move (callback);
-    }
-
-    /**
-     * Sets a callback which gets called when there was an error during browsing for a service.
-     * Note: this call will be made from a background thread and wil not be synchronised.
-     * @param callback A callback with a Result indicating what problem occurred.
-     */
-    virtual void on_browse_error (BrowseErrorAsyncCallback callback)
-    {
-        onBrowseErrorCallback = std::move (callback);
-    }
-
-protected:
-    friend service;
-
-    ServiceDiscoveredAsyncCallback onServiceDiscoveredCallback;
-    ServiceResolvedAsyncCallback onServiceResolvedCallback;
-    ServiceRemovedAsyncCallback onServiceRemovedCallback;
-    AddressAddedAsyncCallback onAddressAddedCallback;
-    AddressRemovedAsyncCallback onAddressRemovedCallback;
-    BrowseErrorAsyncCallback onBrowseErrorCallback;
+    static std::unique_ptr<dnssd_browser> create();
 };
 
-} // namespace dnssd
+}  // namespace rav::dnssd

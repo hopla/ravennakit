@@ -75,7 +75,7 @@ void rav::rtp_receiver::receive_rtp() {
         [this](const std::error_code& ec, const std::size_t length) {
             if (!ec) {
                 const rtp_packet_view rtp_packet(rtp_data_.data(), length);
-                publish(rtp_packet_event {rtp_packet});
+                emit(rtp_packet_event {rtp_packet});
                 receive_rtp();
             } else {
                 RAV_ERROR("RTP receiver error: {}", ec.message());
@@ -90,7 +90,7 @@ void rav::rtp_receiver::receive_rtcp() {
         [this](const std::error_code& ec, const std::size_t length) {
             if (!ec) {
                 const rtcp_packet_view rtcp_packet(rtcp_data_.data(), length);
-                publish(rtcp_packet_event {rtcp_packet});
+                emit(rtcp_packet_event {rtcp_packet});
                 receive_rtcp();
             } else {
                 RAV_ERROR("RTCP receiver error: {}", ec.message());

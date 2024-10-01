@@ -30,7 +30,7 @@ public:
     void unregister_service() noexcept override;
 
 private:
-    scoped_dns_service_ref service_ref_;
+    bonjour_scoped_dns_service_ref service_ref_;
 
     static void DNSSD_API registerServiceCallBack (
         DNSServiceRef service_ref,

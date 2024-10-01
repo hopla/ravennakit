@@ -1,9 +1,9 @@
-#include "ravennakit/dnssd/bonjour/service.hpp"
+#include "ravennakit/dnssd/bonjour/bonjour_service.hpp"
 
 #include "ravennakit/dnssd/result.hpp"
 #include "ravennakit/dnssd/bonjour/bonjour_txt_record.hpp"
 #include "ravennakit/dnssd/bonjour/bonjour_browser.hpp"
-#include "ravennakit/dnssd/bonjour/scoped_dns_service_ref.hpp"
+#include "ravennakit/dnssd/bonjour/bonjour_scoped_dns_service_ref.hpp"
 
 #include <map>
 #include <thread>
@@ -14,7 +14,7 @@ static void DNSSD_API resolveCallBack(
     uint16_t port,  // In network byte order
     uint16_t txtLen, const unsigned char* txtRecord, void* context
 ) {
-    auto* service = static_cast<rav::dnssd::service*>(context);
+    auto* service = static_cast<rav::dnssd::bonjour_service*>(context);
     service->resolve_callback(
         sdRef, flags, interfaceIndex, errorCode, fullname, hosttarget, ntohs(port), txtLen, txtRecord
     );
@@ -24,11 +24,11 @@ static void DNSSD_API getAddrInfoCallBack(
     DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode,
     const char* fullname, const struct sockaddr* address, uint32_t ttl, void* context
 ) {
-    auto* service = static_cast<rav::dnssd::service*>(context);
+    auto* service = static_cast<rav::dnssd::bonjour_service*>(context);
     service->get_addr_info_callback(sdRef, flags, interfaceIndex, errorCode, fullname, address, ttl);
 }
 
-rav::dnssd::service::service(
+rav::dnssd::bonjour_service::bonjour_service(
     const char* fullname, const char* name, const char* type, const char* domain, bonjour_browser& owner
 ) :
     owner_(owner) {
@@ -38,7 +38,7 @@ rav::dnssd::service::service(
     description_.domain = domain;
 }
 
-void rav::dnssd::service::resolve_on_interface(uint32_t index) {
+void rav::dnssd::bonjour_service::resolve_on_interface(uint32_t index) {
     if (resolvers_.find(index) != resolvers_.end()) {
         // Already resolving on this interface
         return;
@@ -55,12 +55,13 @@ void rav::dnssd::service::resolve_on_interface(uint32_t index) {
         return;
     }
 
-    resolvers_.insert({index, scoped_dns_service_ref(resolveServiceRef)});
+    resolvers_.insert({index, bonjour_scoped_dns_service_ref(resolveServiceRef)});
 }
 
-void rav::dnssd::service::resolve_callback(
-    DNSServiceRef serviceRef, DNSServiceFlags flags, uint32_t interface_index, DNSServiceErrorType error_code,
-    const char* fullname, const char* host_target, uint16_t port, uint16_t txt_len, const unsigned char* txt_record
+void rav::dnssd::bonjour_service::resolve_callback(
+    [[maybe_unused]] DNSServiceRef serviceRef, [[maybe_unused]] DNSServiceFlags flags, uint32_t interface_index,
+    DNSServiceErrorType error_code, [[maybe_unused]] const char* fullname, const char* host_target, uint16_t port,
+    uint16_t txt_len, const unsigned char* txt_record
 ) {
     if (owner_.report_if_error(result(error_code))) {
         return;
@@ -70,8 +71,9 @@ void rav::dnssd::service::resolve_callback(
     description_.port = port;
     description_.txt = bonjour_txt_record::get_txt_record_from_raw_bytes(txt_record, txt_len);
 
-    if (owner_.onServiceResolvedCallback)
-        owner_.onServiceResolvedCallback(description_, interface_index);
+    // TODO: Implement
+    // if (owner_.onServiceResolvedCallback)
+        // owner_.onServiceResolvedCallback(description_, interface_index);
 
     DNSServiceRef getAddrInfoServiceRef = owner_.connection().service_ref();
 
@@ -82,10 +84,10 @@ void rav::dnssd::service::resolve_callback(
         return;
     }
 
-    get_addrs_.insert({interface_index, scoped_dns_service_ref(getAddrInfoServiceRef)});
+    get_addrs_.insert({interface_index, bonjour_scoped_dns_service_ref(getAddrInfoServiceRef)});
 }
 
-void rav::dnssd::service::get_addr_info_callback(
+void rav::dnssd::bonjour_service::get_addr_info_callback(
     DNSServiceRef sd_ref, DNSServiceFlags flags, uint32_t interface_index, DNSServiceErrorType error_code,
     const char* hostname, const struct sockaddr* address, uint32_t ttl
 ) {
@@ -117,8 +119,9 @@ void rav::dnssd::service::get_addr_info_callback(
     if (foundInterface != description_.interfaces.end()) {
         auto result = foundInterface->second.insert(ip_addr);
 
-        if (owner_.onAddressAddedCallback)
-            owner_.onAddressAddedCallback(description_, *result.first, interface_index);
+        // TODO: Implement
+        // if (owner_.onAddressAddedCallback)
+        // owner_.onAddressAddedCallback(description_, *result.first, interface_index);
     } else {
         (void)owner_.report_if_error(
             result(std::string("Interface with id \"") + std::to_string(interface_index) + "\" not found")
@@ -126,7 +129,7 @@ void rav::dnssd::service::get_addr_info_callback(
     }
 }
 
-size_t rav::dnssd::service::remove_interface(uint32_t index) {
+size_t rav::dnssd::bonjour_service::remove_interface(uint32_t index) {
     auto foundInterface = description_.interfaces.find(index);
     if (foundInterface == description_.interfaces.end()) {
         (void
@@ -137,8 +140,9 @@ size_t rav::dnssd::service::remove_interface(uint32_t index) {
 
     if (description_.interfaces.size() > 1) {
         for (auto& addr : foundInterface->second) {
-            if (owner_.onAddressRemovedCallback)
-                owner_.onAddressRemovedCallback(description_, addr, index);
+            // TODO: Implement
+            // if (owner_.onAddressRemovedCallback)
+            // owner_.onAddressRemovedCallback(description_, addr, index);
         }
     }
 
@@ -149,6 +153,6 @@ size_t rav::dnssd::service::remove_interface(uint32_t index) {
     return description_.interfaces.size();
 }
 
-const rav::dnssd::service_description& rav::dnssd::service::description() const noexcept {
+const rav::dnssd::service_description& rav::dnssd::bonjour_service::description() const noexcept {
     return description_;
 }

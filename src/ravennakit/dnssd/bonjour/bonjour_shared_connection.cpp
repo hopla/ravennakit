@@ -1,10 +1,10 @@
-#include "ravennakit/dnssd/bonjour/shared_connection.hpp"
+#include "ravennakit/dnssd/bonjour/bonjour_shared_connection.hpp"
 
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/dnssd/result.hpp"
 #include "ravennakit/dnssd/bonjour/bonjour.hpp"
 
-rav::dnssd::shared_connection::shared_connection() {
+rav::dnssd::bonjour_shared_connection::bonjour_shared_connection() {
     DNSServiceRef ref = nullptr;
     auto r = result(DNSServiceCreateConnection(&ref));
     if (r.has_error())

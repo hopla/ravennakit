@@ -1,7 +1,8 @@
 #pragma once
 
-#include "scoped_dns_service_ref.hpp"
-#include "shared_connection.hpp"
+#include "bonjour_scoped_dns_service_ref.hpp"
+#include "bonjour_service.hpp"
+#include "bonjour_shared_connection.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
 #include "ravennakit/dnssd/result.hpp"
 
@@ -12,8 +13,6 @@
 
 namespace rav::dnssd {
 
-class service;
-
 /**
  * Apple Bonjour implementation of IBrowser. Works on macOS and Windows.
  */
@@ -22,7 +21,6 @@ class bonjour_browser: public dnssd_browser {
     explicit bonjour_browser();
     ~bonjour_browser() override;
 
-    // MARK: IBrowser implementations -
     result browse_for(const std::string& service) override;
     bool report_if_error(const result& result) const noexcept;
 
@@ -48,14 +46,14 @@ class bonjour_browser: public dnssd_browser {
     /**
      * @return Returns the SharedConnection this instance is using for communicating with the mdns responder.
      */
-    const shared_connection& connection() const noexcept {
+    const bonjour_shared_connection& connection() const noexcept {
         return shared_connection_;
     }
 
   private:
-    shared_connection shared_connection_;
-    std::map<std::string, scoped_dns_service_ref> browsers_;
-    std::map<std::string, service> services_;
+    bonjour_shared_connection shared_connection_;
+    std::map<std::string, bonjour_scoped_dns_service_ref> browsers_;
+    std::map<std::string, bonjour_service> services_;
     std::atomic<bool> keep_going_ = {true};
     std::thread thread_;
     std::recursive_mutex lock_;
@@ -63,4 +61,4 @@ class bonjour_browser: public dnssd_browser {
     void thread();
 };
 
-}  // namespace dnssd
+}  // namespace rav::dnssd

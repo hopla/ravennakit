@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scoped_dns_service_ref.hpp"
+#include "bonjour_scoped_dns_service_ref.hpp"
 #include "ravennakit/dnssd/service_description.hpp"
 
 namespace rav::dnssd {
@@ -10,7 +10,7 @@ class bonjour_browser;
 /**
  * Represents a Bonjour service and holds state and methods for discovering and resolving services on the network.
  */
-class service {
+class bonjour_service {
   public:
     /**
      * Constructs a service.
@@ -20,7 +20,7 @@ class service {
      * @param domain The domain of the service (i.e. local.).
      * @param owner A reference to the owning BonjourBrowser.
      */
-    service(const char* fullname, const char* name, const char* type, const char* domain, bonjour_browser& owner);
+    bonjour_service(const char* fullname, const char* name, const char* type, const char* domain, bonjour_browser& owner);
 
     /**
      * Called when a service was resolved.
@@ -82,8 +82,8 @@ class service {
 
   private:
     bonjour_browser& owner_;
-    std::map<uint32_t, scoped_dns_service_ref> resolvers_;
-    std::map<uint32_t, scoped_dns_service_ref> get_addrs_;
+    std::map<uint32_t, bonjour_scoped_dns_service_ref> resolvers_;
+    std::map<uint32_t, bonjour_scoped_dns_service_ref> get_addrs_;
     service_description description_;
 };
 

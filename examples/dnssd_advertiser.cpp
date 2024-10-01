@@ -48,14 +48,19 @@ int main(int const argc, char* argv[]) {
         parse_txt_record(txt_record, *it);
     }
 
-    rav::dnssd::bonjour_advertiser advertiser;
+    auto advertiser = rav::dnssd::dnssd_advertiser::create();
 
-    advertiser.on<rav::dnssd::events::advertiser_error>([](const rav::dnssd::events::advertiser_error& event,
+    if (advertiser == nullptr) {
+        std::cout << "Error: no dnssd advertiser implementation available for this platform" << std::endl;
+        return -1;
+    }
+
+    advertiser->on<rav::dnssd::events::advertiser_error>([](const rav::dnssd::events::advertiser_error& event,
                                                            rav::dnssd::dnssd_advertiser&) {
         RAV_CRITICAL("Exception caught: {}", event.exception.what());
     });
 
-    advertiser.register_service(
+    advertiser->register_service(
         args[0], "001122334455@SomeName", nullptr, static_cast<uint16_t>(port_number), txt_record
     );
 
@@ -74,7 +79,7 @@ int main(int const argc, char* argv[]) {
                 std::cout << pair.first << "=" << pair.second << std::endl;
             }
 
-            advertiser.update_txt_record(txt_record);
+            advertiser->update_txt_record(txt_record);
         }
     }
 

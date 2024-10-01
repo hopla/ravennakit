@@ -2,11 +2,8 @@
 
 #include <utility>
 
-#include "Util.h"
 #include "service_description.hpp"
 #include "ravennakit/core/event_emitter.hpp"
-
-#include <functional>
 
 namespace rav::dnssd {
 
@@ -58,6 +55,12 @@ class dnssd_advertiser: public event_emitter<dnssd_advertiser, events::advertise
      * Unregisters this service from the mDnsResponder, after which the service will no longer be found on the network.
      */
     virtual void unregister_service() noexcept = 0;
+
+    /**
+     * Creates the most appropriate dnssd_advertiser implementation for the platform.
+     * @return The created dnssd_advertiser instance, or nullptr if no implementation is available.
+     */
+    static std::unique_ptr<dnssd_advertiser> create();
 };
 
 }  // namespace rav::dnssd

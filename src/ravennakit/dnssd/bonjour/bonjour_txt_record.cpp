@@ -2,11 +2,10 @@
 
 #if RAV_HAS_APPLE_DNSSD
 
-#include "ravennakit/dnssd/bonjour/bonjour_txt_record.hpp"
-#include "ravennakit/dnssd/result.hpp"
+    #include "ravennakit/dnssd/bonjour/bonjour_txt_record.hpp"
 
-#include <dns_sd.h>
-#include <map>
+    #include <dns_sd.h>
+    #include <map>
 
 rav::dnssd::bonjour_txt_record::bonjour_txt_record(const txt_record& txtRecord) {
     // By passing 0 and nullptr, TXTRecordCreate will arrange allocation for a buffer.
@@ -19,12 +18,14 @@ rav::dnssd::bonjour_txt_record::~bonjour_txt_record() {
     TXTRecordDeallocate(&txt_record_ref_);
 }
 
-rav::dnssd::result rav::dnssd::bonjour_txt_record::setValue(const std::string& key, const std::string& value) noexcept {
-    return result(TXTRecordSetValue(&txt_record_ref_, key.c_str(), (uint8_t)value.length(), value.c_str()));
+void rav::dnssd::bonjour_txt_record::setValue(const std::string& key, const std::string& value) {
+    DNSSD_THROW_IF_ERROR(
+        TXTRecordSetValue(&txt_record_ref_, key.c_str(), static_cast<uint8_t>(value.length()), value.c_str())
+    );
 }
 
-rav::dnssd::result rav::dnssd::bonjour_txt_record::setValue(const std::string& key) noexcept {
-    return result(TXTRecordSetValue(&txt_record_ref_, key.c_str(), 0, nullptr));
+void rav::dnssd::bonjour_txt_record::setValue(const std::string& key) {
+    DNSSD_THROW_IF_ERROR(TXTRecordSetValue(&txt_record_ref_, key.c_str(), 0, nullptr));
 }
 
 uint16_t rav::dnssd::bonjour_txt_record::length() const noexcept {
@@ -48,7 +49,7 @@ std::map<std::string, std::string> rav::dnssd::bonjour_txt_record::get_txt_recor
     for (uint16_t i = 0; i < TXTRecordGetCount(txtRecordLength, txtRecordRawBytes); i++) {
         TXTRecordGetItemAtIndex(txtRecordLength, txtRecordRawBytes, i, keybuflen, key, &valuelen, &value);
         std::string strKey(key);
-        std::string strValue((const char*)value, valuelen);
+        std::string strValue(static_cast<const char*>(value), valuelen);
         txtRecord.insert({strKey, strValue});
     }
 

@@ -4,7 +4,6 @@
 
 #if RAV_HAS_APPLE_DNSSD
 
-#include "ravennakit/dnssd/result.hpp"
 #include "ravennakit/dnssd/service_description.hpp"
 
 #include <map>
@@ -28,14 +27,14 @@ public:
      * @param value Value.
      * @return A result indicating success or failure.
      */
-    result setValue (const std::string& key, const std::string& value) noexcept;
+    void setValue(const std::string& key, const std::string& value);
 
     /**
      * Sets an empty value for key inside the TXT record.
      * @param key Key.
      * @return An Result indicating success or failure.
      */
-    result setValue (const std::string& key) noexcept;
+    void setValue(const std::string& key);
 
     /**
      * @return Returns the length of the TXT record.

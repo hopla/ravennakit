@@ -1,6 +1,5 @@
 #pragma once
 
-#include "result.hpp"
 #include "service_description.hpp"
 #include "ravennakit/core/event_emitter.hpp"
 
@@ -71,7 +70,7 @@ namespace events {
      */
     struct browse_error {
         /// The error that occurred.
-        const result& error;
+        const char* error_message;
     };
 }  // namespace events
 
@@ -90,7 +89,7 @@ class dnssd_browser:
      * @param service_type The service type (i.e. _http._tcp.).
      * @return Returns a result indicating success or failure.
      */
-    [[nodiscard]] virtual result browse_for(const std::string& service_type) = 0;
+    virtual void browse_for(const std::string& service_type) = 0;
 
     /**
      * Creates the most appropriate dnssd_browser implementation for the platform.

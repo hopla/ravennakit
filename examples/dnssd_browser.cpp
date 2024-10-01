@@ -45,14 +45,10 @@ int main(const int argc, char* argv[]) {
 
     browser->on<rav::dnssd::events::browse_error>([](const rav::dnssd::events::browse_error& event,
                                                      rav::dnssd::dnssd_browser&) {
-        RAV_INFO("Error: {}", event.error.description());
+        RAV_INFO("Error: {}", event.error_message);
     });
 
-    auto const result = browser->browse_for(argv[1]);
-    if (result.has_error()) {
-        std::cout << "Error: " << result.description() << std::endl;
-        return -1;
-    };
+    browser->browse_for(argv[1]);
 
     std::cout << "Press enter to exit..." << std::endl;
 

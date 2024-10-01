@@ -5,10 +5,8 @@
 #if RAV_HAS_APPLE_DNSSD
 
 #include "bonjour_scoped_dns_service_ref.hpp"
-#include "bonjour_service.hpp"
 #include "bonjour_shared_connection.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
-#include "ravennakit/dnssd/result.hpp"
 
 #include <atomic>
 #include <map>
@@ -107,8 +105,7 @@ class bonjour_browser: public dnssd_browser {
     explicit bonjour_browser();
     ~bonjour_browser() override;
 
-    result browse_for(const std::string& service) override;
-    bool report_if_error(const result& result) noexcept;
+    void browse_for(const std::string& service) override;
 
     /**
      * Called by dns_sd logic in response to a browse reply.

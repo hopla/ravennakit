@@ -2,12 +2,12 @@
 
 #if RAV_HAS_APPLE_DNSSD
 
-#include "ravennakit/dnssd/bonjour/bonjour_browser.hpp"
-#include "ravennakit/core/log.hpp"
-#include "ravennakit/dnssd/bonjour/bonjour_scoped_dns_service_ref.hpp"
-#include "ravennakit/dnssd/bonjour/bonjour_txt_record.hpp"
+    #include "ravennakit/dnssd/bonjour/bonjour_browser.hpp"
+    #include "ravennakit/core/log.hpp"
+    #include "ravennakit/dnssd/bonjour/bonjour_scoped_dns_service_ref.hpp"
+    #include "ravennakit/dnssd/bonjour/bonjour_txt_record.hpp"
 
-#include <mutex>
+    #include <mutex>
 
 static void DNSSD_API resolveCallBack(
     DNSServiceRef sdRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode,
@@ -49,12 +49,10 @@ void rav::dnssd::bonjour_browser::service::resolve_on_interface(uint32_t index) 
 
     DNSServiceRef resolveServiceRef = owner_.connection().service_ref();
 
-    if (owner_.report_if_error(result(DNSServiceResolve(
-            &resolveServiceRef, kDNSServiceFlagsShareConnection, index, description_.name.c_str(),
-            description_.type.c_str(), description_.domain.c_str(), ::resolveCallBack, this
-        )))) {
-        return;
-    }
+    DNSSD_THROW_IF_ERROR(DNSServiceResolve(
+        &resolveServiceRef, kDNSServiceFlagsShareConnection, index, description_.name.c_str(),
+        description_.type.c_str(), description_.domain.c_str(), ::resolveCallBack, this
+    ));
 
     resolvers_.insert({index, bonjour_scoped_dns_service_ref(resolveServiceRef)});
 }
@@ -64,9 +62,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
     DNSServiceErrorType error_code, [[maybe_unused]] const char* fullname, const char* host_target, uint16_t port,
     uint16_t txt_len, const unsigned char* txt_record
 ) {
-    if (owner_.report_if_error(result(error_code))) {
-        return;
-    }
+    DNSSD_THROW_IF_ERROR(error_code);
 
     description_.host = host_target;
     description_.port = port;
@@ -76,19 +72,17 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
 
     DNSServiceRef getAddrInfoServiceRef = owner_.connection().service_ref();
 
-    if (owner_.report_if_error(result(DNSServiceGetAddrInfo(
-            &getAddrInfoServiceRef, kDNSServiceFlagsShareConnection | kDNSServiceFlagsTimeout, interface_index,
-            kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6, host_target, ::getAddrInfoCallBack, this
-        )))) {
-        return;
-    }
+    DNSSD_THROW_IF_ERROR(DNSServiceGetAddrInfo(
+        &getAddrInfoServiceRef, kDNSServiceFlagsShareConnection | kDNSServiceFlagsTimeout, interface_index,
+        kDNSServiceProtocol_IPv4 | kDNSServiceProtocol_IPv6, host_target, ::getAddrInfoCallBack, this
+    ));
 
     get_addrs_.insert({interface_index, bonjour_scoped_dns_service_ref(getAddrInfoServiceRef)});
 }
 
 void rav::dnssd::bonjour_browser::service::get_addr_info_callback(
-    [[maybe_unused]] DNSServiceRef sd_ref, [[maybe_unused]] DNSServiceFlags flags, uint32_t interface_index,
-    DNSServiceErrorType error_code, [[maybe_unused]] const char* hostname, const struct sockaddr* address,
+    [[maybe_unused]] DNSServiceRef sd_ref, [[maybe_unused]] DNSServiceFlags flags, const uint32_t interface_index,
+    const DNSServiceErrorType error_code, [[maybe_unused]] const char* hostname, const struct sockaddr* address,
     [[maybe_unused]] uint32_t ttl
 ) {
     if (error_code == kDNSServiceErr_Timeout) {
@@ -96,9 +90,7 @@ void rav::dnssd::bonjour_browser::service::get_addr_info_callback(
         return;
     }
 
-    if (owner_.report_if_error(result(error_code))) {
-        return;
-    }
+    DNSSD_THROW_IF_ERROR(error_code);
 
     char ip_addr[INET6_ADDRSTRLEN] = {};
 
@@ -120,28 +112,24 @@ void rav::dnssd::bonjour_browser::service::get_addr_info_callback(
         const auto result = found_interface->second.insert(ip_addr);
         owner_.emit(events::address_added {description_, *result.first, interface_index});
     } else {
-        (void)owner_.report_if_error(
-            result(std::string("Interface with id \"") + std::to_string(interface_index) + "\" not found")
-        );
+        RAV_THROW_EXCEPTION(std::string("Interface with id \"") + std::to_string(interface_index) + "\" not found");
     }
 }
 
 size_t rav::dnssd::bonjour_browser::service::remove_interface(uint32_t index) {
-    auto foundInterface = description_.interfaces.find(index);
-    if (foundInterface == description_.interfaces.end()) {
-        (void
-        )owner_.report_if_error(result(std::string("interface with index \"") + std::to_string(index) + "\" not found")
-        );
-        return description_.interfaces.empty();
+    const auto found_interface = description_.interfaces.find(index);
+    if (found_interface == description_.interfaces.end()) {
+        RAV_ERROR("Interface with id \"{}\" not found", index);
+        return description_.interfaces.size();
     }
 
     if (description_.interfaces.size() > 1) {
-        for (auto& addr : foundInterface->second) {
+        for (auto& addr : found_interface->second) {
             owner_.emit(events::address_removed {description_, addr, index});
         }
     }
 
-    description_.interfaces.erase(foundInterface);
+    description_.interfaces.erase(found_interface);
     resolvers_.erase(index);
     get_addrs_.erase(index);
 
@@ -166,8 +154,7 @@ void rav::dnssd::bonjour_browser::browse_reply(
     [[maybe_unused]] DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
     const DNSServiceErrorType error_code, const char* name, const char* type, const char* domain
 ) {
-    if (report_if_error(result(error_code)))
-        return;
+    DNSSD_THROW_IF_ERROR(error_code);
 
     RAV_DEBUG(
         "browse_reply name={} type={} domain={} browse_service_ref={} interfaceIndex={}", name, type, domain,
@@ -175,8 +162,7 @@ void rav::dnssd::bonjour_browser::browse_reply(
     );
 
     char fullname[kDNSServiceMaxDomainName] = {};
-    if (report_if_error(result(DNSServiceConstructFullName(fullname, name, type, domain))))
-        return;
+    DNSSD_THROW_IF_ERROR(DNSServiceConstructFullName(fullname, name, type, domain));
 
     if (flags & kDNSServiceFlagsAdd) {
         // Insert a new service if not already present
@@ -184,18 +170,15 @@ void rav::dnssd::bonjour_browser::browse_reply(
         if (s == services_.end()) {
             s = services_.insert({fullname, service(fullname, name, type, domain, *this)}).first;
 
-            // if (onServiceDiscoveredCallback)
-            // onServiceDiscoveredCallback(s->second.description());
-
             emit(events::service_discovered {s->second.description()});
         }
 
         s->second.resolve_on_interface(interface_index);
     } else {
         auto const foundService = services_.find(fullname);
-        if (foundService == services_.end())
-            if (report_if_error(result(std::string("service with fullname \"") + fullname + "\" not found")))
-                return;
+        if (foundService == services_.end()) {
+            RAV_THROW_EXCEPTION(std::string("Service with fullname \"") + fullname + "\" not found");
+        }
 
         if (foundService->second.remove_interface(interface_index) == 0) {
             // We just removed the last interface
@@ -207,40 +190,28 @@ void rav::dnssd::bonjour_browser::browse_reply(
     }
 }
 
-bool rav::dnssd::bonjour_browser::report_if_error(const rav::dnssd::result& result) noexcept {
-    if (result.has_error()) {
-        emit(events::browse_error {result});
-        return true;
-    }
-    return false;
-}
-
-rav::dnssd::result rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
+void rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
     std::lock_guard guard(lock_);
 
     // Initialize with the shared connection to pass it to DNSServiceBrowse
     DNSServiceRef browsingServiceRef = shared_connection_.service_ref();
 
-    if (browsingServiceRef == nullptr)
-        return result(kDNSServiceErr_ServiceNotRunning);
+    if (browsingServiceRef == nullptr) {
+        RAV_THROW_EXCEPTION("DNSSD Service not running");
+    }
 
     if (browsers_.find(service) != browsers_.end()) {
         // Already browsing for this service
-        return result("already browsing for service \"" + service + "\"");
+        RAV_THROW_EXCEPTION("Already browsing for service \"" + service + "\"");
     }
 
-    auto result = rav::dnssd::result(DNSServiceBrowse(
+    DNSSD_THROW_IF_ERROR(DNSServiceBrowse(
         &browsingServiceRef, kDNSServiceFlagsShareConnection, kDNSServiceInterfaceIndexAny, service.c_str(), nullptr,
         ::browseReply2, this
     ));
 
-    if (result.has_error())
-        return result;
-
     browsers_.insert({service, bonjour_scoped_dns_service_ref(browsingServiceRef)});
     // From here the serviceRef is under RAII inside the ScopedDnsServiceRef class
-
-    return {};
 }
 
 void rav::dnssd::bonjour_browser::thread() {
@@ -253,10 +224,7 @@ void rav::dnssd::bonjour_browser::thread() {
     const int fd = DNSServiceRefSockFD(shared_connection_.service_ref());
 
     if (fd < 0) {
-        if (report_if_error(result("Invalid file descriptor"))) {
-            RAV_ERROR("Invalid file descriptor");
-            return;
-        }
+        RAV_THROW_EXCEPTION("Invalid file descriptor");
     }
 
     while (keep_going_.load()) {
@@ -268,10 +236,7 @@ void rav::dnssd::bonjour_browser::thread() {
         const int r = select(nfds, &readfds, nullptr, nullptr, &tv);
 
         if (r < 0) {
-            if (report_if_error(result("Select error: " + std::to_string(r)))) {
-                RAV_DEBUG("! Result (code={})", r);
-                break;
-            }
+            RAV_THROW_EXCEPTION("Select error: " + std::to_string(r));
         } else if (r == 0) {
             // Timeout
         } else {
@@ -285,9 +250,10 @@ void rav::dnssd::bonjour_browser::thread() {
 
                 RAV_DEBUG("Main loop (FD_ISSET == true)");
                 try {
-                    (void)report_if_error(result(DNSServiceProcessResult(shared_connection_.service_ref())));
+                    DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(shared_connection_.service_ref()));
                 } catch (const std::exception& e) {
                     RAV_ERROR("Exception: {}", e.what());
+                    // TODO: Report error
                 }
             } else {
                 RAV_DEBUG("Main loop (FD_ISSET == false)");

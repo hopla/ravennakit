@@ -1,3 +1,4 @@
+#include "ravennakit/core/log.hpp"
 #include "ravennakit/dnssd/service_description.hpp"
 #include "ravennakit/dnssd/bonjour/bonjour_advertiser.hpp"
 
@@ -50,8 +51,9 @@ int main(int const argc, char* argv[]) {
 
     rav::dnssd::bonjour_advertiser advertiser;
 
-    advertiser.on_advertiser_error_async([](const rav::dnssd::result& error) {
-        std::cout << "Error: " << error.description() << std::endl;
+    advertiser.on<rav::dnssd::events::advertiser_error>([](const rav::dnssd::events::advertiser_error& event,
+                                                           rav::dnssd::dnssd_advertiser&) {
+        RAV_ERROR("Error: {}", event.error_message);
     });
 
     auto result = advertiser.register_service(

@@ -140,20 +140,14 @@ const rav::dnssd::service_description& rav::dnssd::bonjour_browser::service::des
     return description_;
 }
 
-static void DNSSD_API browseReply2(
-    DNSServiceRef browseServiceRef, DNSServiceFlags flags, uint32_t interfaceIndex, DNSServiceErrorType errorCode,
-    const char* name, const char* type, const char* domain, void* context
-) {
-    auto* browser = static_cast<rav::dnssd::bonjour_browser*>(context);
-    browser->browse_reply(browseServiceRef, flags, interfaceIndex, errorCode, name, type, domain);
-}
-
 rav::dnssd::bonjour_browser::bonjour_browser() : thread_(std::thread(&bonjour_browser::thread, this)) {}
 
 void rav::dnssd::bonjour_browser::browse_reply(
     [[maybe_unused]] DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
-    const DNSServiceErrorType error_code, const char* name, const char* type, const char* domain
+    const DNSServiceErrorType error_code, const char* name, const char* type, const char* domain, void* context
 ) {
+    auto* browser = static_cast<rav::dnssd::bonjour_browser*>(context);
+
     DNSSD_THROW_IF_ERROR(error_code);
 
     RAV_DEBUG(
@@ -166,26 +160,26 @@ void rav::dnssd::bonjour_browser::browse_reply(
 
     if (flags & kDNSServiceFlagsAdd) {
         // Insert a new service if not already present
-        auto s = services_.find(fullname);
-        if (s == services_.end()) {
-            s = services_.insert({fullname, service(fullname, name, type, domain, *this)}).first;
+        auto s = browser->services_.find(fullname);
+        if (s == browser->services_.end()) {
+            s = browser->services_.insert({fullname, service(fullname, name, type, domain, *browser)}).first;
 
-            emit(events::service_discovered {s->second.description()});
+            browser->emit(events::service_discovered {s->second.description()});
         }
 
         s->second.resolve_on_interface(interface_index);
     } else {
-        auto const foundService = services_.find(fullname);
-        if (foundService == services_.end()) {
+        auto const foundService = browser->services_.find(fullname);
+        if (foundService == browser->services_.end()) {
             RAV_THROW_EXCEPTION(std::string("Service with fullname \"") + fullname + "\" not found");
         }
 
         if (foundService->second.remove_interface(interface_index) == 0) {
             // We just removed the last interface
-            emit(events::service_removed {foundService->second.description()});
+            browser->emit(events::service_removed {foundService->second.description()});
 
             // Remove the BrowseResult (as there are not interfaces left)
-            services_.erase(foundService);
+            browser->services_.erase(foundService);
         }
     }
 }
@@ -207,7 +201,7 @@ void rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
 
     DNSSD_THROW_IF_ERROR(DNSServiceBrowse(
         &browsingServiceRef, kDNSServiceFlagsShareConnection, kDNSServiceInterfaceIndexAny, service.c_str(), nullptr,
-        ::browseReply2, this
+        browse_reply, this
     ));
 
     browsers_.insert({service, bonjour_scoped_dns_service_ref(browsingServiceRef)});

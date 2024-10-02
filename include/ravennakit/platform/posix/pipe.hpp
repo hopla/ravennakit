@@ -13,6 +13,7 @@
 #include "ravennakit/core/exception.hpp"
 
 #include <unistd.h>
+#include <fcntl.h>
 
 namespace rav::posix {
 
@@ -44,12 +45,22 @@ class pipe {
      * Writes data to the pipe.
      * @param data The data to write.
      * @param size The size of the data.
-     * @throws rav::exception if write() fails.
+     * @throws rav::exception if read() fails.
+     * @return The number of bytes written.
      */
-    void write(const void* data, const size_t size) const {
-        if (::write(fds_[1], data, size) < 0) {
-            RAV_THROW_EXCEPTION("write() failed");
-        }
+    ssize_t write(const void* data, const size_t size) const {
+        return ::write(fds_[1], data, size);
+    }
+
+    /**
+     * Reads data from the pipe.
+     * @param data The data to read into.
+     * @param size The size of the data.
+     * @throws rav::exception if read() fails.
+     * @return The number of bytes read.
+     */
+    ssize_t read(void* data, const size_t size) const {
+        return ::read(fds_[0], data, size);
     }
 
     /**

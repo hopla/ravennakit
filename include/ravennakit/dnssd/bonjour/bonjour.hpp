@@ -38,6 +38,11 @@
         throw rav::exception(std::string("DNSServiceError: ") + dns_service_error_to_string(error), __FILE__, __LINE__, RAV_FUNCTION); \
     }
 
+#define DNSSD_LOG_IF_ERROR(error) \
+    if (error != kDNSServiceErr_NoError) { \
+        RAV_ERROR("DNSServiceError: {}", dns_service_error_to_string(error)); \
+    }
+
 namespace rav::dnssd {
 
 bool is_bonjour_service_running();

@@ -1,18 +1,19 @@
 #pragma once
 
-#include "bonjour.hpp"
-#include "ravennakit/platform/posix/pipe.hpp"
-
-#if RAV_HAS_APPLE_DNSSD
-
-#include "bonjour_scoped_dns_service_ref.hpp"
-#include "bonjour_shared_connection.hpp"
-#include "ravennakit/dnssd/dnssd_browser.hpp"
-
 #include <atomic>
 #include <map>
 #include <mutex>
 #include <thread>
+
+#include "bonjour.hpp"
+#include "process_results_thread.hpp"
+
+#if RAV_HAS_APPLE_DNSSD
+
+    #include "bonjour_scoped_dns_service_ref.hpp"
+    #include "bonjour_shared_connection.hpp"
+    #include "ravennakit/dnssd/dnssd_browser.hpp"
+    #include "ravennakit/platform/posix/pipe.hpp"
 
 namespace rav::dnssd {
 
@@ -34,9 +35,7 @@ class bonjour_browser: public dnssd_browser {
          * @param domain The domain of the service (i.e. local.).
          * @param owner A reference to the owning BonjourBrowser.
          */
-        service(
-            const char* fullname, const char* name, const char* type, const char* domain, bonjour_browser& owner
-        );
+        service(const char* fullname, const char* name, const char* type, const char* domain, bonjour_browser& owner);
 
         /**
          * Called when a service was resolved.
@@ -108,21 +107,12 @@ class bonjour_browser: public dnssd_browser {
 
     void browse_for(const std::string& service) override;
 
-    /**
-     * @return Returns the SharedConnection this instance is using for communicating with the mdns responder.
-     */
-    const bonjour_shared_connection& connection() const noexcept {
-        return shared_connection_;
-    }
-
   private:
     bonjour_shared_connection shared_connection_;
     posix::pipe pipe_;
     std::map<std::string, bonjour_scoped_dns_service_ref> browsers_;
     std::map<std::string, service> services_;
-    std::atomic<bool> keep_going_ = {true};
-    std::thread thread_;
-    std::recursive_mutex lock_;
+    process_results_thread process_results_thread_;
 
     /**
      * Called by dns_sd logic in response to a browse reply.
@@ -143,8 +133,6 @@ class bonjour_browser: public dnssd_browser {
         DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
         DNSServiceErrorType error_code, const char* name, const char* type, const char* domain, void* context
     );
-
-    void thread();
 };
 
 }  // namespace rav::dnssd

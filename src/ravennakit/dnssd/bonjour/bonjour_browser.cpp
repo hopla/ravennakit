@@ -47,7 +47,7 @@ void rav::dnssd::bonjour_browser::service::resolve_on_interface(uint32_t index) 
 
     description_.interfaces.insert({index, {}});
 
-    DNSServiceRef resolveServiceRef = owner_.connection().service_ref();
+    DNSServiceRef resolveServiceRef = owner_.shared_connection_.service_ref();
 
     DNSSD_THROW_IF_ERROR(DNSServiceResolve(
         &resolveServiceRef, kDNSServiceFlagsShareConnection, index, description_.name.c_str(),
@@ -70,7 +70,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
 
     owner_.emit(events::service_resolved {description_, interface_index});
 
-    DNSServiceRef getAddrInfoServiceRef = owner_.connection().service_ref();
+    DNSServiceRef getAddrInfoServiceRef = owner_.shared_connection_.service_ref();
 
     DNSSD_THROW_IF_ERROR(DNSServiceGetAddrInfo(
         &getAddrInfoServiceRef, kDNSServiceFlagsShareConnection | kDNSServiceFlagsTimeout, interface_index,
@@ -140,24 +140,19 @@ const rav::dnssd::service_description& rav::dnssd::bonjour_browser::service::des
     return description_;
 }
 
-rav::dnssd::bonjour_browser::bonjour_browser() : thread_(std::thread(&bonjour_browser::thread, this)) {}
+rav::dnssd::bonjour_browser::bonjour_browser() {
+    process_results_thread_.start(shared_connection_.service_ref());
+}
 
 rav::dnssd::bonjour_browser::~bonjour_browser() {
-    keep_going_ = false;
-
-    constexpr char x = 'x';
-    pipe_.write(&x, 1);
-
-    std::lock_guard guard(lock_);
-    if (thread_.joinable())
-        thread_.join();
+    process_results_thread_.stop();
 }
 
 void rav::dnssd::bonjour_browser::browse_reply(
     [[maybe_unused]] DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
     const DNSServiceErrorType error_code, const char* name, const char* type, const char* domain, void* context
 ) {
-    auto* browser = static_cast<rav::dnssd::bonjour_browser*>(context);
+    auto* browser = static_cast<bonjour_browser*>(context);
 
     DNSSD_THROW_IF_ERROR(error_code);
 
@@ -196,7 +191,7 @@ void rav::dnssd::bonjour_browser::browse_reply(
 }
 
 void rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
-    std::lock_guard guard(lock_);
+    auto guard = process_results_thread_.lock();
 
     // Initialize with the shared connection to pass it to DNSServiceBrowse
     DNSServiceRef browsingServiceRef = shared_connection_.service_ref();
@@ -217,57 +212,6 @@ void rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
 
     browsers_.insert({service, bonjour_scoped_dns_service_ref(browsingServiceRef)});
     // From here the serviceRef is under RAII inside the ScopedDnsServiceRef class
-}
-
-void rav::dnssd::bonjour_browser::thread() {
-    RAV_DEBUG("Start bonjour browser thread");
-
-    const int service_fd = DNSServiceRefSockFD(shared_connection_.service_ref());
-
-    if (service_fd < 0) {
-        RAV_THROW_EXCEPTION("Invalid file descriptor");
-    }
-
-    const auto signal_fd = pipe_.read_fd();
-    const auto max_fd = std::max(service_fd, signal_fd);
-
-    while (keep_going_.load()) {
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(signal_fd, &readfds);
-        FD_SET(service_fd, &readfds);
-
-        const int r = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
-
-        if (r < 0) {
-            RAV_THROW_EXCEPTION("Select error: " + std::to_string(r));
-        } else if (r == 0) {
-            // Timeout
-        } else {
-            if (FD_ISSET(signal_fd, &readfds)) {
-                RAV_TRACE("Received signal to stop");
-                break; // We should stop
-            }
-
-            // Check if the DNS-SD fd is ready
-            if (FD_ISSET(service_fd, &readfds)) {
-                if (keep_going_.load() == false)
-                    return;
-
-                // Locking here will make sure that all callbacks are synchronised because they are called in
-                // response to DNSServiceProcessResult.
-                std::lock_guard guard(lock_);
-
-                try {
-                    DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(shared_connection_.service_ref()));
-                } catch (const std::exception& e) {
-                    emit(events::browse_error {e});
-                }
-            }
-        }
-    }
-
-    RAV_DEBUG("Stop bonjour browser thread");
 }
 
 #endif

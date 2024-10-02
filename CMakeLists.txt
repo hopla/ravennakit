@@ -38,6 +38,7 @@ endif ()
 ###########
 
 option(RAV_ENABLE_SPDLOG "Enable spdlog for logging" OFF)
+option(TRACY_ENABLE "Enable Tracy as profiler" OFF)
 
 ################
 # _WIN32_WINNT #
@@ -73,7 +74,6 @@ endif ()
 # Tracy #
 #########
 
-option(TRACY_ENABLE "Enable Tracy as profiler" OFF)
 if (TRACY_ENABLE)
     message(STATUS "Tracy enabled")
     add_library(tracy INTERFACE)

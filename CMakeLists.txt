@@ -29,6 +29,12 @@ if (WITH_THREAD_SANITIZER)
     link_libraries(-fsanitize=thread)
 endif ()
 
+###########
+# Options #
+###########
+
+option(RAV_ENABLE_SPDLOG "Enable spdlog for logging" OFF)
+
 ################
 # _WIN32_WINNT #
 ################
@@ -78,12 +84,14 @@ else ()
     message(STATUS "Tracy disabled")
 endif ()
 
-
 #########
 # VCPKG #
 #########
 
-find_package(spdlog CONFIG REQUIRED)
+if (RAV_ENABLE_SPDLOG)
+    find_package(spdlog CONFIG REQUIRED)
+endif ()
+
 find_package(fmt CONFIG REQUIRED)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
@@ -94,8 +102,6 @@ target_compile_definitions(asio INTERFACE ASIO_NO_DEPRECATED ASIO_NO_DYNAMIC_BUF
 ##############
 # RAVENNAKIT #
 ##############
-
-option(RAV_ENABLE_SPDLOG "Enable spdlog for logging" OFF)
 
 file(GLOB_RECURSE RAVENNAKIT_HEADER_FILES include/*.hpp)
 file(GLOB_RECURSE RAVENNAKIT_SOURCE_FILES src/*.cpp)
@@ -108,20 +114,17 @@ target_link_libraries(ravennakit
         PUBLIC
         rav_recommended_warning_flags
         rav_recommended_lto_flags
-        spdlog::spdlog
         asio::asio
+        fmt::fmt
+        $<$<BOOL:${RAV_ENABLE_SPDLOG}>:spdlog::spdlog>
 )
 
 target_compile_definitions(ravennakit
         PUBLIC
         NOMINMAX=1
         WIN32_LEAN_AND_MEAN
+        RAV_ENABLE_SPDLOG=$<BOOL:${RAV_ENABLE_SPDLOG}>
 )
-
-if (RAV_ENABLE_SPDLOG)
-    target_compile_definitions(ravennakit PUBLIC RAV_ENABLE_SPDLOG=1)
-    target_link_libraries(ravennakit PUBLIC spdlog::spdlog)
-endif()
 
 if (WIN32)
     target_include_directories(ravennakit PUBLIC "C:/Program Files/Bonjour SDK/Include")

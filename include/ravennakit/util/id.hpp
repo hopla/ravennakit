@@ -19,7 +19,7 @@ class id {
   public:
     class generator {
       public:
-        [[nodiscard]] id next() noexcept {
+        [[nodiscard]] id next() {
             RAV_ASSERT(next_id_ != 0, "Next ID is 0, which is reserved for invalid IDs");
             RAV_ASSERT(next_id_ != std::numeric_limits<uint64_t>::max(), "The next ID is at the maximum value");
             return id(next_id_++);

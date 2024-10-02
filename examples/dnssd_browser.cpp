@@ -5,8 +5,10 @@
 #include <string>
 
 int main(const int argc, char* argv[]) {
+#if RAV_ENABLE_SPDLOG
     spdlog::default_logger()->flush_on(spdlog::level::info);
     spdlog::default_logger()->set_level(spdlog::level::trace);
+#endif
 
     if (argc < 2) {
         std::cout << "Expected an argument which specifies the service type to browse for (example: _http._tcp)"

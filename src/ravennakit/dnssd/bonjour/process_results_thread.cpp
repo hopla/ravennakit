@@ -155,7 +155,7 @@ void rav::dnssd::process_results_thread::run(DNSServiceRef service_ref, const in
                 // response to DNSServiceProcessResult.
                 std::lock_guard guard(lock_);
 
-                DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(service_ref));
+                DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(service_ref), "Failed to process dns service results");
             } else if (result == WSA_WAIT_EVENT_0 + 1) {
                 RAV_TRACE("Received signal to stop, exiting thread.");
                 break;  // Stop the thread.

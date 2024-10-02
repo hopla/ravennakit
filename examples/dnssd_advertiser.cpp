@@ -20,8 +20,10 @@ static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::stri
 }
 
 int main(int const argc, char* argv[]) {
+#if RAV_ENABLE_SPDLOG
     spdlog::default_logger()->flush_on(spdlog::level::info);
     spdlog::default_logger()->set_level(spdlog::level::trace);
+#endif
 
     std::vector<std::string> args;
     for (int i = 1; i < argc; i++) {

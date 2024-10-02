@@ -16,6 +16,10 @@
 
 #if RAV_HAS_APPLE_DNSSD
 
+rav::dnssd::process_results_thread::~process_results_thread() {
+    stop();
+}
+
 void rav::dnssd::process_results_thread::start(DNSServiceRef service_ref) {
     if (is_running()) {
         RAV_ERROR("Thread is already running");
@@ -39,18 +43,17 @@ void rav::dnssd::process_results_thread::stop() {
     if (future_.valid()) {
         std::lock_guard guard(lock_);
 
-#if RAV_POSIX
+    #if RAV_POSIX
         constexpr char x = 'x';
         if (pipe_.write(&x, 1) != 1) {
             RAV_ERROR("Failed to signal thread to stop");
         }
-#else
+    #else
         event_.signal();
-#endif
+    #endif
 
         const auto status = future_.wait_for(1000ms);
         if (status == std::future_status::ready) {
-            RAV_TRACE("Thread stopped");
         } else if (status == std::future_status::timeout) {
             RAV_ERROR("Failed to stop thread, proceeding anyway.");
         } else {
@@ -124,7 +127,11 @@ void rav::dnssd::process_results_thread::run(DNSServiceRef service_ref, const in
             // Locking here will make sure that all callbacks are synchronised because they are called in
             // response to DNSServiceProcessResult.
             std::lock_guard guard(lock_);
-            DNSSD_LOG_IF_ERROR(DNSServiceProcessResult(service_ref));
+            try {
+                DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(service_ref));
+            } catch (const std::exception& e) {
+                RAV_ERROR("Failed to process dns service result(s): {}", e.what());
+            }
         }
     }
 
@@ -146,7 +153,11 @@ void rav::dnssd::process_results_thread::run(DNSServiceRef service_ref, const in
             // Locking here will make sure that all callbacks are synchronised because they are called in
             // response to DNSServiceProcessResult.
             std::lock_guard guard(lock_);
-            DNSSD_LOG_IF_ERROR(DNSServiceProcessResult(service_ref));
+            try {
+                DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(service_ref));
+            } catch (const std::exception& e) {
+                RAV_ERROR("Failed to process dns service result(s): {}", e.what());
+            }
         } else if (result == WSA_WAIT_EVENT_0 + 1) {
             RAV_TRACE("Received signal to stop, exiting thread.");
             break;  // Stop the thread.

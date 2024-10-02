@@ -10,14 +10,22 @@
 
 #include "ravennakit/dnssd/bonjour/bonjour.hpp"
 
+#include "ravennakit/core/log.hpp"
+
 #if RAV_HAS_APPLE_DNSSD
 
 bool rav::dnssd::is_bonjour_service_running() {
     uint32_t version;
     uint32_t size = sizeof(version);
     const DNSServiceErrorType error = DNSServiceGetProperty(kDNSServiceProperty_DaemonVersion, &version, &size);
-
-    return error == kDNSServiceErr_NoError;
+    if (error == kDNSServiceErr_NoError) {
+        return true;
+    }
+    if (error == kDNSServiceErr_ServiceNotRunning) {
+        return false;
+    }
+    RAV_ERROR("DNSServiceGetProperty failed: {}", dns_service_error_to_string(error));
+    return false;
 }
 
 const char* rav::dnssd::dns_service_error_to_string(const DNSServiceErrorType error) noexcept {

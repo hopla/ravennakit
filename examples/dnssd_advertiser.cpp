@@ -20,6 +20,9 @@ static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::stri
 }
 
 int main(int const argc, char* argv[]) {
+    spdlog::default_logger()->flush_on(spdlog::level::info);
+    spdlog::default_logger()->set_level(spdlog::level::trace);
+
     std::vector<std::string> args;
     for (int i = 1; i < argc; i++) {
         args.emplace_back(argv[i]);
@@ -32,9 +35,6 @@ int main(int const argc, char* argv[]) {
                   << std::endl;
         return -1;
     }
-
-    spdlog::default_logger()->flush_on(spdlog::level::info);
-    spdlog::default_logger()->set_level(spdlog::level::trace);
 
     // Parse port number
     int port_number = 0;
@@ -59,12 +59,21 @@ int main(int const argc, char* argv[]) {
     }
 
     advertiser->on<rav::dnssd::events::advertiser_error>([](const rav::dnssd::events::advertiser_error& event,
-                                                           rav::dnssd::dnssd_advertiser&) {
-        RAV_CRITICAL("Exception caught: {}", event.exception.what());
+                                                            rav::dnssd::dnssd_advertiser&) {
+        RAV_ERROR("Advertiser error: {}", event.exception.what());
+    });
+
+    advertiser->on<rav::dnssd::events::name_conflict>([](const rav::dnssd::events::name_conflict& event,
+                                                         rav::dnssd::dnssd_advertiser&) {
+        RAV_CRITICAL("Name conflict: {} {}", event.reg_type, event.name);
     });
 
     advertiser->register_service(
-        args[0], "001122334455@SomeName", nullptr, static_cast<uint16_t>(port_number), txt_record
+        args[0], "First test service", nullptr, static_cast<uint16_t>(port_number), txt_record, true
+    );
+
+    const auto service_id2 = advertiser->register_service(
+        args[0], "Second test service", nullptr, static_cast<uint16_t>(port_number), txt_record, true
     );
 
     RAV_INFO("Enter key=value to update the TXT record, or q to exit...");
@@ -77,13 +86,14 @@ int main(int const argc, char* argv[]) {
         }
 
         if (cmd == "r" || cmd == "R") {
-            advertiser->unregister_service();
+            advertiser->unregister_service(service_id2);
             continue;
         }
 
         try {
             if (parse_txt_record(txt_record, cmd)) {
-                advertiser->update_txt_record(txt_record);
+                advertiser->update_txt_record(service_id2, txt_record);
+
                 RAV_INFO("Updated txt record:");
 
                 for (auto& pair : txt_record) {
@@ -91,7 +101,7 @@ int main(int const argc, char* argv[]) {
                 }
             }
         } catch (const std::exception& e) {
-            RAV_CRITICAL("Exception caught: {}", e.what());
+            RAV_ERROR("Failed to update txt record: {}", e.what());
         }
     }
 

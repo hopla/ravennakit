@@ -14,12 +14,12 @@ class bonjour_scoped_dns_service_ref {
     bonjour_scoped_dns_service_ref() = default;
     ~bonjour_scoped_dns_service_ref();
 
+    explicit bonjour_scoped_dns_service_ref(const DNSServiceRef& service_ref) noexcept;
+
     bonjour_scoped_dns_service_ref(const bonjour_scoped_dns_service_ref&) = delete;
+    bonjour_scoped_dns_service_ref& operator=(const bonjour_scoped_dns_service_ref& other) = delete;
 
     bonjour_scoped_dns_service_ref(bonjour_scoped_dns_service_ref&& other) noexcept;
-    explicit bonjour_scoped_dns_service_ref(const DNSServiceRef& serviceRef) noexcept;
-
-    bonjour_scoped_dns_service_ref& operator=(const bonjour_scoped_dns_service_ref& other) = delete;
     bonjour_scoped_dns_service_ref& operator=(bonjour_scoped_dns_service_ref&& other) noexcept;
 
     /**

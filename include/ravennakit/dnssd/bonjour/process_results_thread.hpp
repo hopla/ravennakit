@@ -26,6 +26,8 @@ namespace rav::dnssd {
  */
 class process_results_thread {
   public:
+    ~process_results_thread();
+
     /**
      * Starts the thread to process the results of a DNSServiceRef. Thread must not already be running.
      * @param service_ref The DNSServiceRef to process.

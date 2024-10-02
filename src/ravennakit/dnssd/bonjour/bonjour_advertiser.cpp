@@ -10,29 +10,52 @@
     #include <iostream>
     #include <thread>
 
-void rav::dnssd::bonjour_advertiser::register_service(
-    const std::string& reg_type, const char* name, const char* domain, uint16_t port, const txt_record& txt_record
-) {
-    DNSServiceRef service_ref = nullptr;
-    const auto record = bonjour_txt_record(txt_record);
+// Check if we can use DNSServiceRef as identifier.
+static_assert(sizeof(uint64_t) == sizeof(DNSServiceRef));
 
-    DNSSD_THROW_IF_ERROR(DNSServiceRegister(
-        &service_ref, 0, 0, name, reg_type.c_str(), domain, nullptr, htons(port), record.length(), record.bytesPtr(),
-        register_service_callback, this
-    ));
-
-    rollback rollback([this]() {
-        unregister_service();
-    });
-
-    service_ref_ = service_ref;
-    DNSSD_THROW_IF_ERROR(DNSServiceProcessResult(service_ref_.service_ref()));
-
-    rollback.commit();
+rav::dnssd::bonjour_advertiser::bonjour_advertiser() {
+    process_results_thread_.start(shared_connection_.service_ref());
 }
 
-void rav::dnssd::bonjour_advertiser::unregister_service() noexcept {
-    service_ref_.reset();
+rav::dnssd::bonjour_advertiser::~bonjour_advertiser() {
+    process_results_thread_.stop();
+}
+
+rav::util::id rav::dnssd::bonjour_advertiser::register_service(
+    const std::string& reg_type, const char* name, const char* domain, uint16_t port, const txt_record& txt_record,
+    bool auto_rename
+) {
+    auto guard = process_results_thread_.lock();
+    DNSServiceRef service_ref = shared_connection_.service_ref();
+    const auto record = bonjour_txt_record(txt_record);
+
+    DNSServiceFlags flags = kDNSServiceFlagsShareConnection;
+
+    if (!auto_rename) {
+        flags |= kDNSServiceFlagsNoAutoRename;
+    }
+
+    DNSSD_THROW_IF_ERROR(DNSServiceRegister(
+        &service_ref, flags, 0, name, reg_type.c_str(), domain,
+        nullptr, htons(port), record.length(), record.bytesPtr(), register_service_callback, this
+    ));
+
+    auto scoped_service_ref = bonjour_scoped_dns_service_ref(service_ref);
+    const auto id = id_generator_.next();
+    registered_services_.push_back(registered_service {id, std::move(scoped_service_ref), reg_type, name});
+    return id;
+}
+
+void rav::dnssd::bonjour_advertiser::unregister_service(util::id id) noexcept {
+    registered_services_.erase(
+        std::remove_if(
+            registered_services_.begin(), registered_services_.end(),
+            [id](const registered_service& s) {
+                return s.id == id;
+            }
+        ),
+        registered_services_.end()
+    );
 }
 
 void rav::dnssd::bonjour_advertiser::register_service_callback(
@@ -40,15 +63,37 @@ void rav::dnssd::bonjour_advertiser::register_service_callback(
     const DNSServiceErrorType error_code, [[maybe_unused]] const char* service_name,
     [[maybe_unused]] const char* reg_type, [[maybe_unused]] const char* reply_domain, [[maybe_unused]] void* context
 ) {
+    auto* advertiser = static_cast<bonjour_advertiser*>(context);
+    if (error_code == kDNSServiceErr_NameConflict) {
+        advertiser->emit(events::name_conflict {reg_type, service_name});
+        return;
+    }
+
     DNSSD_THROW_IF_ERROR(error_code);
 }
 
-void rav::dnssd::bonjour_advertiser::update_txt_record(const txt_record& txt_record) {
+rav::dnssd::bonjour_advertiser::registered_service*
+rav::dnssd::bonjour_advertiser::find_registered_service(const util::id id) {
+    for (auto& service : registered_services_) {
+        if (service.id == id) {
+            return &service;
+        }
+    }
+
+    return nullptr;
+}
+
+void rav::dnssd::bonjour_advertiser::update_txt_record(const util::id id, const txt_record& txt_record) {
+    const auto* const service = find_registered_service(id);
+    if (service == nullptr) {
+        RAV_THROW_EXCEPTION("Service not found");
+    }
+
     auto const record = bonjour_txt_record(txt_record);
 
     // Second argument's nullptr tells us that we are updating the primary record.
     DNSSD_THROW_IF_ERROR(
-        DNSServiceUpdateRecord(service_ref_.service_ref(), nullptr, 0, record.length(), record.bytesPtr(), 0)
+        DNSServiceUpdateRecord(service->service_ref.service_ref(), nullptr, 0, record.length(), record.bytesPtr(), 0)
     );
 }
 

@@ -30,7 +30,7 @@ class id {
     };
 
     id() = default;
-    explicit id(const uint64_t id) : id_(id) {}
+    explicit id(const uint64_t int_id) : id_(int_id) {}
 
     id(const id& other) = default;
     id(id&& other) noexcept = default;

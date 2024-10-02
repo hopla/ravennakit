@@ -7,7 +7,7 @@
 
 rav::dnssd::bonjour_shared_connection::bonjour_shared_connection() {
     DNSServiceRef ref = nullptr;
-    DNSSD_THROW_IF_ERROR("Failed to create shared connection", DNSServiceCreateConnection(&ref));
+    DNSSD_THROW_IF_ERROR(DNSServiceCreateConnection(&ref), "Failed to create shared connection");
     service_ref_ = ref;  // From here on the ref is under RAII inside a ScopedDnsServiceRef class
 }
 

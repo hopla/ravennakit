@@ -33,9 +33,9 @@
 
     #include <dns_sd.h>
 
-#define DNSSD_THROW_IF_ERROR(msg, error) \
-    if (error != kDNSServiceErr_NoError) { \
-        throw rav::exception(std::string(msg) + ": " + dns_service_error_to_string(error), __FILE__, __LINE__, RAV_FUNCTION); \
+#define DNSSD_THROW_IF_ERROR(result, msg) \
+    if (result != kDNSServiceErr_NoError) { \
+        throw rav::exception(std::string(msg) + ": " + dns_service_error_to_string(result), __FILE__, __LINE__, RAV_FUNCTION); \
     }
 
 #define DNSSD_LOG_IF_ERROR(error) \

@@ -35,17 +35,6 @@ class io_context_runner {
      */
     void run() {
         stop();
-        work_guard_ = std::make_unique<asio::executor_work_guard<asio::io_context::executor_type>>(
-            asio::make_work_guard(io_context_)
-        );
-        start();
-    }
-
-    /**
-     * Runs all tasks to completion, returning immediately. Call stop to wait for all tasks to finish.
-     */
-    void run_to_completion() {
-        stop();
         start();
     }
 
@@ -58,7 +47,6 @@ class io_context_runner {
             thread.join();
         }
         threads_.clear();
-        work_guard_.reset();
         io_context_.restart();
     }
 
@@ -73,7 +61,7 @@ class io_context_runner {
     const size_t num_threads_ = std::thread::hardware_concurrency();
     bool running_ = false;
     asio::io_context io_context_ {};
-    std::unique_ptr<asio::executor_work_guard<asio::io_context::executor_type>> work_guard_;
+    asio::executor_work_guard<asio::io_context::executor_type> work_guard_ {asio::make_work_guard(io_context_)};
     std::vector<std::thread> threads_ {};
 
     /**

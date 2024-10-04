@@ -33,7 +33,7 @@ TEST_CASE("io_context_runner | run_to_completion_async()", "[io_context_runner]"
             });
         }
 
-        runner.run_to_completion();
+        runner.run();
 
         const rav::util::chrono::timeout timeout(k_default_timeout_seconds_seconds);
         while (total != expected_total) {
@@ -61,7 +61,7 @@ TEST_CASE("io_context_runner | run_to_completion_async()", "[io_context_runner]"
             });
         }
 
-        runner.run_to_completion();
+        runner.run();
 
         const rav::util::chrono::timeout timeout(k_default_timeout_seconds_seconds);
         while (total != expected_total) {
@@ -86,7 +86,7 @@ TEST_CASE("io_context_runner | run_to_completion_async()", "[io_context_runner]"
             });
         }
 
-        runner.run_to_completion();
+        runner.run();
 
         const rav::util::chrono::timeout timeout2(k_default_timeout_seconds_seconds);
         while (total != expected_total) {

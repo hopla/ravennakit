@@ -31,7 +31,11 @@ TEST_CASE("tcp_server", "[tcp_server]") {
     }
 }
 
-TEST_CASE("tcp_server | run multi threaded server", "[tcp_server]") {
+TEST_CASE("tcp_server | start and stop tcp_servers", "[tcp_server]") {
+#if RAV_ENABLE_SPDLOG
+    spdlog::set_level(spdlog::level::trace);
+#endif
+
     constexpr int k_num_threads = 8;
     rav::io_context_runner runner(k_num_threads);
 
@@ -39,9 +43,7 @@ TEST_CASE("tcp_server | run multi threaded server", "[tcp_server]") {
 
     for (int i = 0; i < 10; i++) {
         rav::tcp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
-        server.stop();
     }
 
-    rav::tcp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
-    server.stop();
+    runner.wait_for_completion();
 }

@@ -103,6 +103,7 @@ find_package(CLI11 CONFIG REQUIRED)
 find_package(portaudio CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 target_compile_definitions(asio INTERFACE ASIO_NO_DEPRECATED ASIO_NO_DYNAMIC_BUFFER_V1)
+#target_compile_definitions(asio INTERFACE ASIO_ENABLE_HANDLER_TRACKING)
 
 ##############
 # RAVENNAKIT #
@@ -173,9 +174,9 @@ if (TRACY_ENABLE)
     target_link_libraries(rtp_receiver_example PUBLIC tracy)
 endif ()
 
-#################
-# DNSSD Browser #
-#################
+#########################
+# DNSSD Browser example #
+#########################
 
 add_executable(dnssd_browser
         examples/dnssd_browser.cpp
@@ -195,9 +196,9 @@ if (TRACY_ENABLE)
     target_link_libraries(dnssd_browser PUBLIC tracy)
 endif ()
 
-####################
-# DNSSD Advertiser #
-####################
+############################
+# DNSSD Advertiser example #
+############################
 
 add_executable(dnssd_advertiser
         examples/dnssd_advertiser.cpp

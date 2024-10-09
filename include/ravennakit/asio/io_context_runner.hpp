@@ -46,8 +46,7 @@ class io_context_runner {
         }
 
         if (is_running()) {
-            stop();
-            io_context_.restart();
+            RAV_THROW_EXCEPTION("io_context_runner is already running");
         }
 
         threads_.clear();
@@ -62,7 +61,7 @@ class io_context_runner {
                 }
 #endif
 
-                for (;;) {
+                while (true) {
                     try {
                         io_context_.run();
                         if (io_context_.stopped()) {
@@ -92,7 +91,7 @@ class io_context_runner {
     /**
      * Resets the work_guard and waits until the runner has no more work to do.
      */
-    void run_to_completion() {
+    void wait_for_completion() {
         work_guard_.reset();
         for (auto& thread : threads_) {
             thread.join();

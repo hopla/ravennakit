@@ -24,10 +24,6 @@ class tcp_server {
         async_accept();
     }
 
-    ~tcp_server() {
-        stop();
-    }
-
     [[nodiscard]] uint16_t port() const {
         return acceptor_.local_endpoint().port();
     }
@@ -36,22 +32,18 @@ class tcp_server {
         return acceptor_.get_executor();
     }
 
-    void stop() {
-        if (acceptor_.is_open()) {
-            acceptor_.cancel();
-            acceptor_.close();
-        }
-    }
-
   private:
     asio::ip::tcp::acceptor acceptor_;
-    std::mutex mutex_;
 
     void async_accept() {
         acceptor_.async_accept([this](const std::error_code ec, asio::ip::tcp::socket socket) {
             if (!ec) {
                 RAV_TRACE("Accepting connection from: {}", socket.remote_endpoint().address().to_string());
                 async_accept();
+            } else {
+                if (ec != asio::error::operation_aborted) {
+                    RAV_ERROR("Error accepting connection: {}", ec.message());
+                }
             }
         });
     }

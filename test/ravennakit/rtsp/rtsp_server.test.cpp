@@ -30,10 +30,11 @@ TEST_CASE("rtsp_server", "[rtsp_server]") {
             const rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 555));
             REQUIRE(server.port() == 555);
         }
+
+        runner.wait_for_completion();
     }
 
     SECTION("Create and destroy") {
-        constexpr int k_num_threads = 8;
         rav::io_context_runner runner(k_num_threads);
 
         for (int i = 0; i < 10; i++) {

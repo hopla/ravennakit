@@ -59,8 +59,6 @@ class rtsp_request_parser {
         header_name,
         space_before_header_value,
         header_value,
-        header_value_newline,
-        end_of_headers,
     };
 
     rtsp_request& request_;

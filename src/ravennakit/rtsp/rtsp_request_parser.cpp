@@ -91,30 +91,23 @@ rav::rtsp_request_parser::result rav::rtsp_request_parser::consume(const char c)
             request_.rtsp_version_minor = 0;
             state_ = state::expecting_newline_1;
             return result::indeterminate;
-        case state::header_value_newline:
-            if (c == '\r' || c == '\n') {
-                if (c == previous_c_) {
-                    return result::good;
-                }
-                return result::indeterminate; // Or good, depending on whether all data is consumed.
-            }
         case state::expecting_newline_1:
             if (c == '\n') {
                 state_ = state::header_start;
                 return result::indeterminate;
             }
             if (c == '\r') {
-                if (previous_c_ == c) {
-                    return result::good;
-                }
                 state_ = state::expecting_newline_1;
                 return result::indeterminate;
             }
-            state_ = state::header_start;
+            return result::bad_header;
         case state::header_start:
-            if (c == '\r' || c == '\n') {
-                state_ = state::end_of_headers;
+            if (c == '\r') {
+                state_ = state::header_start;
                 return result::indeterminate;
+            }
+            if (c == '\n') {
+                return result::good;
             }
             if (!is_char(c) || is_ctl(c) || is_tspecial(c)) {
                 return result::bad_header;
@@ -138,8 +131,12 @@ rav::rtsp_request_parser::result rav::rtsp_request_parser::consume(const char c)
             }
             state_ = state::header_value;
         case state::header_value:
-            if (c == '\r' || c == '\n') {
-                state_ = state::header_value_newline;
+            if (c == '\r') {
+                state_ = state::header_value;
+                return result::indeterminate;
+            }
+            if (c == '\n') {
+                state_ = state::header_start;
                 return result::indeterminate;
             }
             if (is_ctl(c)) {
@@ -147,17 +144,8 @@ rav::rtsp_request_parser::result rav::rtsp_request_parser::consume(const char c)
             }
             request_.headers.back().value.push_back(c);
             return result::indeterminate;
-
-        case state::end_of_headers:
-            if (c == '\r') {
-                state_ = state::end_of_headers;
-                return result::indeterminate;
-            }
-            if (c == '\n') {
-                return result::good;
-            }
-            return result::bad_end_of_headers;
     }
+
     return result::indeterminate;
 }
 

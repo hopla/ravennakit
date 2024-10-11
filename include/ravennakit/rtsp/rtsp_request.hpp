@@ -26,9 +26,10 @@ public:
 
     std::string method;
     std::string uri;
-    int rtsp_version_major;
-    int rtsp_version_minor;
+    int rtsp_version_major{};
+    int rtsp_version_minor{};
     std::vector<header> headers;
+    std::string data;
 
     [[nodiscard]] const std::string* get_header(const std::string& name) const {
         for (const auto& header : headers) {
@@ -37,6 +38,13 @@ public:
             }
         }
         return nullptr;
+    }
+
+    [[nodiscard]] std::optional<long> get_content_length() const {
+        if (const std::string* content_length = get_header("Content-Length"); content_length) {
+            return rav::ston<long>(*content_length);
+        }
+        return std::nullopt;
     }
 };
 

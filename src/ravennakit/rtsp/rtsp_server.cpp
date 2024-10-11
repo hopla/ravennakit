@@ -29,13 +29,29 @@ class rav::rtsp_server::connection: public std::enable_shared_from_this<connecti
         auto self(shared_from_this());
         socket_.async_read_some(
             asio::buffer(input_data_),
-            [this, self](std::error_code ec, std::size_t bytes_transferred) {
-                if (!ec) {
-                    // TODO: Parse
-                    auto [result, begin] = request_parser_.parse(input_data_.begin(), input_data_.end());
-
-                    do_read();
+            [this, self](const std::error_code ec, const std::size_t bytes_transferred) {
+                if (ec) {
+                    RAV_ERROR("Read error: {}", ec.message());
+                    // TODO: Close the connection?
+                    return;
                 }
+
+                RAV_ASSERT(bytes_transferred <= input_data_.size(), "Invalid number of bytes transferred");
+
+                auto [result, begin] = request_parser_.parse(
+                    input_data_.begin(), input_data_.begin() + static_cast<long>(bytes_transferred)
+                );
+
+                if (result == rtsp_request_parser::result::good) {
+                    // TODO: We got a full request. Call some subscriber or something.
+                    // TODO: Reset the request and other state to go read the next request.
+                } else if (result != rtsp_request_parser::result::indeterminate) {
+                    // TODO: Send back 400 Bad Request and terminate the connection
+                    RAV_ERROR("Error: invalid header");
+                    return;
+                }
+
+                do_read();
             }
         );
     }

@@ -129,4 +129,32 @@ TEST_CASE("rtsp_request_parser", "[rtsp_request_parser]") {
             REQUIRE(request.headers[1].value == "application/sdp, application/rtsl, application/mheg");
         }
     }
+
+    SECTION("Parse with headers and with data") {
+        auto texts = replace_newlines(
+            "DESCRIBE rtsp://server.example.com/fizzle/foo RTSP/1.0\r\nContent-Length: 28\r\n\r\nthis_is_the_part_called_data"
+        );
+
+        for (auto& txt : texts) {
+            rav::rtsp_request request;
+            rav::rtsp_request_parser parser(request);
+            auto [result, begin] = parser.parse(txt.begin(), txt.end());
+            REQUIRE(result == rav::rtsp_request_parser::result::good);
+            REQUIRE(request.method == "DESCRIBE");
+            REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
+            REQUIRE(request.rtsp_version_major == 1);
+            REQUIRE(request.rtsp_version_minor == 0);
+            if (auto length = request.get_content_length()) {
+                REQUIRE(length.value() == 28);
+            } else {
+                FAIL("Content-Length header not found");
+            }
+            REQUIRE(begin == txt.end());
+            REQUIRE(request.data == "this_is_the_part_called_data");
+        }
+    }
+
+    SECTION("Parse with headers and with data in different chunks") {
+        // TODO
+    }
 }

@@ -19,7 +19,6 @@ class rtsp_request_parser {
     enum class result {
         good,
         indeterminate,
-        more_data_needed,
         bad_method,
         bad_uri,
         bad_protocol,
@@ -32,12 +31,48 @@ class rtsp_request_parser {
 
     template<typename InputIterator>
     std::tuple<result, InputIterator> parse(InputIterator begin, InputIterator end) {
-        while (begin != end) {
-            if (result result = consume(*begin++); result != result::indeterminate) {
+        RAV_ASSERT(begin < end, "Invalid input iterators");
+
+        while (begin < end) {
+            if (remaining_expected_data_ > 0) {
+                auto data_size = std::min(remaining_expected_data_, end - begin);
+                request_.data.insert(request_.data.end(), begin, begin + data_size);
+                remaining_expected_data_ -= data_size;
+                begin += data_size;
+                if (remaining_expected_data_ > 0) {
+                    return std::make_tuple(result::indeterminate, begin);
+                }
+                if (begin >= end) {
+                    return std::make_tuple(result::good, begin); // Exhausted
+                }
+            }
+
+            RAV_ASSERT(begin < end, "Expecting data available");
+            RAV_ASSERT(remaining_expected_data_ == 0, "No remaining data should be expected at this point");
+
+            result result = consume(*begin++);
+
+            if (result == result::good) {
+                if (const auto data_length = request_.get_content_length(); data_length.has_value()) {
+                    remaining_expected_data_ = *data_length;
+                } else {
+                    remaining_expected_data_ = 0;
+                }
+
+                if (remaining_expected_data_ > 0) {
+                    continue; // Next iteration to handle data.
+                }
+
+                RAV_ASSERT(begin == end, "Expecting no more data left at this point");
+
                 return std::make_tuple(result, begin);
             }
-            previous_c_ = *begin;
+
+            if (result != result::indeterminate) {
+                return std::make_tuple(result, begin); // Error
+            }
         }
+
         return std::make_tuple(result::indeterminate, begin);
     }
 
@@ -63,7 +98,7 @@ class rtsp_request_parser {
 
     rtsp_request& request_;
     state state_ {state::method_start};
-    char previous_c_ {0};
+    long remaining_expected_data_ {0};
 
     result consume(char c);
 

@@ -11,8 +11,6 @@
 #include "ravennakit/rtsp/rtsp_request_parser.hpp"
 
 rav::rtsp_request_parser::result rav::rtsp_request_parser::consume(const char c) {
-    fmt::print("{}", c);
-
     switch (state_) {
         case state::method_start:
             if (!is_char(c) || is_ctl(c) || is_tspecial(c)) {

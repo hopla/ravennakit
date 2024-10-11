@@ -87,6 +87,7 @@ class result {
     explicit result() = default;
 
     // Warning: this constructor triggers undefined behavior sanitizer when running as x86_64 on Apple Silicon
+    // I failed to reproduce the issue as a minimum reproducible example, so it seems to be specific to this codebase.
     // explicit result(std::variant<T, E> value) : value_(std::move(value)) {}
 };
 

@@ -124,7 +124,7 @@ def build(args):
         subprocess.run(cmd, check=True)
 
         if platform.system() == 'Darwin' and platform.processor() == 'arm':
-            print('Run Intel test using rosetta')
+            print(f'Running x86_64 test {report_name} ({test_target})')
             subprocess.run(['arch', '--x86_64'] + cmd, check=True)
 
     if platform.system() == 'Darwin':

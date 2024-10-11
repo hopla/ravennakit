@@ -58,8 +58,8 @@ def build_macos(args, build_config: Config, subfolder: str, spdlog: bool = False
     return path_to_build
 
 
-def build_windows(args, arch, build_config: Config):
-    path_to_build = Path(args.path_to_build) / ('windows-' + arch)
+def build_windows(args, arch, build_config: Config, subfolder: str, spdlog: bool = False):
+    path_to_build = Path(args.path_to_build) / subfolder
 
     if args.skip_build:
         return path_to_build
@@ -77,7 +77,9 @@ def build_windows(args, arch, build_config: Config):
     cmake.option('VCPKG_OVERLAY_TRIPLETS', 'triplets')
     cmake.option('VCPKG_TARGET_TRIPLET', 'windows-' + arch)
     cmake.option('BUILD_NUMBER', args.build_number)
-    cmake.option('RAV_ENABLE_SPDLOG', 'ON')
+
+    if spdlog:
+        cmake.option('RAV_ENABLE_SPDLOG', 'ON')
 
     cmake.configure()
     cmake.build()
@@ -85,8 +87,8 @@ def build_windows(args, arch, build_config: Config):
     return path_to_build
 
 
-def build_linux(args, arch, build_config: Config):
-    path_to_build = Path(args.path_to_build) / ('linux-' + arch)
+def build_linux(args, arch, build_config: Config, subfolder: str, spdlog: bool = False):
+    path_to_build = Path(args.path_to_build) / subfolder
 
     if args.skip_build:
         return path_to_build
@@ -102,7 +104,9 @@ def build_linux(args, arch, build_config: Config):
     cmake.option('CMAKE_TOOLCHAIN_FILE', 'submodules/vcpkg/scripts/buildsystems/vcpkg.cmake')
     cmake.option('VCPKG_TARGET_TRIPLET', arch + '-linux')
     cmake.option('BUILD_NUMBER', args.build_number)
-    cmake.option('RAV_ENABLE_SPDLOG', 'ON')
+
+    if spdlog:
+        cmake.option('RAV_ENABLE_SPDLOG', 'ON')
 
     cmake.configure()
     cmake.build()
@@ -140,12 +144,18 @@ def build(args):
             run_test(path_to_build / build_config.value / ravennakit_tests_target, 'macos_universal_spdlog_tsan')
 
     elif platform.system() == 'Windows':
-        path_to_build_x64 = build_windows(args, 'x64', build_config)
-        run_test(path_to_build_x64 / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64')
+        path_to_build = build_windows(args, 'x64', build_config, 'windows_x64')
+        run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64')
+
+        path_to_build = build_windows(args, 'x64', build_config, 'windows_x64_spdlog', spdlog=True)
+        run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64_spdlog')
 
     elif platform.system() == 'Linux':
-        path_to_build_x64 = build_linux(args, 'x64', build_config)
-        run_test(path_to_build_x64 / f'{ravennakit_tests_target}', 'linux_x64')
+        path_to_build = build_linux(args, 'x64', build_config, 'linux_x64')
+        run_test(path_to_build / f'{ravennakit_tests_target}', 'linux_x64')
+
+        path_to_build = build_linux(args, 'x64', build_config, 'linux_x64_spdlog', spdlog=True)
+        run_test(path_to_build / f'{ravennakit_tests_target}', 'linux_x64_spdlog')
 
         # TODO: path_to_build_arm64 = build_linux(args, 'arm64', build_config)
 

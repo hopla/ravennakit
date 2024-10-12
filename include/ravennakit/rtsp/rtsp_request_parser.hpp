@@ -35,7 +35,7 @@ class rtsp_request_parser {
 
         while (begin < end) {
             if (remaining_expected_data_ > 0) {
-                auto data_size = std::min(remaining_expected_data_, end - begin);
+                auto data_size = std::min(remaining_expected_data_, static_cast<long>(end - begin));
                 request_.data.insert(request_.data.end(), begin, begin + data_size);
                 remaining_expected_data_ -= data_size;
                 begin += data_size;

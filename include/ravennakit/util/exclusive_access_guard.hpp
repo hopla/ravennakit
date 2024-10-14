@@ -20,14 +20,9 @@
  * Helper macro which asserts exclusive access to scope. Whenever 2 different threads access the scope, an assertion
  * will be triggered.
  */
-#define RAV_ASSERT_EXCLUSIVE_ACCESS                                    \
-    static std::atomic<int32_t> static_counter {0};                    \
-    rav::rollback rollback([&] {                                       \
-        static_counter.fetch_sub(1, std::memory_order_relaxed);        \
-    });                                                                \
-    if (static_counter.fetch_add(1, std::memory_order_relaxed) != 0) { \
-        RAV_ASSERT_FALSE("Exclusive access violation");                \
-    }
+#define RAV_ASSERT_EXCLUSIVE_ACCESS(counter)                                       \
+    rav::exclusive_access_guard CONCAT(exclusive_access_guard, __LINE__)(counter); \
+    RAV_ASSERT(!CONCAT(exclusive_access_guard, __LINE__).violated(), "Exclusive access violation");
 
 #include <atomic>
 #include <stdexcept>
@@ -41,10 +36,7 @@ class exclusive_access_guard {
   public:
     explicit exclusive_access_guard(std::atomic<int32_t>& counter) : counter_(counter) {
         const auto prev = counter_.fetch_add(1, std::memory_order_relaxed);
-        if (prev != 0) {
-            counter_.fetch_sub(1, std::memory_order_relaxed);
-            throw std::runtime_error("Exclusive access violation");
-        }
+        violated_ = prev != 0;
     }
 
     ~exclusive_access_guard() {
@@ -57,8 +49,16 @@ class exclusive_access_guard {
     exclusive_access_guard(exclusive_access_guard&&) = delete;
     exclusive_access_guard& operator=(exclusive_access_guard&&) = delete;
 
+    /**
+     * @return True if the exclusive access was violated.
+     */
+    [[nodiscard]] bool violated() const {
+        return violated_;
+    }
+
   private:
     std::atomic<int32_t>& counter_;
+    bool violated_ {false};
 };
 
 }  // namespace rav

@@ -146,7 +146,7 @@ TEST_CASE("rtsp_request_parser", "[rtsp_request_parser]") {
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
             REQUIRE(request.rtsp_version_minor == 0);
-            if (auto length = request.get_content_length()) {
+            if (auto length = request.headers.get_content_length()) {
                 REQUIRE(length.value() == 28);
             } else {
                 FAIL("Content-Length header not found");
@@ -188,7 +188,7 @@ TEST_CASE("rtsp_request_parser | Parse in different chunks", "[rtsp_request_pars
     REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
     REQUIRE(request.rtsp_version_major == 1);
     REQUIRE(request.rtsp_version_minor == 0);
-    if (auto length = request.get_content_length(); length.has_value()) {
+    if (auto length = request.headers.get_content_length(); length.has_value()) {
         REQUIRE(length.value() == 28);
     } else {
         FAIL("Content-Length header not found");
@@ -211,7 +211,7 @@ TEST_CASE("rtsp_request_parser | Parse in different chunks", "[rtsp_request_pars
     REQUIRE(request.uri == "rtsp://server2.example.com/fizzle/foo");
     REQUIRE(request.rtsp_version_major == 1);
     REQUIRE(request.rtsp_version_minor == 0);
-    if (auto length = request.get_content_length(); length.has_value()) {
+    if (auto length = request.headers.get_content_length(); length.has_value()) {
         REQUIRE(length.value() == 5);
     } else {
         FAIL("Content-Length header not found");

@@ -64,7 +64,7 @@ class rtsp_request_parser {
 
                 if (result == result::good) {
                     // Find out how much data we should get
-                    if (const auto data_length = request_.get_content_length(); data_length.has_value()) {
+                    if (const auto data_length = request_.headers.get_content_length(); data_length.has_value()) {
                         remaining_expected_data_ = *data_length;
                     } else {
                         remaining_expected_data_ = 0;

@@ -9,7 +9,9 @@
  */
 
 #include "ravennakit/util/exclusive_access_guard.hpp"
+#include "ravennakit/util/chrono/timeout.hpp"
 
+#include <future>
 #include <thread>
 #include <catch2/catch_all.hpp>
 
@@ -39,18 +41,22 @@ TEST_CASE("exclusive_access_guard", "[exclusive_access_guard]") {
     SECTION("Trigger exclusive access violation by running two threads") {
         std::atomic keep_going {true};
 
-        auto thread_function = [&] {
+        auto function = [&keep_going]() {
             while (keep_going) {
                 if (exclusive_access()) {
                     keep_going = false;
+                    return true;
                 }
             }
+            return false;
         };
 
-        std::thread thread1(thread_function);
-        std::thread thread2(thread_function);
+        auto f1 = std::async(std::launch::async, function);
+        auto f2 = std::async(std::launch::async, function);
 
-        thread1.join();
-        thread2.join();
+        f1.wait_for(std::chrono::seconds(5));
+        f2.wait_for(std::chrono::seconds(5));
+
+        REQUIRE((f1.get() || f2.get()));
     }
 }

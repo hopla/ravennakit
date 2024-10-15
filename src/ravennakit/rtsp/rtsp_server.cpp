@@ -74,7 +74,19 @@ class rav::rtsp_server::connection: public std::enable_shared_from_this<connecti
 };
 
 rav::rtsp_server::rtsp_server(asio::io_context& io_context, const asio::ip::tcp::endpoint& endpoint) :
-    acceptor_(asio::make_strand(io_context), endpoint) {}
+    acceptor_(asio::make_strand(io_context), endpoint) {
+    async_accept();
+}
+
+void rav::rtsp_server::async_close() {
+    std::promise<void> promise;
+    auto future = promise.get_future();
+    asio::post(acceptor_.get_executor(), [this, promise = std::move(promise)]() mutable {
+        acceptor_.close();
+        promise.set_value();
+    });
+    future.wait();
+}
 
 void rav::rtsp_server::async_accept() {
     acceptor_.async_accept(

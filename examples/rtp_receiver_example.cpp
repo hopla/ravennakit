@@ -61,7 +61,7 @@ int main(int const argc, char* argv[]) {
 
     rav::system::do_system_checks();
 
-    CLI::App app {"App description"};
+    CLI::App app {"RTP Receiver example"};
     argv = app.ensure_utf8(argv);
 
     std::string listen_addr = "0.0.0.0";

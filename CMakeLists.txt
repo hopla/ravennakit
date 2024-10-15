@@ -218,6 +218,27 @@ if (TRACY_ENABLE)
     target_link_libraries(dnssd_advertiser PUBLIC tracy)
 endif ()
 
+#######################
+# RTSP Client example #
+#######################
+
+add_executable(rtsp_client_example
+        examples/rtsp_client_example.cpp
+)
+
+target_link_libraries(rtsp_client_example
+        PUBLIC
+        rav_recommended_warning_flags
+        rav_recommended_lto_flags
+        PRIVATE
+        ravennakit
+        CLI11::CLI11
+)
+
+if (TRACY_ENABLE)
+    target_link_libraries(rtsp_client_example PUBLIC tracy)
+endif ()
+
 ##############
 # Unit Tests #
 ##############

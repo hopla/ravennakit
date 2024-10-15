@@ -22,13 +22,15 @@ TEST_CASE("rtsp_server", "[rtsp_server]") {
         rav::io_context_runner runner(k_num_threads);
 
         SECTION("Any port") {
-            const rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
+            rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
             REQUIRE(server.port() != 0);
+            server.async_close();
         }
 
         SECTION("Specific port") {
-            const rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 555));
+            rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 555));
             REQUIRE(server.port() == 555);
+            server.async_close();
         }
 
         runner.join();
@@ -39,6 +41,7 @@ TEST_CASE("rtsp_server", "[rtsp_server]") {
 
         for (int i = 0; i < 10; i++) {
             rav::rtsp_server server(runner.io_context(), asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
+            server.async_close();
         }
 
         runner.join();

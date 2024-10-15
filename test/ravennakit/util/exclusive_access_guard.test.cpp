@@ -20,7 +20,6 @@ namespace {
 void violates_exclusive_access() {
     std::atomic counter {0};
     const rav::exclusive_access_guard exclusive_access_guard1(counter);
-    RAV_ASSERT_EXCLUSIVE_ACCESS(counter);
     const rav::exclusive_access_guard exclusive_access_guard2(counter);
 }
 

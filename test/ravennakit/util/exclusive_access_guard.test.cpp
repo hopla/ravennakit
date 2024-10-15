@@ -24,8 +24,8 @@ bool violates_exclusive_access() {
 
 bool exclusive_access() {
     static std::atomic counter {0};
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));  // Introduce a delay to increase the chance
     const rav::exclusive_access_guard exclusive_access_guard(counter);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));  // Introduce a delay to increase the chance
     return exclusive_access_guard.violated();
 }
 

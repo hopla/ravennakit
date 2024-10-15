@@ -36,4 +36,20 @@ TEST_CASE("rtsp_headers", "[rtsp_headers]") {
         headers.clear();
         REQUIRE(headers.empty());
     }
+
+    SECTION("Add header, make sure existing header gets updated using emplace_back") {
+        rav::rtsp_headers headers;
+        headers.emplace_back({"CSeq", "1"});
+        headers.emplace_back({"CSeq", "2"});
+        REQUIRE(headers.size() == 1);
+        REQUIRE(headers[0].value == "2");
+    }
+
+    SECTION("Add header, make sure existing header gets updated using push_back") {
+        rav::rtsp_headers headers;
+        headers.push_back({"CSeq", "1"});
+        headers.push_back({"CSeq", "2"});
+        REQUIRE(headers.size() == 1);
+        REQUIRE(headers[0].value == "2");
+    }
 }

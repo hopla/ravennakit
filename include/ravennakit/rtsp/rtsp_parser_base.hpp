@@ -86,8 +86,6 @@ class rtsp_parser_base {
                         break;  // Break out of this loop into outer loop to consume data
                     }
 
-                    RAV_ASSERT(begin == end, "Expecting no more data left at this point");
-
                     return std::make_tuple(result, begin);
                 }
 

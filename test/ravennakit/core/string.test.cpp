@@ -376,3 +376,25 @@ TEST_CASE("string | string_replace", "[string]") {
         REQUIRE(rav::string_replace(original, "\r\n", "\n") == "abcdef\n");
     }
 }
+
+TEST_CASE("string | string_compare_case_insensitive") {
+    SECTION("Equal strings") {
+        REQUIRE(rav::string_compare_case_insensitive("abc", "abc"));
+    }
+
+    SECTION("Equal strings with different case") {
+        REQUIRE(rav::string_compare_case_insensitive("abc", "ABC"));
+    }
+
+    SECTION("Different strings") {
+        REQUIRE_FALSE(rav::string_compare_case_insensitive("abc", "def"));
+    }
+
+    SECTION("Different strings with different case") {
+        REQUIRE_FALSE(rav::string_compare_case_insensitive("abc", "DEF"));
+    }
+
+    SECTION("Strings with different length") {
+        REQUIRE_FALSE(rav::string_compare_case_insensitive("abc", "abcd"));
+    }
+}

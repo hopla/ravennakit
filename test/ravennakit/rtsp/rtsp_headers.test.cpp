@@ -13,13 +13,13 @@
 #include <catch2/catch_all.hpp>
 
 TEST_CASE("rtsp_headers", "[rtsp_headers]") {
-    SECTION("Get header value") {
+    SECTION("Find header") {
         rav::rtsp_headers headers;
-        REQUIRE(headers.get_header_value("CSeq") == nullptr);
+        REQUIRE(headers.find_header("CSeq") == nullptr);
         headers.push_back({"CSeq", "1"});
-        auto* value = headers.get_header_value("CSeq");
-        REQUIRE(value != nullptr);
-        REQUIRE(*value == "1");
+        auto* header = headers.find_header("CSeq");
+        REQUIRE(header != nullptr);
+        REQUIRE(header->value == "1");
     }
 
     SECTION("Get content length") {
@@ -45,9 +45,25 @@ TEST_CASE("rtsp_headers", "[rtsp_headers]") {
         REQUIRE(headers[0].value == "2");
     }
 
+    SECTION("Add header, make sure existing header gets updated using emplace_back case insensitive") {
+        rav::rtsp_headers headers;
+        headers.emplace_back({"cseq", "1"});
+        headers.emplace_back({"CSeq", "2"});
+        REQUIRE(headers.size() == 1);
+        REQUIRE(headers[0].value == "2");
+    }
+
     SECTION("Add header, make sure existing header gets updated using push_back") {
         rav::rtsp_headers headers;
         headers.push_back({"CSeq", "1"});
+        headers.push_back({"CSeq", "2"});
+        REQUIRE(headers.size() == 1);
+        REQUIRE(headers[0].value == "2");
+    }
+
+    SECTION("Add header, make sure existing header gets updated using push_back case insensitive") {
+        rav::rtsp_headers headers;
+        headers.push_back({"cseq", "1"});
         headers.push_back({"CSeq", "2"});
         REQUIRE(headers.size() == 1);
         REQUIRE(headers[0].value == "2");

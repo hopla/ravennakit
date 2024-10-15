@@ -148,3 +148,30 @@ TEST_CASE("rtsp_response_parser | Parse ook response with data", "[rtsp_response
         REQUIRE(response.data == "rtsp_response_data");
     }
 }
+
+TEST_CASE("rtsp_response_parser | Test response from Anubis") {
+    std::string data(
+        "v=0\r\no=- 13 0 IN IP4 192.168.15.52\r\ns=Anubis Combo LR\r\nc=IN IP4 239.1.15.52/15\r\nt=0 0\r\na=clock-domain:PTPv2 0\r\na=ts-refclk:ptp=IEEE1588-2008:00-1D-C1-FF-FE-51-9E-F7:0\r\na=mediaclk:direct=0\r\nm=audio 5004 RTP/AVP 98\r\nc=IN IP4 239.1.15.52/15\r\na=rtpmap:98 L16/48000/2\r\na=source-filter: incl IN IP4 239.1.15.52 192.168.15.52\r\na=clock-domain:PTPv2 0\r\na=sync-time:0\r\na=framecount:48\r\na=palign:0\r\na=ptime:1\r\na=ts-refclk:ptp=IEEE1588-2008:00-1D-C1-FF-FE-51-9E-F7:0\r\na=mediaclk:direct=0\r\na=recvonly\r\na=midi-pre2:50040 0,0;0,1\r\n"
+    );
+
+    RAV_ASSERT(data.size() == 516, "Data size is not 516");
+
+    auto response_text = fmt::format(
+        "RTSP/1.0 200 OK\r\ncontent-length: 516\r\ncontent-type: application/sdp; charset=utf-8\r\n\r\n{}", data
+    );
+
+    rav::rtsp_response response;
+    rav::rtsp_response_parser parser(response);
+    auto [result, begin] = parser.parse(response_text.begin(), response_text.end());
+    REQUIRE(result == rav::rtsp_response_parser::result::good);
+    REQUIRE(begin == response_text.end());
+    REQUIRE(response.rtsp_version_major == 1);
+    REQUIRE(response.rtsp_version_minor == 0);
+    REQUIRE(response.status_code == 200);
+    REQUIRE(response.reason_phrase == "OK");
+    REQUIRE(response.headers.size() == 2);
+    REQUIRE(response.headers["content-length"] == "516");
+    REQUIRE(response.headers["content-type"] == "application/sdp; charset=utf-8");
+    REQUIRE(response.data.size() == 516);
+    REQUIRE(response.data == data);
+}

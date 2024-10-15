@@ -292,7 +292,8 @@ inline std::vector<std::string> split_string(const std::string& string, const ch
  * @param replacement The replacement.
  * @return Modified string, or original string if sequence was not found.
  */
-inline std::string string_replace(const std::string& original, const std::string& to_replace, const std::string& replacement) {
+inline std::string
+string_replace(const std::string& original, const std::string& to_replace, const std::string& replacement) {
     std::string modified = original;
     size_t pos = 0;
 
@@ -302,6 +303,26 @@ inline std::string string_replace(const std::string& original, const std::string
     }
 
     return modified;
+}
+
+/**
+ * Compares 2 strings case-insensitively.
+ * @param lhs Left hand side
+ * @param rhs Right hand side
+ * @return True if strings are equal, false otherwise.
+ */
+inline bool string_compare_case_insensitive(const std::string_view lhs, const std::string_view rhs) {
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (std::tolower(lhs[i]) != std::tolower(rhs[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }  // namespace rav

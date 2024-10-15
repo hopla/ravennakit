@@ -32,14 +32,14 @@ class rtsp_headers {
     };
 
     /**
-     * Finds a header by name and returns its value.
+     * Finds a header by name and returns its value. The name is case-insensitive.
      * @param name The name of the header.
-     * @returns The value of the header if found, otherwise nullptr.
+     * @return The value of the header if found, otherwise nullptr.
      */
-    [[nodiscard]] const std::string* get_header_value(const std::string& name) const {
-        for (const auto& header : headers_) {
-            if (header.name == name) {
-                return &header.value;
+    [[nodiscard]] const header* find_header(const std::string& name) const {
+        for (auto& header : headers_) {
+            if (string_compare_case_insensitive(header.name, name)) {
+                return &header;
             }
         }
         return nullptr;
@@ -49,8 +49,8 @@ class rtsp_headers {
      * @returns Tries to find the Content-Length header and returns its value as integer.
      */
     [[nodiscard]] std::optional<long> get_content_length() const {
-        if (const std::string* content_length = get_header_value("Content-Length"); content_length) {
-            return rav::ston<long>(*content_length);
+        if (const auto* header = find_header("content-length"); header) {
+            return rav::ston<long>(header->value);
         }
         return std::nullopt;
     }
@@ -79,8 +79,8 @@ class rtsp_headers {
      * @return The value of the header if found, otherwise an empty string.
      */
     std::string operator[](const char* name) const {
-        if (const std::string* value = get_header_value(name); value) {
-            return *value;
+        if (const auto* header = find_header(name); header) {
+            return header->value;
         }
         return "";
     }
@@ -134,7 +134,7 @@ class rtsp_headers {
      */
     void push_back(header header) {
         for (auto& h : headers_) {
-            if (h.name == header.name) {
+            if (string_compare_case_insensitive(h.name, header.name)) {
                 h.value = std::move(header.value);
                 return;
             }
@@ -157,7 +157,7 @@ class rtsp_headers {
      */
     header& emplace_back(header&& header) {
         for (auto& h : headers_) {
-            if (h.name == header.name) {
+            if (string_compare_case_insensitive(h.name, header.name)) {
                 h.value = std::move(header.value);
                 return h;
             }
@@ -180,6 +180,19 @@ class rtsp_headers {
         for (const auto& header : headers_) {
             fmt::format_to(std::back_inserter(output), "{}: {}\r\n", header.name, header.value);
         }
+    }
+
+    /**
+     * Returns headers as a string. Each header is on a new line. Meant for debugging. For encoding into a buffer, use
+     * encode_append.
+     * @return The headers as a string.
+     */
+    [[nodiscard]] std::string to_string() const {
+        std::string out;
+        for (const auto& header : headers_) {
+            fmt::format_to(std::back_inserter(out), "{}: {}\n", header.name, header.value);
+        }
+        return out;
     }
 
   private:

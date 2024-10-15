@@ -30,10 +30,10 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    rav::io_context_runner runner(1);
+    asio::io_context io_context;
 
-    rav::rtsp_client client(runner.io_context());
+    rav::rtsp_client client(io_context);
     client.connect({asio::ip::make_address(addr), 80});
 
-    runner.join();
+    io_context.run();
 }

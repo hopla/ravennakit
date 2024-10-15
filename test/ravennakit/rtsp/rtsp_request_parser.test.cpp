@@ -218,3 +218,26 @@ TEST_CASE("rtsp_request_parser | Parse in different chunks", "[rtsp_request_pars
     }
     REQUIRE(request.data == "data2");
 }
+
+TEST_CASE("rtsp_request_parser | Parse Anubis ANNOUNCE request") {
+    const auto data = std::string(
+        "v=0\r\no=- 13 0 IN IP4 192.168.15.52\r\ns=Anubis Combo LR\r\nc=IN IP4 239.1.15.52/15\r\nt=0 0\r\na=clock-domain:PTPv2 0\r\na=ts-refclk:ptp=IEEE1588-2008:00-1D-C1-FF-FE-51-9E-F7:0\r\na=mediaclk:direct=0\r\nm=audio 5004 RTP/AVP 98\r\nc=IN IP4 239.1.15.52/15\r\na=rtpmap:98 L16/48000/2\r\na=source-filter: incl IN IP4 239.1.15.52 192.168.15.52\r\na=clock-domain:PTPv2 0\r\na=sync-time:0\r\na=framecount:48\r\na=palign:0\r\na=ptime:1\r\na=ts-refclk:ptp=IEEE1588-2008:00-1D-C1-FF-FE-51-9E-F7:0\r\na=mediaclk:direct=0\r\na=recvonly\r\na=midi-pre2:50040 0,0;0,1\r\n"
+    );
+    auto rtsp = fmt::format("ANNOUNCE  RTSP/1.0\r\nconnection: Keep-Alive\r\ncontent-length: 516\r\n\r\n{}", data);
+
+    rav::rtsp_request request;
+    rav::rtsp_request_parser parser(request);
+
+    auto [result, begin] = parser.parse(rtsp.begin(), rtsp.end());
+    REQUIRE(result == rav::rtsp_request_parser::result::good);
+    REQUIRE(begin == rtsp.end());
+
+    REQUIRE(request.method == "ANNOUNCE");
+    REQUIRE(request.uri.empty());
+    REQUIRE(request.rtsp_version_major == 1);
+    REQUIRE(request.rtsp_version_minor == 0);
+    REQUIRE(request.headers.size() == 2);
+    REQUIRE(request.headers["connection"] == "Keep-Alive");
+    REQUIRE(request.headers["content-length"] == "516");
+    REQUIRE(request.data == data);
+}

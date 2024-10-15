@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "rtsp_response_parser.hpp"
+
 #include <asio.hpp>
 
 namespace rav {
@@ -19,10 +21,16 @@ class rtsp_client {
     explicit rtsp_client(asio::io_context& io_context);
 
     void connect(const asio::ip::tcp::endpoint& endpoint);
-private:
+
+  private:
     asio::ip::tcp::socket socket_;
+    std::string input_data_ = std::string(2048, '\0');
+    rtsp_response response_;
+    rtsp_response_parser response_parser_ {response_};
 
     void async_connect(const asio::ip::tcp::endpoint& endpoint);
+    void async_write_request();
+    void async_read_some();
 };
 
 }  // namespace rav

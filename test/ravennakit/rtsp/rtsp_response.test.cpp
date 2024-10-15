@@ -30,3 +30,20 @@ TEST_CASE("rtsp_response", "[rtsp_response]") {
         REQUIRE(request.data.empty());
     }
 }
+
+
+TEST_CASE("rtsp_response | encode", "[rtsp_response]") {
+    rav::rtsp_response res;
+    res.rtsp_version_major = 1;
+    res.rtsp_version_minor = 0;
+    res.status_code = 200;
+    res.reason_phrase = "OK";
+    res.headers.push_back({"CSeq", "1"});
+    res.headers.push_back({"Accept", "application/sdp"});
+    res.data = "Hello, World!";
+
+    auto encoded = res.encode();
+    REQUIRE(
+        encoded == "RTSP/1.0 200 OK\r\nCSeq: 1\r\nAccept: application/sdp\r\nContent-Length: 13\r\n\r\nHello, World!"
+    );
+}

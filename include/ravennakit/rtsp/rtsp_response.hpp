@@ -38,6 +38,9 @@ struct rtsp_response {
         headers.clear();
         data.clear();
     }
+
+    std::string encode();
+    void encode_append(std::string& out);
 };
 
 }

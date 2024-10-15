@@ -114,6 +114,22 @@ class rtsp_headers {
     }
 
     /**
+     * Sets an existing header value, or creates a new header entry.
+     * @param name The name of the header.
+     * @param value The value of the header.
+     */
+    void set(const char* name, const char* value) {
+        for (auto& header : headers_) {
+            if (header.name == name) {
+                header.value = value;
+                return;
+            }
+        }
+        headers_.push_back({name, value});
+    }
+
+    /**
+     * Adds given header to the end.
      * @param header The header to add.
      */
     void push_back(header header) {

@@ -21,13 +21,21 @@ namespace rtsp {
     struct connect_event {};
 }  // namespace rtsp
 
-class rtsp_client: public event_emitter<rtsp_client, rtsp::connect_event> {
+class rtsp_client final: public event_emitter<rtsp_client, rtsp::connect_event, rtsp_response, rtsp_request> {
   public:
     explicit rtsp_client(asio::io_context& io_context);
 
+    /**
+     * Connect to the given endpoint. Function is async and will return immediately.
+     * @param endpoint The endpoint to connect to.
+     */
     void connect(const asio::ip::tcp::endpoint& endpoint);
 
-    void send_describe_request(const std::string& uri);
+    /**
+     * Send a DESCRIBE request to the server. Function is async and will return immediately.
+     * @param path The path to describe
+     */
+    void describe(const std::string& path);
 
   private:
     asio::ip::tcp::socket socket_;

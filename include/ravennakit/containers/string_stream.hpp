@@ -143,9 +143,9 @@ class string_stream {
     }
 
     /**
-     * Resets the stream to initial state.
+     * Clears the data and sets the read and write positions to zero.
      */
-    void reset() {
+    void clear() {
         data_.clear();
         read_position_ = 0;
         write_position_ = 0;

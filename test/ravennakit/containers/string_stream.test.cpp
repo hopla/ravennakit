@@ -81,7 +81,7 @@ TEST_CASE("string_stream | reset", "[string_stream]") {
     rav::string_stream stream;
     stream.write("test");
     REQUIRE(stream.size() == 4);
-    stream.reset();
+    stream.clear();
     REQUIRE(stream.empty());
 }
 

@@ -14,11 +14,11 @@
 #include "ravennakit/rtsp/rtsp_request.hpp"
 
 rav::rtsp_client::rtsp_client(asio::io_context& io_context) : socket_(asio::make_strand(io_context)) {
-    parser_.on<rtsp_response>([](const rtsp_response& response, rtsp_parser&) {
-        RAV_INFO("{}", response.to_debug_string());
+    parser_.on<rtsp_response>([this](const rtsp_response& response, rtsp_parser&) {
+        emit(response);
     });
-    parser_.on<rtsp_request>([](const rtsp_request& request, rtsp_parser&) {
-        RAV_INFO("{}", request.to_debug_string());
+    parser_.on<rtsp_request>([this](const rtsp_request& request, rtsp_parser&) {
+        emit(request);
     });
 }
 
@@ -28,24 +28,22 @@ void rav::rtsp_client::connect(const asio::ip::tcp::endpoint& endpoint) {
     });
 }
 
-void rav::rtsp_client::send_describe_request(const std::string& uri) {
-    if (starts_with(uri, "/")) {
+void rav::rtsp_client::describe(const std::string& path) {
+    if (starts_with(path, "/")) {
         RAV_THROW_EXCEPTION("URI must not start with a slash");
     }
 
-    asio::post(socket_.get_executor(), [this, uri] {
+    asio::post(socket_.get_executor(), [this, path] {
         rtsp_request request;
         request.method = "DESCRIBE";
-        request.uri = fmt::format("rtsp://{}/{}", socket_.remote_endpoint().address().to_string(), uri);
-        request.rtsp_version_major = 1;
-        request.rtsp_version_minor = 0;
+        request.uri = fmt::format("rtsp://{}/{}", socket_.remote_endpoint().address().to_string(), path);
         request.headers["CSeq"] = "15";
         request.headers["Accept"] = "application/sdp";
         const auto encoded = request.encode();
         RAV_TRACE("Sending request: {}", request.to_debug_string());
-        const bool should_write = output_stream_.empty();
+        const bool should_trigger_async_write = output_stream_.empty();
         output_stream_.write(encoded);
-        if (should_write) {
+        if (should_trigger_async_write) {
             async_write();
         }
     });
@@ -75,14 +73,11 @@ void rav::rtsp_client::async_write() {
                 RAV_ERROR("Write error: {}", ec.message());
                 return;
             }
-
-            RAV_INFO("Wrote {} bytes", length);
-
             output_stream_.consume(length);
             if (!output_stream_.empty()) {
                 async_write();  // Schedule another write
             } else {
-                output_stream_.reset();
+                output_stream_.clear();  // Keep the buffer of the stream bounded
             }
         }
     );
@@ -108,7 +103,7 @@ void rav::rtsp_client::async_read_some() {
             }
 
             if (input_stream_.empty()) {
-                input_stream_.reset();
+                input_stream_.clear();
             }
 
             async_read_some();

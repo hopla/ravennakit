@@ -23,8 +23,8 @@ namespace rav {
 struct rtsp_request {
     std::string method;
     std::string uri;
-    int rtsp_version_major{};
-    int rtsp_version_minor{};
+    int rtsp_version_major {1};
+    int rtsp_version_minor {0};
     rtsp_headers headers;
     std::string data;
 

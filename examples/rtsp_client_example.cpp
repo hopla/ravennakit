@@ -28,11 +28,20 @@ int main(int const argc, char* argv[]) {
     std::string addr;
     app.add_option("address", addr, "The address to connect to")->required();
 
+    std::string url;
+    app.add_option("url", url, "The URL to get (by-id/13 or by-name/stream%20name)")->required();
+
     CLI11_PARSE(app, argc, argv);
 
     asio::io_context io_context;
 
     rav::rtsp_client client(io_context);
+
+    client.on<rav::rtsp::connect_event>([url](const rav::rtsp::connect_event&, rav::rtsp_client& c) {
+        RAV_INFO("Connected, send DESCRIBE request");
+        c.send_describe_request(url);
+    });
+
     client.connect({asio::ip::make_address(addr), 80});
 
     io_context.run();

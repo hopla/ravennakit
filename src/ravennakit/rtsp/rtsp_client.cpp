@@ -28,6 +28,29 @@ void rav::rtsp_client::connect(const asio::ip::tcp::endpoint& endpoint) {
     });
 }
 
+void rav::rtsp_client::send_describe_request(const std::string& uri) {
+    if (starts_with(uri, "/")) {
+        RAV_THROW_EXCEPTION("URI must not start with a slash");
+    }
+
+    asio::post(socket_.get_executor(), [this, uri] {
+        rtsp_request request;
+        request.method = "DESCRIBE";
+        request.uri = fmt::format("rtsp://{}/{}", socket_.remote_endpoint().address().to_string(), uri);
+        request.rtsp_version_major = 1;
+        request.rtsp_version_minor = 0;
+        request.headers["CSeq"] = "15";
+        request.headers["Accept"] = "application/sdp";
+        const auto encoded = request.encode();
+        RAV_TRACE("Sending request:\n{}", rav::string_replace(encoded, "\r\n", "\n"));
+        const bool should_write = output_stream_.empty();
+        output_stream_.write(encoded);
+        if (should_write) {
+            async_write();
+        }
+    });
+}
+
 void rav::rtsp_client::async_connect(const asio::ip::tcp::endpoint& endpoint) {
     socket_.async_connect(endpoint, [this](const asio::error_code ec) {
         if (ec) {
@@ -35,28 +58,34 @@ void rav::rtsp_client::async_connect(const asio::ip::tcp::endpoint& endpoint) {
             return;
         }
         RAV_INFO("Connected to {}", socket_.remote_endpoint().address().to_string());
-        async_write_request();
+        async_write();  // Schedule a write in case there is data to send
         async_read_some();
+        emit<rtsp::connect_event>(rtsp::connect_event {});
     });
 }
 
-void rav::rtsp_client::async_write_request() {
-    rtsp_request request;
-    request.method = "DESCRIBE";
-    request.uri = "rtsp://192.168.16.51/by-id/13";
-    request.rtsp_version_major = 1;
-    request.rtsp_version_minor = 0;
-    request.headers["CSeq"] = "15";
-    request.headers["Accept"] = "application/sdp";
-    auto data = request.encode();
+void rav::rtsp_client::async_write() {
+    if (output_stream_.empty()) {
+        return;
+    }
+    asio::async_write(
+        socket_, asio::buffer(output_stream_.data()),
+        [this](const asio::error_code ec, std::size_t length) {
+            if (ec) {
+                RAV_ERROR("Write error: {}", ec.message());
+                return;
+            }
 
-    asio::async_write(socket_, asio::buffer(data), [](const asio::error_code ec, std::size_t length) {
-        if (ec) {
-            RAV_ERROR("Write error: {}", ec.message());
-            return;
+            RAV_INFO("Wrote {} bytes", length);
+
+            output_stream_.consume(length);
+            if (!output_stream_.empty()) {
+                async_write();  // Schedule another write
+            } else {
+                output_stream_.reset();
+            }
         }
-        RAV_INFO("Wrote {} bytes", length);
-    });
+    );
 }
 
 void rav::rtsp_client::async_read_some() {

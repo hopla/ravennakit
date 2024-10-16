@@ -76,8 +76,6 @@ void rav::rtsp_client::async_write() {
             output_stream_.consume(length);
             if (!output_stream_.empty()) {
                 async_write();  // Schedule another write
-            } else {
-                output_stream_.clear();  // Keep the buffer of the stream bounded
             }
         }
     );
@@ -100,10 +98,6 @@ void rav::rtsp_client::async_read_some() {
             if (!(result == rtsp_parser::result::good || result == rtsp_parser::result::indeterminate)) {
                 RAV_ERROR("Parsing error: {}", static_cast<int>(result));
                 return;
-            }
-
-            if (input_stream_.empty()) {
-                input_stream_.clear();
             }
 
             async_read_some();

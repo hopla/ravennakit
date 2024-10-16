@@ -81,6 +81,10 @@ class string_stream {
     void consume(const size_t size) {
         RAV_ASSERT(size <= write_position_ - read_position_, "Consuming more data than available");
         read_position_ += size;
+        if (read_position_ == write_position_) {
+            read_position_ = 0;
+            write_position_ = 0;
+        }
     }
 
     /**

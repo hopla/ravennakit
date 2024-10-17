@@ -12,6 +12,7 @@
 #include "ravennakit/rtsp/rtsp_server.hpp"
 
 #include <catch2/catch_all.hpp>
+#include <thread>
 
 TEST_CASE("rtsp_server", "[rtsp_server]") {
     SECTION("Port") {

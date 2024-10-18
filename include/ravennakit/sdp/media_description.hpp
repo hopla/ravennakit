@@ -266,6 +266,15 @@ class media_description {
      */
     [[nodiscard]] const std::vector<source_filter>& source_filters() const;
 
+    /**
+     * Returns framecount attribute. This is a legacy RAVENNA attribute, replaced by ptime. Only use when ptime is not
+     * available.
+     * @return The frame count of the media description.
+     */
+    [[nodiscard]] std::optional<int> framecount() const {
+        return framecount_;
+    }
+
   private:
     std::string media_type_;
     uint16_t port_ {};
@@ -283,6 +292,7 @@ class media_description {
     std::optional<uint32_t> sync_time_;                  // RAVENNA-specific attribute
     std::optional<fraction<uint32_t>> clock_deviation_;  // RAVENNA-specific attribute
     std::vector<source_filter> source_filters_;
+    std::optional<int> framecount_;  // Legacy RAVENNA attribute, replaced by ptime
 };
 
 }  // namespace rav::sdp

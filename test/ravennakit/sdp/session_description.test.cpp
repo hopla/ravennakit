@@ -160,6 +160,10 @@ TEST_CASE("session_description | description from anubis", "[session_description
             REQUIRE(filter.src_list().size() == 1);
             REQUIRE(filter.src_list()[0] == "192.168.15.52");
         }
+
+        SECTION("Framecount") {
+            REQUIRE(media.framecount() == 48);
+        }
     }
 
     SECTION("Media direction") {

@@ -431,6 +431,12 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
         } else {
             return parse_result<void>::err("media: failed to parse source-filter value");
         }
+    } else if (key == "framecount") {
+        if (auto value = parser.read_int<int>()) {
+            framecount_ = *value;
+        } else {
+            return parse_result<void>::err("media: failed to parse framecount value");
+        }
     } else {
         RAV_WARNING("Ignoring unknown attribute on media: {}", *key);
     }

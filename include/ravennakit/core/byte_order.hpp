@@ -76,7 +76,7 @@ inline void swap_bytes(uint8_t* data, const size_t size) {
  * @param value The value to swap.
  * @return The value with the bytes swapped.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 Type swap_bytes(Type value) {
     if constexpr (sizeof(Type) == 2) {
         return static_cast<Type>(RAV_BYTE_SWAP_16(static_cast<uint16_t>(value)));
@@ -132,7 +132,7 @@ inline double swap_bytes<double>(const double value) {
  * @param data The data which holds the encoded value.
  * @return The decoded value.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 Type read_ne(const uint8_t* data) {
     Type value;
     std::memcpy(std::addressof(value), data, sizeof(Type));
@@ -145,7 +145,7 @@ Type read_ne(const uint8_t* data) {
  * @param data The data which holds the encoded value.
  * @return The decoded value.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 Type read_be(const uint8_t* data) {
     if constexpr (big_endian) {
         return read_ne<Type>(data);
@@ -160,7 +160,7 @@ Type read_be(const uint8_t* data) {
  * @param data The data which holds the encoded value.
  * @return The decoded value.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 Type read_le(const uint8_t* data) {
     if constexpr (little_endian) {
         return read_ne<Type>(data);
@@ -175,7 +175,7 @@ Type read_le(const uint8_t* data) {
  * @param dst The destination where the value should be written.
  * @param value The value to write.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 void write_ne(uint8_t* dst, const Type value) {
     std::memcpy(dst, std::addressof(value), sizeof(Type));
 }
@@ -186,7 +186,7 @@ void write_ne(uint8_t* dst, const Type value) {
  * @param dst The destination where the value should be written.
  * @param value The value to write.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 void write_be(uint8_t* dst, const Type value) {
     if constexpr (big_endian) {
         write_ne(dst, value);
@@ -201,7 +201,7 @@ void write_be(uint8_t* dst, const Type value) {
  * @param dst The destination where the value should be written.
  * @param value The value to write.
  */
-template<typename Type>
+template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 void write_le(uint8_t* dst, const Type value) {
     if constexpr (little_endian) {
         write_ne(dst, value);

@@ -10,12 +10,17 @@
 
 #pragma once
 
+#include "ravennakit/core/warnings.hpp"
+
 #if defined(TRACY_ENABLE) && TRACY_ENABLE
     #define TracyFunction __PRETTY_FUNCTION__
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wextra-semi"
+
+START_IGNORE_WARNINGS
     #include <tracy/Tracy.hpp>
-    #pragma GCC diagnostic pop
+END_IGNORE_WARNINGS
+
+    #define TRACY_ZONE_SCOPED ZoneScoped  // NOLINT(bugprone-reserved-identifier)
+
 #else
-    #define ZoneScoped
+    #define TRACY_ZONE_SCOPED
 #endif

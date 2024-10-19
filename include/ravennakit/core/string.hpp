@@ -22,11 +22,11 @@ namespace rav {
 /**
  * Tests whether given text starts with a certain string.
  * @param text The text to test.
- * @param start
- * @return
+ * @param starts_with The string to test for.
+ * @return True if text starts with starts_with, false otherwise.
  */
-inline bool starts_with(const std::string_view text, const std::string_view start) {
-    return text.rfind(start, 0) == 0;
+inline bool starts_with(const std::string_view text, const std::string_view starts_with) {
+    return text.rfind(starts_with, 0) == 0;
 }
 
 /**
@@ -283,6 +283,46 @@ inline std::vector<std::string> split_string(const std::string& string, const ch
 inline std::vector<std::string> split_string(const std::string& string, const char delimiter) {
     const char delimiter_string[2] = {delimiter, '\0'};
     return split_string(string, delimiter_string);
+}
+
+/**
+ * Replaces all sequences of to_replace with replacement.
+ * @param original The original string,
+ * @param to_replace The sequence to replace.
+ * @param replacement The replacement.
+ * @return Modified string, or original string if sequence was not found.
+ */
+inline std::string
+string_replace(const std::string& original, const std::string& to_replace, const std::string& replacement) {
+    std::string modified = original;
+    size_t pos = 0;
+
+    while ((pos = modified.find(to_replace, pos)) != std::string::npos) {
+        modified.replace(pos, to_replace.length(), replacement);
+        pos += replacement.length();  // Move past the replacement to avoid infinite loop
+    }
+
+    return modified;
+}
+
+/**
+ * Compares 2 strings case-insensitively.
+ * @param lhs Left hand side
+ * @param rhs Right hand side
+ * @return True if strings are equal, false otherwise.
+ */
+inline bool string_compare_case_insensitive(const std::string_view lhs, const std::string_view rhs) {
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+
+    for (size_t i = 0; i < lhs.size(); ++i) {
+        if (std::tolower(lhs[i]) != std::tolower(rhs[i])) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 }  // namespace rav

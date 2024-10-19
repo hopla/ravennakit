@@ -27,6 +27,8 @@ class event_emitter {
     using listener = std::function<void(Type&, Subclass&)>;
 
     virtual ~event_emitter() {
+        // If this assertion fails, it means that the subclass does not inherit from event_emitter. Make sure to list
+        // your subclass first.
         static_assert(std::is_base_of_v<event_emitter, Subclass>);
     }
 
@@ -52,7 +54,7 @@ class event_emitter {
     /**
      * Disconnects all listeners.
      */
-    void reset() noexcept {
+    virtual void reset() noexcept {
         (reset<Event>(), ...);
     }
 
@@ -66,7 +68,7 @@ class event_emitter {
         return handler<Type>() != nullptr;
     }
 
-protected:
+  protected:
     /**
      * Emits an event to the registered listener, calling the listener registered for the event type.
      * @tparam Type The type of the event.
@@ -79,8 +81,8 @@ protected:
         }
     }
 
-private:
-    std::tuple<listener<Event>...> handlers{};
+  private:
+    std::tuple<listener<Event>...> handlers {};
 
     template<class Type>
     const auto& handler() const noexcept {

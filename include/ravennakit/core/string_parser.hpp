@@ -23,7 +23,8 @@
 namespace rav {
 
 /**
- * A handy utility class for parsing strings.
+ * A handy utility class for parsing strings. It works like a stream, where it maintains a position in the string and
+ * subsequent calls will read from that position.
  */
 class string_parser {
   public:
@@ -33,6 +34,17 @@ class string_parser {
      * @param str The string to parse.
      */
     explicit string_parser(const std::string_view str) : str_(str) {}
+
+    /**
+     * Constructs a parser from given string view. Doesn't take ownership of the string, so make sure for the original
+     * string to outlive this parser instance.
+     * @param str The string to parse.
+     */
+    explicit string_parser(const std::optional<std::string_view>& str) {
+        if (str.has_value()) {
+            str_ = *str;
+        }
+    }
 
     /**
      * Constructs a parser from given c-string and size. Doesn't take ownership of the string, so make sure for the
@@ -121,15 +133,32 @@ class string_parser {
      * @returns The read line.
      */
     std::optional<std::string_view> read_line() {
+        const auto line = read_until_newline();
+        if (line.has_value()) {
+            return line;
+        }
+
+        if (str_.empty()) {
+            return std::nullopt;
+        }
+
+        const auto str = str_;
+        str_ = {};
+        return str;  // NOLINT: The address of the local variable 'substr' may escape the function
+    }
+
+    /**
+     * Reads until a newline is found. Newline can be \r\n or \n.
+     * @returns The line until newline, or std::nullopt if no newline was found.
+     */
+    std::optional<std::string_view> read_until_newline() {
         if (str_.empty()) {
             return std::nullopt;
         }
 
         const auto pos = str_.find('\n');
         if (pos == std::string_view::npos) {
-            const auto str = str_;
-            str_ = {};
-            return str;  // NOLINT: The address of the local variable 'substr' may escape the function
+            return std::nullopt;
         }
 
         auto substr = str_.substr(0, pos);
@@ -254,9 +283,22 @@ class string_parser {
         return str_.empty();
     }
 
+    /**
+     * @return The remaining size this parser is pointing at.
+     */
+    [[nodiscard]] size_t size() const {
+        return str_.size();
+    }
+
+    /**
+     * @returns True if the parser is empty, or false if the parser points to some data.
+     */
+    [[nodiscard]] bool empty() const {
+        return str_.empty();
+    }
+
   private:
     std::string_view str_;
-    // size_t pos_ {0};
 };
 
 }  // namespace rav

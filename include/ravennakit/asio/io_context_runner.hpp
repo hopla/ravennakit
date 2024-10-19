@@ -10,61 +10,39 @@
 
 #pragma once
 
+#include "ravennakit/core/exception.hpp"
+#include "ravennakit/core/log.hpp"
 #include "ravennakit/core/platform.hpp"
+#include "ravennakit/util/tracy.hpp"
 
 #include <asio.hpp>
-#include <iostream>
 
 namespace rav {
+
+/**
+ * Helper class to run an asio::io_context on multiple threads.
+ */
 class io_context_runner {
   public:
-    io_context_runner() = default;
+    io_context_runner() {
+        start();
+    }
 
     /**
      * Constructs a runner with a specific number of threads.
      * @param num_threads Number of threads to run the io_context on.
      */
-    explicit io_context_runner(const size_t num_threads) : num_threads_(num_threads) {}
+    explicit io_context_runner(const size_t num_threads) :
+        num_threads_(num_threads), io_context_(static_cast<int>(num_threads)) {
+        start();
+    }
 
     ~io_context_runner() {
         stop();
     }
 
     /**
-     * Runs the runner until stop() is called.
-     */
-    void run() {
-        start();
-        io_context_.run();
-    }
-
-    /**
-     * Runs the runner until stop() is called, returning immediately.
-     */
-    void run_async() {
-        start();
-    }
-
-    /**
-     * Runs all tasks to completion, returning when all tasks are done.
-     */
-    void run_to_completion() {
-        start();
-        work_guard_.reset();
-        io_context_.run();
-        stop();
-    }
-
-    /**
-     * Runs all tasks to completion, returning immediately.
-     */
-    void run_to_completion_async() {
-        start();
-        work_guard_.reset();
-    }
-
-    /**
-     * Stops the runner and joins all threads.
+     * Stops the runner and waits for all threads to finish.
      */
     void stop() {
         io_context_.stop();
@@ -72,7 +50,24 @@ class io_context_runner {
             thread.join();
         }
         threads_.clear();
+    }
+
+    /**
+     * Resets the work_guard and waits until the runner has no more work to do.
+     */
+    void join() {
         work_guard_.reset();
+        for (auto& thread : threads_) {
+            thread.join();
+        }
+        threads_.clear();
+    }
+
+    /**
+     * @return True if the runner is currently running, false otherwise.
+     */
+    [[nodiscard]] bool is_running() const {
+        return !threads_.empty();
     }
 
     /**
@@ -94,12 +89,12 @@ class io_context_runner {
      */
     void start() {
         threads_.clear();
-        io_context_.restart();
-
         threads_.reserve(num_threads_);
 
         for (size_t i = 0; i < num_threads_; i++) {
             threads_.emplace_back([this, i] {
+                TRACY_ZONE_SCOPED;
+
 #if RAV_MACOS
                 {
                     const std::string thread_name = "io_context_runner " + std::to_string(i);
@@ -107,12 +102,17 @@ class io_context_runner {
                 }
 #endif
 
-                try {
-                    io_context_.run();
-                } catch (const std::exception& e) {
-                    std::cerr << "Exception thrown on io_context runner thread: " << e.what() << "\n";
-                } catch (...) {
-                    std::cerr << "Unknown exception thrown on io_context runner thread\n";
+                while (true) {
+                    try {
+                        io_context_.run();
+                        if (io_context_.stopped()) {
+                            break;
+                        }
+                    } catch (const std::exception& e) {
+                        RAV_ERROR("Exception thrown on io_context runner thread: {}", e.what());
+                    } catch (...) {
+                        RAV_ERROR("Unknown exception thrown on io_context runner thread");
+                    }
                 }
             });
         }

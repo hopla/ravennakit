@@ -177,6 +177,40 @@ TEST_CASE("string_parser", "[string_parser]") {
         REQUIRE_FALSE(parser.read_line().has_value());
     }
 
+    SECTION("Parse string without newline") {
+        const auto str = "line1";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_line() == "line1");
+        REQUIRE_FALSE(parser.read_line().has_value());
+    }
+
+    SECTION("Parse empty string") {
+        const auto str = "";
+        rav::string_parser parser(str);
+        REQUIRE_FALSE(parser.read_line().has_value());
+    }
+
+    SECTION("Read until newline") {
+        const auto str = "line1\r\nline2\n\n\r\n";
+        rav::string_parser parser(str);
+        REQUIRE(parser.read_until_newline() == "line1");
+        REQUIRE(parser.size() == strlen(str) - 7);
+        REQUIRE(parser.read_until_newline() == "line2");
+        REQUIRE(parser.size() == strlen(str) - 13);
+        REQUIRE(parser.read_until_newline() == "");
+        REQUIRE(parser.size() == strlen(str) - 14);
+        REQUIRE(parser.read_until_newline() == "");
+        REQUIRE(parser.size() == strlen(str) - 16);
+        REQUIRE(parser.empty());
+        REQUIRE(parser.exhausted());
+    }
+
+    SECTION("Read until newline on string without newline") {
+        const auto str = "line1";
+        rav::string_parser parser(str);
+        REQUIRE_FALSE(parser.read_until_newline().has_value());
+    }
+
     SECTION("Skip character") {
         const auto str = "line";
         rav::string_parser parser(str);

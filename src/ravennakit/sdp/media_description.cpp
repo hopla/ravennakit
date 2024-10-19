@@ -13,6 +13,7 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/sdp/session_description.hpp"
+#include "ravennakit/sdp/source_filter.hpp"
 
 rav::sdp::format::parse_result<rav::sdp::format> rav::sdp::format::parse_new(const std::string_view line) {
     string_parser parser(line);
@@ -420,8 +421,29 @@ rav::sdp::media_description::parse_result<void> rav::sdp::media_description::par
             return parse_result<void>::err("media: failed to parse clock-deviation denominator value");
         }
         clock_deviation_ = fraction<uint32_t> {*num, *denom};
+    } else if (key == source_filter::k_attribute_name) {
+        if (const auto value = parser.read_until_end()) {
+            auto filter = source_filter::parse_new(*value);
+            if (filter.is_err()) {
+                return parse_result<void>::err(filter.get_err());
+            }
+            source_filters_.push_back(filter.move_ok());
+        } else {
+            return parse_result<void>::err("media: failed to parse source-filter value");
+        }
+    } else if (key == "framecount") {
+        if (auto value = parser.read_int<int>()) {
+            framecount_ = *value;
+        } else {
+            return parse_result<void>::err("media: failed to parse framecount value");
+        }
     } else {
-        RAV_WARNING("Ignoring unknown attribute on media: {}", *key);
+        // Store the attribute in the map of unknown attributes
+        if (auto value = parser.read_until_end()) {
+            attributes_.emplace(*key, *value);
+        } else {
+            return parse_result<void>::err("media: failed to parse attribute value");
+        }
     }
 
     return parse_result<void>::ok();
@@ -489,4 +511,16 @@ std::optional<uint32_t> rav::sdp::media_description::sync_time() const {
 
 const std::optional<rav::fraction<unsigned>>& rav::sdp::media_description::clock_deviation() const {
     return clock_deviation_;
+}
+
+const std::vector<rav::sdp::source_filter>& rav::sdp::media_description::source_filters() const {
+    return source_filters_;
+}
+
+std::optional<int> rav::sdp::media_description::framecount() const {
+    return framecount_;
+}
+
+const std::map<std::string, std::string>& rav::sdp::media_description::attributes() const {
+    return attributes_;
 }

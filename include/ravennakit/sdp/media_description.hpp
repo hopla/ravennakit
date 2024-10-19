@@ -9,6 +9,9 @@
  */
 
 #pragma once
+
+#include "constants.hpp"
+
 #include <cstdint>
 #include <string>
 
@@ -16,24 +19,11 @@
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/core/string_parser.hpp"
 #include "reference_clock.hpp"
+#include "source_filter.hpp"
+
+#include <map>
 
 namespace rav::sdp {
-
-constexpr auto k_sdp_ptime = "ptime";
-constexpr auto k_sdp_max_ptime = "maxptime";
-constexpr auto k_sdp_rtp_map = "rtpmap";
-constexpr auto k_sdp_sendrecv = "sendrecv";
-constexpr auto k_sdp_sendonly = "sendonly";
-constexpr auto k_sdp_recvonly = "recvonly";
-constexpr auto k_sdp_inactive = "recvonly";
-constexpr auto k_sdp_ts_refclk = "ts-refclk";
-constexpr auto k_sdp_inet = "IN";
-constexpr auto k_sdp_ipv4 = "IP4";
-constexpr auto k_sdp_ipv6 = "IP6";
-
-enum class netw_type { undefined, internet };
-enum class addr_type { undefined, ipv4, ipv6 };
-enum class media_direction { sendrecv, sendonly, recvonly, inactive };
 
 /**
  * Holds the information of an RTP map.
@@ -273,6 +263,23 @@ class media_description {
      */
     [[nodiscard]] const std::optional<fraction<uint32_t>>& clock_deviation() const;
 
+    /**
+     * @returns The source filters of the media description.
+     */
+    [[nodiscard]] const std::vector<source_filter>& source_filters() const;
+
+    /**
+     * Returns framecount attribute. This is a legacy RAVENNA attribute, replaced by ptime. Only use when ptime is not
+     * available.
+     * @return The frame count of the media description.
+     */
+    [[nodiscard]] std::optional<int> framecount() const;
+
+    /**
+     * @returns Attributes which have not been parsed into a specific field.
+     */
+    [[nodiscard]] const std::map<std::string, std::string>& attributes() const;
+
   private:
     std::string media_type_;
     uint16_t port_ {};
@@ -289,6 +296,9 @@ class media_description {
     std::optional<ravenna_clock_domain> clock_domain_;   // RAVENNA-specific attribute
     std::optional<uint32_t> sync_time_;                  // RAVENNA-specific attribute
     std::optional<fraction<uint32_t>> clock_deviation_;  // RAVENNA-specific attribute
+    std::vector<source_filter> source_filters_;
+    std::optional<int> framecount_;                  // Legacy RAVENNA attribute, replaced by ptime
+    std::map<std::string, std::string> attributes_;  // Remaining, unknown attributes
 };
 
 }  // namespace rav::sdp

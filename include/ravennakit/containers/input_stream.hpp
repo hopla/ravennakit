@@ -68,7 +68,7 @@ class input_stream {
      * @param size The number of bytes to skip.
      * @return True if the skip was successful.
      */
-    bool skip(const size_t size);
+    bool skip(size_t size);
 
     /**
      * Reads size amount of bytes from the stream and returns it as a string.

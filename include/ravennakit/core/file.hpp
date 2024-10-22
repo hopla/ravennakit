@@ -41,8 +41,11 @@ class file {
      */
     [[nodiscard]] bool create_if_not_exists() const {
         if (!exists()) {
-            std::ofstream file(path_);
-            file.close();
+            std::ofstream f(path_);
+            if (!f.good()) {
+                return false; // Failed to create the file
+            }
+            f.close();
             if (!exists()) {
                 return false;
             }

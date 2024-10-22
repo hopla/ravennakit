@@ -18,23 +18,23 @@ TEST_CASE("string_stream | prepare and commit, read and consume", "[string_strea
     rav::string_stream stream;
 
     // Prepare and commit
-    REQUIRE(stream.size() == 0);
+    REQUIRE(stream.remaining() == 0);
     auto buffer = stream.prepare(test_data.size());
-    REQUIRE(stream.size() == 0);
+    REQUIRE(stream.remaining() == 0);
     std::memcpy(buffer.data(), test_data.data(), test_data.size());
     stream.commit(test_data.size());
-    REQUIRE(stream.size() == test_data.size());
+    REQUIRE(stream.remaining() == test_data.size());
 
     // Read and consume
     auto data = stream.data();
     REQUIRE(data.size() == test_data.size());
     REQUIRE(std::memcmp(data.data(), test_data.data(), test_data.size()) == 0);
     stream.consume(5);
-    REQUIRE(stream.size() == test_data.size() - 5);
+    REQUIRE(stream.remaining() == test_data.size() - 5);
     auto read1 = stream.read(5);
     REQUIRE(read1.size() == 5);
     REQUIRE(std::memcmp(read1.data(), test_data.data() + 5, 5) == 0);
-    REQUIRE(stream.empty());
+    REQUIRE(stream.exhausted());
 }
 
 TEST_CASE("string_stream | read until newline", "[string_stream]") {
@@ -44,15 +44,15 @@ TEST_CASE("string_stream | read until newline", "[string_stream]") {
         auto line1 = stream.read_until_newline();
         REQUIRE(line1);
         REQUIRE(*line1 == "Hello");
-        REQUIRE(stream.size() == 7);
+        REQUIRE(stream.remaining() == 7);
         auto line2 = stream.read_until_newline();
         REQUIRE(line2);
         REQUIRE(*line2 == "World");
-        REQUIRE(stream.size() == 1);
+        REQUIRE(stream.remaining() == 1);
         auto line3 = stream.read_until_newline();
         REQUIRE(line3);
         REQUIRE(line3->empty());
-        REQUIRE(stream.empty());
+        REQUIRE(stream.exhausted());
         auto line4 = stream.read_until_newline();
         REQUIRE(!line4);
     }
@@ -63,15 +63,15 @@ TEST_CASE("string_stream | read until newline", "[string_stream]") {
         auto line1 = stream.read_until_newline();
         REQUIRE(line1);
         REQUIRE(*line1 == "Hello");
-        REQUIRE(stream.size() == 9);
+        REQUIRE(stream.remaining() == 9);
         auto line2 = stream.read_until_newline();
         REQUIRE(line2);
         REQUIRE(*line2 == "World");
-        REQUIRE(stream.size() == 2);
+        REQUIRE(stream.remaining() == 2);
         auto line3 = stream.read_until_newline();
         REQUIRE(line3);
         REQUIRE(line3->empty());
-        REQUIRE(stream.empty());
+        REQUIRE(stream.exhausted());
         auto line4 = stream.read_until_newline();
         REQUIRE(!line4);
     }
@@ -80,9 +80,9 @@ TEST_CASE("string_stream | read until newline", "[string_stream]") {
 TEST_CASE("string_stream | reset", "[string_stream]") {
     rav::string_stream stream;
     stream.write("test");
-    REQUIRE(stream.size() == 4);
+    REQUIRE(stream.remaining() == 4);
     stream.clear();
-    REQUIRE(stream.empty());
+    REQUIRE(stream.exhausted());
 }
 
 TEST_CASE("string_stream | starts with", "[string_stream]") {

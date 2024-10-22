@@ -11,7 +11,7 @@
 #include "ravennakit/rtsp/rtsp_parser.hpp"
 
 rav::rtsp_parser::result rav::rtsp_parser::parse(string_stream& input) {
-    while (!input.empty()) {
+    while (!input.exhausted()) {
         if (state_ == state::start) {
             const auto start_line = input.read_until_newline();
             if (!start_line) {
@@ -78,7 +78,7 @@ rav::rtsp_parser::result rav::rtsp_parser::parse(string_stream& input) {
         if (state_ == state::data) {
             if (const auto length = headers_.get_content_length()) {
                 if (length > 0) {
-                    if (length > input.size()) {
+                    if (length > input.remaining()) {
                         return result::indeterminate;
                     }
                     data_ = input.read(*length);

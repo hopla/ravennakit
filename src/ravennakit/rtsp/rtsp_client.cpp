@@ -45,7 +45,7 @@ void rav::rtsp_client::describe(const std::string& path) {
         request.headers["Accept"] = "application/sdp";
         const auto encoded = request.encode();
         RAV_TRACE("Sending request: {}", request.to_debug_string());
-        const bool should_trigger_async_write = output_stream_.empty();
+        const bool should_trigger_async_write = output_stream_.exhausted();
         output_stream_.write(encoded);
         if (should_trigger_async_write) {
             async_write();
@@ -68,7 +68,7 @@ void rav::rtsp_client::setup(const std::string& path) {
 
         const auto encoded = request.encode();
         RAV_TRACE("Sending request: {}", request.to_debug_string());
-        const bool should_trigger_async_write = output_stream_.empty();
+        const bool should_trigger_async_write = output_stream_.exhausted();
         output_stream_.write(encoded);
         if (should_trigger_async_write) {
             async_write();
@@ -90,7 +90,7 @@ void rav::rtsp_client::play(const std::string& path) {
 
         const auto encoded = request.encode();
         RAV_TRACE("Sending request: {}", request.to_debug_string());
-        const bool should_trigger_async_write = output_stream_.empty();
+        const bool should_trigger_async_write = output_stream_.exhausted();
         output_stream_.write(encoded);
         if (should_trigger_async_write) {
             async_write();
@@ -116,7 +116,7 @@ void rav::rtsp_client::async_connect(const asio::ip::tcp::endpoint& endpoint) {
 }
 
 void rav::rtsp_client::async_write() {
-    if (output_stream_.empty()) {
+    if (output_stream_.exhausted()) {
         return;
     }
     asio::async_write(
@@ -127,7 +127,7 @@ void rav::rtsp_client::async_write() {
                 return;
             }
             output_stream_.consume(length);
-            if (!output_stream_.empty()) {
+            if (!output_stream_.exhausted()) {
                 async_write();  // Schedule another write
             }
         }

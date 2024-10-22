@@ -55,7 +55,7 @@ class string_stream {
     /**
      * @returns The number of characters available to read.
      */
-    [[nodiscard]] size_t size() const {
+    [[nodiscard]] size_t remaining() const {
         RAV_ASSERT(read_position_ <= write_position_, "Read position is greater than write position");
         return write_position_ - read_position_;
     }
@@ -63,7 +63,7 @@ class string_stream {
     /**
      * @return True if there is no data available to read.
      */
-    [[nodiscard]] bool empty() const {
+    [[nodiscard]] bool exhausted() const {
         return read_position_ == write_position_;
     }
 
@@ -107,7 +107,7 @@ class string_stream {
      * @returns The line until newline, or std::nullopt if no newline was found.
      */
     [[nodiscard]] std::optional<std::string_view> read_until_newline() {
-        if (empty()) {
+        if (exhausted()) {
             return std::nullopt;
         }
 
@@ -132,7 +132,7 @@ class string_stream {
      * @return True if the next available data starts with the prefix.
      */
     [[nodiscard]] bool starts_with(const std::string_view prefix) const {
-        return size() >= prefix.size()
+        return remaining() >= prefix.size()
             && std::equal(prefix.begin(), prefix.end(), data_.begin() + static_cast<long>(read_position_));
     }
 

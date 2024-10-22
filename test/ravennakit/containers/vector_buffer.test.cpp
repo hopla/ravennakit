@@ -8,13 +8,13 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
-#include "ravennakit/containers/vector_stream.hpp"
+#include "ravennakit/containers/vector_buffer.hpp"
 
 #include <array>
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("vector_stream", "[vector_stream]") {
-    rav::vector_stream<uint32_t> stream;
+TEST_CASE("vector_buffer", "[vector_buffer]") {
+    rav::vector_buffer<uint32_t> stream;
 
     SECTION("write") {
         stream.push_back(0x12345678);

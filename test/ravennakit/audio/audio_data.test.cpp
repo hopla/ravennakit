@@ -14,7 +14,7 @@
 
 #include "ravennakit/audio/audio_buffer.hpp"
 #include "ravennakit/containers/buffer_view.hpp"
-#include "ravennakit/containers/vector_stream.hpp"
+#include "ravennakit/containers/vector_buffer.hpp"
 #include "ravennakit/core/util.hpp"
 
 using namespace rav::audio_data;
@@ -129,8 +129,8 @@ TEST_CASE("audio_data | interleaving", "[audio_data]") {
     // This one is a bit more complex, as it involves a conversion from interleaved to noninterleaved to force it to go
     // through the sample-by-sample conversions and not take a shortcut.
     SECTION("Noninterleaved to noninterleaved int16 to int32") {
-        rav::vector_stream<int16_t> src({-32768, 32767, 0, -32767});
-        rav::vector_stream<int32_t> dst(4);
+        rav::vector_buffer<int16_t> src({-32768, 32767, 0, -32767});
+        rav::vector_buffer<int32_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::le, interleaving::noninterleaved, int32_t, byte_order::le,
@@ -148,9 +148,9 @@ TEST_CASE("audio_data | interleaving", "[audio_data]") {
 
 TEST_CASE("audio_data | endian conversions", "[audio_data]") {
     SECTION("Big-endian to little-endian int16") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({1, 2, 3, 4});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         REQUIRE(rav::audio_data::convert<
                 int16_t, byte_order::be, interleaving::interleaved, int16_t, byte_order::le, interleaving::interleaved>(
@@ -164,9 +164,9 @@ TEST_CASE("audio_data | endian conversions", "[audio_data]") {
     }
 
     SECTION("Big-endian to native-endian int16") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({1, 2, 3, 4});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         REQUIRE(rav::audio_data::convert<
                 int16_t, byte_order::be, interleaving::interleaved, int16_t, byte_order::ne, interleaving::interleaved>(
@@ -180,9 +180,9 @@ TEST_CASE("audio_data | endian conversions", "[audio_data]") {
     }
 
     SECTION("Big-endian to big-endian int16") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({1, 2, 3, 4});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         REQUIRE(rav::audio_data::convert<
                 int16_t, byte_order::be, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -196,9 +196,9 @@ TEST_CASE("audio_data | endian conversions", "[audio_data]") {
     }
 
     SECTION("Little-endian to big-endian int16") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_le({1, 2, 3, 4});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         REQUIRE(rav::audio_data::convert<
                 int16_t, byte_order::le, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -212,9 +212,9 @@ TEST_CASE("audio_data | endian conversions", "[audio_data]") {
     }
 
     SECTION("Little-endian to native-endian int16") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_le({1, 2, 3, 4});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         REQUIRE(rav::audio_data::convert<
                 int16_t, byte_order::le, interleaving::interleaved, int16_t, byte_order::ne, interleaving::interleaved>(
@@ -256,7 +256,7 @@ TEST_CASE("audio_data | sample conversions", "[audio_data]") {
 
 TEST_CASE("audio_data | uint8 to int8", "[audio_data]") {
     SECTION("Convert uint8 to int8 be to be") {
-        rav::vector_stream<uint8_t> src({0, 255, 128, 0});
+        rav::vector_buffer<uint8_t> src({0, 255, 128, 0});
         std::array<int8_t, 4> dst {};
 
         auto result = rav::audio_data::convert<
@@ -269,7 +269,7 @@ TEST_CASE("audio_data | uint8 to int8", "[audio_data]") {
     }
 
     SECTION("Convert uint8 to int8 be to le") {
-        rav::vector_stream<uint8_t> src({0, 255, 128, 0});
+        rav::vector_buffer<uint8_t> src({0, 255, 128, 0});
         std::array<int8_t, 4> dst {};
 
         auto result = rav::audio_data::convert<
@@ -282,7 +282,7 @@ TEST_CASE("audio_data | uint8 to int8", "[audio_data]") {
     }
 
     SECTION("Convert uint8 to int8 le to be") {
-        rav::vector_stream<uint8_t> src({0, 255, 128, 0});
+        rav::vector_buffer<uint8_t> src({0, 255, 128, 0});
         std::array<int8_t, 4> dst {};
 
         auto result = rav::audio_data::convert<
@@ -297,9 +297,9 @@ TEST_CASE("audio_data | uint8 to int8", "[audio_data]") {
 
 TEST_CASE("audio_data | int8 to int16", "[audio_data]") {
     SECTION("Convert int8 to int16 be to be") {
-        rav::vector_stream<int8_t> src;
+        rav::vector_buffer<int8_t> src;
         src.push_back_be({-128, 127, 0, -127});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int8_t, byte_order::be, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -314,9 +314,9 @@ TEST_CASE("audio_data | int8 to int16", "[audio_data]") {
     }
 
     SECTION("Convert int8 to int16 le to be") {
-        rav::vector_stream<int8_t> src;
+        rav::vector_buffer<int8_t> src;
         src.push_back_le({-128, 127, 0, -127});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int8_t, byte_order::le, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -331,9 +331,9 @@ TEST_CASE("audio_data | int8 to int16", "[audio_data]") {
     }
 
     SECTION("Convert int8 to int16 be to le") {
-        rav::vector_stream<int8_t> src;
+        rav::vector_buffer<int8_t> src;
         src.push_back_le({-128, 127, 0, -127});
-        rav::vector_stream<int16_t> dst(4);
+        rav::vector_buffer<int16_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int8_t, byte_order::be, interleaving::interleaved, int16_t, byte_order::le, interleaving::interleaved>(
@@ -350,9 +350,9 @@ TEST_CASE("audio_data | int8 to int16", "[audio_data]") {
 
 TEST_CASE("audio_data | int16 to int24", "[audio_data]") {
     SECTION("Convert int16 to int24 be to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -32767});
-        rav::vector_stream<rav::int24_t> dst(4);
+        rav::vector_buffer<rav::int24_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::be,
@@ -366,9 +366,9 @@ TEST_CASE("audio_data | int16 to int24", "[audio_data]") {
     }
 
     SECTION("Convert int16 to int24 le to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_le({-32768, 32767, 0, -32767});
-        rav::vector_stream<rav::int24_t> dst(4);
+        rav::vector_buffer<rav::int24_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::le, interleaving::interleaved, rav::int24_t, byte_order::be,
@@ -382,9 +382,9 @@ TEST_CASE("audio_data | int16 to int24", "[audio_data]") {
     }
 
     SECTION("Convert int16 to int24 be to le") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -32767});
-        rav::vector_stream<rav::int24_t> dst(4);
+        rav::vector_buffer<rav::int24_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::le,
@@ -400,9 +400,9 @@ TEST_CASE("audio_data | int16 to int24", "[audio_data]") {
 
 TEST_CASE("audio_data | int16 to int32", "[audio_data]") {
     SECTION("Convert int16 to int32 be to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -32768});
-        rav::vector_stream<int32_t> dst(4);
+        rav::vector_buffer<int32_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, int32_t, byte_order::be, interleaving::interleaved>(
@@ -417,9 +417,9 @@ TEST_CASE("audio_data | int16 to int32", "[audio_data]") {
     }
 
     SECTION("Convert int16 to int32 be to le") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -32768});
-        rav::vector_stream<int32_t> dst(4);
+        rav::vector_buffer<int32_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, int32_t, byte_order::le, interleaving::interleaved>(
@@ -434,9 +434,9 @@ TEST_CASE("audio_data | int16 to int32", "[audio_data]") {
     }
 
     SECTION("Convert int16 to int32 le to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_le({-32768, 32767, 0, -32768});
-        rav::vector_stream<int32_t> dst(4);
+        rav::vector_buffer<int32_t> dst(4);
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::le, interleaving::interleaved, int32_t, byte_order::be, interleaving::interleaved>(
@@ -453,9 +453,9 @@ TEST_CASE("audio_data | int16 to int32", "[audio_data]") {
 
 TEST_CASE("audio_data | int16 to float", "[audio_data]") {
     SECTION("Convert int16 to float be to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::be, interleaving::interleaved>(
@@ -471,9 +471,9 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
     }
 
     SECTION("Convert int16 to float be to le") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::le, interleaving::interleaved>(
@@ -489,9 +489,9 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
     }
 
     SECTION("Convert int16 to float be to ne") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, float, byte_order::ne, interleaving::interleaved>(
@@ -509,9 +509,9 @@ TEST_CASE("audio_data | int16 to float", "[audio_data]") {
 
 TEST_CASE("audio_data | int24 to float", "[audio_data]") {
     SECTION("Convert int24 to float be to be") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::be, interleaving::interleaved>(
@@ -527,9 +527,9 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
     }
 
     SECTION("Convert int24 to float be to le") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::le, interleaving::interleaved>(
@@ -545,9 +545,9 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
     }
 
     SECTION("Convert int24 to float be to ne") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<float> dst(src.size());
+        rav::vector_buffer<float> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, float, byte_order::ne, interleaving::interleaved>(
@@ -565,9 +565,9 @@ TEST_CASE("audio_data | int24 to float", "[audio_data]") {
 
 TEST_CASE("audio_data | int16 to double", "[audio_data]") {
     SECTION("Convert int16 to double be to be") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::be, interleaving::interleaved>(
@@ -583,9 +583,9 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
     }
 
     SECTION("Convert int16 to double be to le") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::le, interleaving::interleaved>(
@@ -601,9 +601,9 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
     }
 
     SECTION("Convert int16 to double be to ne") {
-        rav::vector_stream<int16_t> src;
+        rav::vector_buffer<int16_t> src;
         src.push_back_be({-32768, 32767, 0, -15000, 15000});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             int16_t, byte_order::be, interleaving::interleaved, double, byte_order::ne, interleaving::interleaved>(
@@ -621,9 +621,9 @@ TEST_CASE("audio_data | int16 to double", "[audio_data]") {
 
 TEST_CASE("audio_data | int24 to double", "[audio_data]") {
     SECTION("Convert int24 to double be to be") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::be, interleaving::interleaved>(
@@ -639,9 +639,9 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
     }
 
     SECTION("Convert int24 to double be to le") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::le, interleaving::interleaved>(
@@ -657,9 +657,9 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
     }
 
     SECTION("Convert int24 to double be to ne") {
-        rav::vector_stream<rav::int24_t> src;
+        rav::vector_buffer<rav::int24_t> src;
         src.push_back_be({-8388608, 8388607, 0, -4194304, 4194304});
-        rav::vector_stream<double> dst(src.size());
+        rav::vector_buffer<double> dst(src.size());
 
         auto result = rav::audio_data::convert<
             rav::int24_t, byte_order::be, interleaving::interleaved, double, byte_order::ne, interleaving::interleaved>(
@@ -677,9 +677,9 @@ TEST_CASE("audio_data | int24 to double", "[audio_data]") {
 
 TEST_CASE("audio_data | float to int16", "[audio_data]") {
     SECTION("Convert float to int16 be to be") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::be, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -693,9 +693,9 @@ TEST_CASE("audio_data | float to int16", "[audio_data]") {
     }
 
     SECTION("Convert float to int16 be to le") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::be, interleaving::interleaved, int16_t, byte_order::le, interleaving::interleaved>(
@@ -709,9 +709,9 @@ TEST_CASE("audio_data | float to int16", "[audio_data]") {
     }
 
     SECTION("Convert float to int16 le to be") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_le({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::le, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -727,9 +727,9 @@ TEST_CASE("audio_data | float to int16", "[audio_data]") {
 
 TEST_CASE("audio_data | float to int24 ", "[audio_data]") {
     SECTION("Convert float to int24 be to be") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::be, interleaving::interleaved>(
@@ -743,9 +743,9 @@ TEST_CASE("audio_data | float to int24 ", "[audio_data]") {
     }
 
     SECTION("Convert float to int24 be to le") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::le, interleaving::interleaved>(
@@ -759,9 +759,9 @@ TEST_CASE("audio_data | float to int24 ", "[audio_data]") {
     }
 
     SECTION("Convert float to int24 le to be") {
-        rav::vector_stream<float> src;
+        rav::vector_buffer<float> src;
         src.push_back_le({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             float, byte_order::le, interleaving::interleaved, rav::int24_t, byte_order::be, interleaving::interleaved>(
@@ -777,9 +777,9 @@ TEST_CASE("audio_data | float to int24 ", "[audio_data]") {
 
 TEST_CASE("audio_data | double to int16", "[audio_data]") {
     SECTION("Convert double to int16 be to be") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::be, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -793,9 +793,9 @@ TEST_CASE("audio_data | double to int16", "[audio_data]") {
     }
 
     SECTION("Convert double to int16 be to le") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::be, interleaving::interleaved, int16_t, byte_order::le, interleaving::interleaved>(
@@ -809,9 +809,9 @@ TEST_CASE("audio_data | double to int16", "[audio_data]") {
     }
 
     SECTION("Convert double to int16 le to be") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_le({-1.f, 1.f, 0.f});
-        rav::vector_stream<int16_t> dst(3);
+        rav::vector_buffer<int16_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::le, interleaving::interleaved, int16_t, byte_order::be, interleaving::interleaved>(
@@ -827,9 +827,9 @@ TEST_CASE("audio_data | double to int16", "[audio_data]") {
 
 TEST_CASE("audio_data | double to int24 ", "[audio_data]") {
     SECTION("Convert double to int24 be to be") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::be, interleaving::interleaved>(
@@ -843,9 +843,9 @@ TEST_CASE("audio_data | double to int24 ", "[audio_data]") {
     }
 
     SECTION("Convert double to int24 be to le") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_be({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::be, interleaving::interleaved, rav::int24_t, byte_order::le, interleaving::interleaved>(
@@ -859,9 +859,9 @@ TEST_CASE("audio_data | double to int24 ", "[audio_data]") {
     }
 
     SECTION("Convert double to int24 le to be") {
-        rav::vector_stream<double> src;
+        rav::vector_buffer<double> src;
         src.push_back_le({-1.f, 1.f, 0.f});
-        rav::vector_stream<rav::int24_t> dst(3);
+        rav::vector_buffer<rav::int24_t> dst(3);
 
         auto result = rav::audio_data::convert<
             double, byte_order::le, interleaving::interleaved, rav::int24_t, byte_order::be, interleaving::interleaved>(

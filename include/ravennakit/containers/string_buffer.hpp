@@ -19,21 +19,21 @@
 namespace rav {
 
 /**
- * Contains a std::string and provides different facilities for working with it as a stream.
+ * Simple buffer around a string that allows for easy reading and writing of values.
  */
 class string_buffer {
   public:
     string_buffer() = default;
 
     /**
-     * Constructs a string_stream with the given data.
+     * Constructs a string_buffer with the given data.
      * @param data The initial data.
      */
     explicit string_buffer(std::string data) : data_(std::move(data)), write_position_(data_.size()) {}
 
     /**
-     * Prepares space in the buffer for writing. The returned buffer_view is valid until the next call to prepare or
-     * commit. The buffer will be resized if necessary to accommodate the requested size. After writing to the prepared
+     * Prepares space in the buffer for writing. The returned buffer_view is valid until the next call to a non-const
+     * method. The buffer will be resized if necessary to accommodate the requested size. After writing to the prepared
      * space, call commit to finalize the operation.
      * @param size The number of characters to reserve in the buffer.
      * @return A string_view representing the writable portion of the buffer.

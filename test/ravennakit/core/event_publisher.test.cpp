@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-#include "ravennakit/containers/vector_stream.hpp"
+#include "ravennakit/containers/vector_buffer.hpp"
 
 namespace {
 
@@ -35,7 +35,7 @@ class publisher final: public rav::event_emitter<publisher, str_event, int_event
 }  // namespace
 
 TEST_CASE("event_publisher", "[event_publisher]") {
-    rav::vector_stream<std::string> events;
+    rav::vector_buffer<std::string> events;
 
     publisher p;
     p.on<str_event>([&events](const str_event& event, publisher&) {

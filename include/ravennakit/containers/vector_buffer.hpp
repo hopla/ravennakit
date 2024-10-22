@@ -20,28 +20,28 @@
 namespace rav {
 
 /**
- * Simple stream implementation that writes to and reads from a vector.
+ * Simple buffer around a vector that allows for easy reading and writing of values.
  */
 template<class T>
-class vector_stream {
+class vector_buffer {
   public:
-    vector_stream() = default;
+    vector_buffer() = default;
 
-    explicit vector_stream(size_t size) : data_(size) {}
+    explicit vector_buffer(size_t size) : data_(size) {}
 
-    vector_stream(std::initializer_list<T> values) : data_(values) {}
+    vector_buffer(std::initializer_list<T> values) : data_(values) {}
 
-    vector_stream(const vector_stream& other) = default;
-    vector_stream(vector_stream&& other) noexcept = default;
-    vector_stream& operator=(const vector_stream& other) = default;
-    vector_stream& operator=(vector_stream&& other) noexcept = default;
+    vector_buffer(const vector_buffer& other) = default;
+    vector_buffer(vector_buffer&& other) noexcept = default;
+    vector_buffer& operator=(const vector_buffer& other) = default;
+    vector_buffer& operator=(vector_buffer&& other) noexcept = default;
 
     bool operator==(const std::vector<T>& other) const {
         return data_ == other;
     }
 
     /**
-     * Writes the given value to the stream in native byte order.
+     * Writes the given value to the buffer in native byte order.
      * @param value The value to write.
      */
     void push_back(T value) {
@@ -49,7 +49,7 @@ class vector_stream {
     }
 
     /**
-     * Writes the given values to the stream in native byte order.
+     * Writes the given values to the buffer in native byte order.
      * @param values The values to write.
      */
     void push_back(std::initializer_list<T> values) {
@@ -59,7 +59,7 @@ class vector_stream {
     }
 
     /**
-     * Writes the given value to the stream in big endian byte order.
+     * Writes the given value to the buffer in big endian byte order.
      * @tparam T The type of the value to write.
      * @param value The value to write.
      */
@@ -68,7 +68,7 @@ class vector_stream {
     }
 
     /**
-     * Writes the given value to the stream in big endian byte order.
+     * Writes the given value to the buffer in big endian byte order.
      * @tparam T The type of the value to write.
      * @param values The values to write.
      */
@@ -79,7 +79,7 @@ class vector_stream {
     }
 
     /**
-     * Writes the given value to the stream in little endian byte order.
+     * Writes the given value to the buffer in little endian byte order.
      * @tparam T The type of the value to write.
      * @param value The value to write.
      * @return True if the value was written successfully, false otherwise.
@@ -89,7 +89,7 @@ class vector_stream {
     }
 
     /**
-     * Writes the given value to the stream in little endian byte order.
+     * Writes the given value to the buffer in little endian byte order.
      * @tparam T The type of the value to write.
      * @param values The values to write.
      */
@@ -100,7 +100,7 @@ class vector_stream {
     }
 
     /**
-     * Reads a value from the stream in native byte order.
+     * Reads a value from the buffer in native byte order.
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
@@ -112,7 +112,7 @@ class vector_stream {
     }
 
     /**
-     * Reads a value from the stream in big endian byte order.
+     * Reads a value from the buffer in big endian byte order.
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
@@ -121,7 +121,7 @@ class vector_stream {
     }
 
     /**
-     * Reads a value from the stream in little endian byte order.
+     * Reads a value from the buffer in little endian byte order.
      * @tparam T The type of the value to read.
      * @return The value read from the stream, or a default-constructed value if the read failed.
      */
@@ -130,21 +130,21 @@ class vector_stream {
     }
 
     /**
-     * @return Returns a pointer to the data in the stream.
+     * @return Returns a pointer to the data in the buffer.
      */
     [[nodiscard]] const T* data() const {
         return data_.data();
     }
 
     /**
-     * @return Returns a pointer to the data in the stream.
+     * @return Returns a pointer to the data in the buffer.
      */
     [[nodiscard]] T* data() {
         return data_.data();
     }
 
     /**
-     * @return Returns the size of the data in the stream.
+     * @return Returns the size of the data in the buffer.
      */
     [[nodiscard]] size_t size() const {
         RAV_ASSERT(

@@ -12,7 +12,7 @@
 #include <ravennakit/audio/circular_audio_buffer.hpp>
 #include <thread>
 
-#include "ravennakit/containers/vector_stream.hpp"
+#include "ravennakit/containers/vector_buffer.hpp"
 
 namespace {
 
@@ -350,7 +350,7 @@ TEST_CASE("circular_audio_buffer", "[circular_audio_buffer]") {
 }
 
 TEST_CASE("circular_audio_buffer | read from data", "[circular_audio_buffer]") {
-    rav::vector_stream<int16_t> src({1, 2, 3, 4, 5, 6});
+    rav::vector_buffer<int16_t> src({1, 2, 3, 4, 5, 6});
     rav::circular_audio_buffer<int16_t> ring(2, 5);
 
     auto result =
@@ -388,7 +388,7 @@ TEST_CASE("circular_audio_buffer | read from data", "[circular_audio_buffer]") {
 }
 
 TEST_CASE("circular_audio_buffer | write to data", "[circular_audio_buffer]") {
-    rav::vector_stream<int16_t> src({1, 2, 3, 4, 5, 6});
+    rav::vector_buffer<int16_t> src({1, 2, 3, 4, 5, 6});
     rav::circular_audio_buffer<int16_t> ring(2, 5);
 
     auto result =

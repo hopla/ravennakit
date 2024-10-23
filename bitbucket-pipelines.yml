@@ -32,8 +32,8 @@ definitions:
         name: 'Build for Android'
         script:
           - git submodule update --recursive --init
-          - python -m pip install pygit2 boto3
-          - python -u build.py --android --path-to-build build-android --build-number "$env:BITBUCKET_BUILD_NUMBER"
+          - python3 -m pip install pygit2 boto3
+          - python3 -u build.py --android --path-to-build build-android --build-number "$env:BITBUCKET_BUILD_NUMBER"
     - step: &build-windows
         runs-on:
           - 'self.hosted'

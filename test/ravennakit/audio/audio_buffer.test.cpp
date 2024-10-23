@@ -22,15 +22,20 @@ template<class T>
 void check_sample_values(const rav::audio_buffer<T>& buffer, const T& fill_value) {
     auto* const* audio_data = buffer.data();
 
-    REQUIRE(buffer.num_channels() > 0);
-    REQUIRE(buffer.num_frames() > 0);
+    if (buffer.num_channels() == 0 || buffer.num_frames() == 0) {
+        throw std::invalid_argument("Buffer has no data.");
+    }
 
     for (size_t ch = 0; ch < buffer.num_channels(); ch++) {
         for (size_t sample = 0; sample < buffer.num_frames(); sample++) {
             if constexpr (std::is_floating_point_v<T>) {
-                REQUIRE(rav::util::is_within(audio_data[ch][sample], fill_value, T{}));
+                if (!rav::util::is_within(audio_data[ch][sample], fill_value, T {})) {
+                    throw std::runtime_error("Sample value is not within tolerance.");
+                }
             } else {
-                REQUIRE(audio_data[ch][sample] == fill_value);
+                if (audio_data[ch][sample] != fill_value) {
+                    throw std::runtime_error("Sample value is not equal to the fill value.");
+                }
             }
         }
     }

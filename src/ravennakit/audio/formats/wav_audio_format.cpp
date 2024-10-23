@@ -11,7 +11,7 @@
 #include "ravennakit/audio/formats/wav_audio_format.hpp"
 #include "ravennakit/core/exception.hpp"
 
-#include <utility>
+#include <tuple>
 
 namespace {}
 

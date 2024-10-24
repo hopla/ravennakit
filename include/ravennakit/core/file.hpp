@@ -100,13 +100,6 @@ class file {
         return std::filesystem::file_size(path_);
     }
 
-    /**
-     * @returns the full path to the file as a C-style string, following native file system encoding.
-     */
-    [[nodiscard]] const char* c_str() const {
-        return path_.c_str();
-    }
-
   private:
     std::filesystem::path path_;
 };

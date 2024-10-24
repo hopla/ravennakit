@@ -62,10 +62,6 @@ int main(int const argc, char* argv[]) {
     spdlog::set_level(spdlog::level::trace);
 #endif
 
-    auto example_dir = rav::file(argv[0]).parent();
-    auto audio_file = example_dir / "audio.wav";
-    fmt::println("Audio file: {}", audio_file.c_str());
-
     rav::system::do_system_checks();
 
     CLI::App app {"RTP Receiver example"};
@@ -107,6 +103,10 @@ int main(int const argc, char* argv[]) {
         RAV_ERROR("PortAudio failed to initialize! Error: {}", Pa_GetErrorText(error));
         exit(0);
     }
+
+    auto example_dir = rav::file(argv[0]).parent();
+    auto audio_file = example_dir / "audio.wav";
+    fmt::println("Audio file: {}", audio_file.path().string());
 
     asio::io_context io_context;
 

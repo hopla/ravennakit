@@ -45,7 +45,7 @@ void rav::wav_audio_format::fmt_chunk::read(input_stream& istream, const uint32_
 
 size_t rav::wav_audio_format::fmt_chunk::write(output_stream& ostream) const {
     const auto start_pos = ostream.get_write_position();
-    ostream.write_cstring("fmt ", 4);
+    ostream.write("fmt ", 4);  // Note the trailing space
     if (extension.has_value()) {
         ostream.write_le<uint32_t>(40);
     } else {
@@ -76,7 +76,7 @@ void rav::wav_audio_format::data_chunk::read(input_stream& istream, const uint32
 size_t rav::wav_audio_format::data_chunk::write(output_stream& ostream, const size_t data_written) {
     const auto start_pos = ostream.get_write_position();
     data_size = data_written;
-    ostream.write_cstring("data", 4);
+    ostream.write("data", 4);
     ostream.write_le<uint32_t>(static_cast<uint32_t>(data_size));
     data_begin = ostream.get_write_position();
     const auto s = data_begin - start_pos;
@@ -194,12 +194,12 @@ void rav::wav_audio_format::writer::write_header() {
     const auto pos = ostream_.get_write_position();
     ostream_.set_write_position(0);
 
-    ostream_.write_cstring("RIFF", 4);
+    ostream_.write("RIFF", 4);
     // The riff size will only be correct after calling write_header() once before.
     const auto riff_size = fmt_chunk_size_ + data_chunk_size_ + audio_data_written_ + 4;  // +4 for "WAVE"
     RAV_ASSERT(riff_size < std::numeric_limits<uint32_t>::max(), "WAV file too large");
     ostream_.write_le<uint32_t>(static_cast<uint32_t>(riff_size));
-    ostream_.write_cstring("WAVE", 4);
+    ostream_.write("WAVE", 4);
     fmt_chunk_size_ = fmt_chunk_.write(ostream_);
     data_chunk_size_ = data_chunk_.write(ostream_, audio_data_written_);
 

@@ -13,7 +13,6 @@
 #include "ravennakit/core/byte_order.hpp"
 
 #include <cstdint>
-#include <limits>
 
 namespace rav {
 
@@ -32,6 +31,16 @@ class output_stream {
      * @return The number of bytes written.
      */
     virtual size_t write(const uint8_t* buffer, size_t size) = 0;
+
+    /**
+     * Convenience function to write data from a char buffer to the stream.
+     * @param buffer The buffer to write data from.
+     * @param size The number of bytes to write.
+     * @return The number of bytes written.
+     */
+    size_t write(const char* buffer, const size_t size) {
+        return write(reinterpret_cast<const uint8_t*>(buffer), size);
+    }
 
     /**
      * Sets the write position in the stream.
@@ -67,8 +76,8 @@ class output_stream {
      * @param value The value to write.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
-    void write_be(const Type value) {
-        write_ne(swap_if_le(value));
+    size_t write_be(const Type value) {
+        return write_ne(swap_if_le(value));
     }
 
     /**
@@ -77,27 +86,28 @@ class output_stream {
      * @param value The value to write.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
-    void write_le(const Type value) {
-        write_ne(byte_order::swap_if_be(value));
+    size_t write_le(const Type value) {
+        return write_ne(byte_order::swap_if_be(value));
     }
 
     /**
-     * Writes a string to the stream.
+     * Writes a string to the stream. The string is prefixed with its size in little-endian format.
      * @param str The string to write.
+     * @return The number of bytes written.
      */
     size_t write_string(const std::string& str) {
-        return write(reinterpret_cast<const uint8_t*>(str.data()), str.size());
+        const auto written = write_le<uint64_t>(str.size());
+        return write(reinterpret_cast<const uint8_t*>(str.data()), str.size()) + written;
     }
 
     /**
      * Writes a c-string to the stream, up to and including the null character.
-     * If the string doesn't have a null character, and max_size is bigger than the amount of characters then the
-     * behaviour is undefined (and probably will lead to invalid memory access).
+     * If the string doesn't have a null character then the behaviour is undefined (and probably will lead to invalid
+     * memory access).
      * @param str The string to write.
-     * @param max_size The max size to write.
      */
-    size_t write_cstring(const char* str, const size_t max_size = std::numeric_limits<size_t>::max()) {
-        return write(reinterpret_cast<const uint8_t*>(str), std::min(std::strlen(str) + 1, max_size));
+    size_t write_cstring(const char* str) {
+        return write(reinterpret_cast<const uint8_t*>(str), std::strlen(str) + 1);
     }
 };
 

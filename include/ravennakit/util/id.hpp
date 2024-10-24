@@ -16,8 +16,8 @@
 namespace rav::util {
 
 /**
- * A class which represents a unique identifier. How unique the identifier is depends on the context in which it is
- * used. The id itself is a uint64_t.
+ * A class which represents a unique identifier. How unique the identifier is depends on how this class is used. The id
+ * itself is a uint64_t.
  */
 class id {
   public:

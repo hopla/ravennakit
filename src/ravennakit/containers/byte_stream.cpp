@@ -61,7 +61,7 @@ bool rav::byte_stream::set_write_position(const size_t position) {
     return true;
 }
 
-size_t rav::byte_stream::get_write_position() const {
+size_t rav::byte_stream::get_write_position() {
     return write_position_;
 }
 

@@ -35,7 +35,7 @@ class byte_stream final: public input_stream, public output_stream {
     // output_stream overrides
     size_t write(const uint8_t* buffer, size_t size) override;
     bool set_write_position(size_t position) override;
-    [[nodiscard]] size_t get_write_position() const override;
+    [[nodiscard]] size_t get_write_position() override;
     void flush() override;
 
   private:

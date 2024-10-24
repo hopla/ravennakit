@@ -52,7 +52,7 @@ class output_stream {
     /**
      * @return The current write position in the stream.
      */
-    [[nodiscard]] virtual size_t get_write_position() const = 0;
+    [[nodiscard]] virtual size_t get_write_position() = 0;
 
     /**
      * Flushes the stream, ensuring that all data is written to the underlying storage. Not all streams support this

@@ -22,6 +22,7 @@ std::unique_ptr<rav::dnssd::dnssd_browser> rav::dnssd::dnssd_browser::create(asi
         return {};
     }
 #else
+    std::ignore = io_context;
     return {};
 #endif
 }

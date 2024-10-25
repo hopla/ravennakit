@@ -23,6 +23,7 @@ std::unique_ptr<rav::dnssd::dnssd_advertiser> rav::dnssd::dnssd_advertiser::crea
         return {};
     }
 #else
+    std::ignore = io_context;
     return {};
 #endif
 }

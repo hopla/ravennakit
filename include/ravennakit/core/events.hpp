@@ -21,6 +21,8 @@ namespace rav {
 template<class... Events>
 class events {
   public:
+    virtual ~events() = default;
+
     template<class Type>
     using handler = std::function<void(Type&)>;
 
@@ -46,7 +48,7 @@ class events {
     /**
      * Deletes all handlers.
      */
-    void reset() noexcept {
+    virtual void reset() noexcept {
         (reset<Events>(), ...);
     }
 

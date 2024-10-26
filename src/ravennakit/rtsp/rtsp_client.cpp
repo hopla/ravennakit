@@ -14,10 +14,10 @@
 #include "ravennakit/rtsp/rtsp_request.hpp"
 
 rav::rtsp_client::rtsp_client(asio::io_context& io_context) : socket_(asio::make_strand(io_context)) {
-    parser_.on<rtsp_response>([this](const rtsp_response& response, rtsp_parser&) {
+    parser_.on<rtsp_response>([this](const rtsp_response& response) {
         emit(response);
     });
-    parser_.on<rtsp_request>([this](const rtsp_request& request, rtsp_parser&) {
+    parser_.on<rtsp_request>([this](const rtsp_request& request) {
         emit(request);
     });
 }
@@ -111,7 +111,7 @@ void rav::rtsp_client::async_connect(const asio::ip::tcp::endpoint& endpoint) {
         RAV_INFO("Connected to {}", socket_.remote_endpoint().address().to_string());
         async_write();  // Schedule a write in case there is data to send
         async_read_some();
-        emit<rtsp::connect_event>(rtsp::connect_event {});
+        emit<rtsp_connect_event>(rtsp_connect_event {});
     });
 }
 

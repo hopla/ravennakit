@@ -22,7 +22,7 @@ TEST_CASE("rtsp_parser | parse responses in multiple chunks", "[rtsp_parser]") {
 
     int response_count = 0;
 
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
@@ -50,7 +50,7 @@ TEST_CASE("rtsp_parser | parse responses in multiple chunks", "[rtsp_parser]") {
 
     REQUIRE(response_count == 1);
 
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 400);
@@ -80,7 +80,7 @@ TEST_CASE("rtsp_parser | Parse ok response without data", "[rtsp_parser]") {
     int response_count = 0;
 
     rav::rtsp_parser parser;
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
@@ -109,7 +109,7 @@ TEST_CASE("rtsp_parser | Parse ok response with data", "[rtsp_parser]") {
     int response_count = 0;
 
     rav::rtsp_parser parser;
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
@@ -140,7 +140,7 @@ TEST_CASE("rtsp_parser | Parse response from Anubis", "[rtsp_parser]") {
     int response_count = 0;
 
     rav::rtsp_parser parser;
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
@@ -166,7 +166,7 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
         int request_count = 0;
 
         rav::rtsp_parser parser;
-        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
             REQUIRE(request.method == "DESCRIBE");
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
@@ -189,7 +189,7 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
         int request_count = 0;
 
         rav::rtsp_parser parser;
-        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
             REQUIRE(request.method == "DESCRIBE");
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
@@ -214,7 +214,7 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
         int request_count = 0;
 
         rav::rtsp_parser parser;
-        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
             REQUIRE(request.method == "DESCRIBE");
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
@@ -248,7 +248,7 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
         int request_count = 0;
 
         rav::rtsp_parser parser;
-        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+        parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
             REQUIRE(request.method == "DESCRIBE");
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
@@ -269,7 +269,7 @@ TEST_CASE("rtsp_parser | Parse some requests in chunks", "[rtsp_parser]") {
     int request_count = 0;
 
     rav::rtsp_parser parser;
-    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
         REQUIRE(request.method == "DESCRIBE");
         REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
         REQUIRE(request.rtsp_version_major == 1);
@@ -294,7 +294,7 @@ TEST_CASE("rtsp_parser | Parse some requests in chunks", "[rtsp_parser]") {
 
     REQUIRE(request_count == 1);
 
-    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
         REQUIRE(request.method == "OPTIONS");
         REQUIRE(request.uri == "rtsp://server2.example.com/fizzle/foo");
         REQUIRE(request.rtsp_version_major == 1);
@@ -322,7 +322,7 @@ TEST_CASE("rtsp_parser | Parse Anubis ANNOUNCE request", "[rtsp_parser]") {
     int request_count = 0;
 
     rav::rtsp_parser parser;
-    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
         REQUIRE(request.method == "ANNOUNCE");
         REQUIRE(request.uri.empty());
         REQUIRE(request.rtsp_version_major == 1);
@@ -354,7 +354,7 @@ TEST_CASE("rtsp_parser | Parse Anubis DESCRIBE response and ANNOUNCE request", "
 
     rav::rtsp_parser parser;
 
-    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_response>([&](const rav::rtsp_response& response) {
         REQUIRE(response.rtsp_version_major == 1);
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
@@ -367,7 +367,7 @@ TEST_CASE("rtsp_parser | Parse Anubis DESCRIBE response and ANNOUNCE request", "
         response_count++;
     });
 
-    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request, rav::rtsp_parser&) {
+    parser.on<rav::rtsp_request>([&](const rav::rtsp_request& request) {
         REQUIRE(request.method == "ANNOUNCE");
         REQUIRE(request.uri.empty());
         REQUIRE(request.rtsp_version_major == 1);

@@ -121,9 +121,8 @@ int main(int const argc, char* argv[]) {
 
     std::vector<uint8_t> audio_data_buffer;
 
-    receiver.on<rav::rtp_packet_event>([&audio_context, &audio_writer, &audio_data_buffer](
-                                           const rav::rtp_packet_event& event, [[maybe_unused]] rav::rtp_receiver& recv
-                                       ) {
+    receiver.on<rav::rtp_packet_event>([&audio_context, &audio_writer,
+                                        &audio_data_buffer](const rav::rtp_packet_event& event) {
         RAV_INFO("{}", event.packet.to_string());
 
         auto payload = event.packet.payload_data();
@@ -144,8 +143,7 @@ int main(int const argc, char* argv[]) {
             RAV_ERROR("Failed to write {} frames to buffer!", num_frames);
         }
     });
-    receiver.on<rav::rtcp_packet_event>([](const rav::rtcp_packet_event& event,
-                                           [[maybe_unused]] rav::rtp_receiver& recv) {
+    receiver.on<rav::rtcp_packet_event>([](const rav::rtcp_packet_event& event) {
         fmt::println("{}", event.packet.to_string());
     });
 
@@ -217,7 +215,7 @@ int main(int const argc, char* argv[]) {
     signals.cancel();
     io_thread.join();
 
-    audio_writer.finalize(); // Not necessary, but good practice. This will write the header to the file.
+    audio_writer.finalize();  // Not necessary, but good practice. This will write the header to the file.
 
     if (auto error = Pa_StopStream(stream); error != paNoError) {
         RAV_ERROR("PortAudio failed to stop stream! Error: {}", Pa_GetErrorText(error));

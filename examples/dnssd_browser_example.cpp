@@ -24,33 +24,27 @@ int main(const int argc, char* argv[]) {
         exit(-1);
     }
 
-    browser->on<rav::dnssd::events::service_discovered>([](const rav::dnssd::events::service_discovered& event,
-                                                           rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_service_discovered>([](const rav::dnssd::dnssd_service_discovered& event) {
         RAV_INFO("Service discovered: {}", event.description.description());
     });
 
-    browser->on<rav::dnssd::events::service_removed>([](const rav::dnssd::events::service_removed& event,
-                                                        rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_service_removed>([](const rav::dnssd::dnssd_service_removed& event) {
         RAV_INFO("Service removed: {}", event.description.description());
     });
 
-    browser->on<rav::dnssd::events::service_resolved>([](const rav::dnssd::events::service_resolved& event,
-                                                         rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_service_resolved>([](const rav::dnssd::dnssd_service_resolved& event) {
         RAV_INFO("Service resolved: {}", event.description.description());
     });
 
-    browser->on<rav::dnssd::events::address_added>([](const rav::dnssd::events::address_added& event,
-                                                      rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_address_added>([](const rav::dnssd::dnssd_address_added& event) {
         RAV_INFO("Address added ({}): {}", event.address, event.description.description());
     });
 
-    browser->on<rav::dnssd::events::address_removed>([](const rav::dnssd::events::address_removed& event,
-                                                        rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_address_removed>([](const rav::dnssd::dnssd_address_removed& event) {
         RAV_INFO("Address removed ({}): {}", event.address, event.description.description());
     });
 
-    browser->on<rav::dnssd::events::browse_error>([](const rav::dnssd::events::browse_error& event,
-                                                     rav::dnssd::dnssd_browser&) {
+    browser->on<rav::dnssd::dnssd_browse_error>([](const rav::dnssd::dnssd_browse_error& event) {
         RAV_ERROR("{}", event.error_message);
     });
 

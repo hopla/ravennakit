@@ -37,7 +37,7 @@ void rav::dnssd::bonjour_browser::service::resolve_on_interface(uint32_t index) 
 
     if (result != kDNSServiceErr_NoError) {
         owner_.emit(
-            events::browse_error {fmt::format("Resolve on interface error: {}", dns_service_error_to_string(result))}
+            dnssd_browse_error {fmt::format("Resolve on interface error: {}", dns_service_error_to_string(result))}
         );
         return;
     }
@@ -54,7 +54,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
 
     if (error_code != kDNSServiceErr_NoError) {
         browser_service->owner_.emit(
-            events::browse_error {fmt::format("Resolve error: {}", dns_service_error_to_string(error_code))}
+            dnssd_browse_error {fmt::format("Resolve error: {}", dns_service_error_to_string(error_code))}
         );
         return;
     }
@@ -63,7 +63,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
     browser_service->description_.port = port;
     browser_service->description_.txt = bonjour_txt_record::get_txt_record_from_raw_bytes(txt_record, txt_len);
 
-    browser_service->owner_.emit(events::service_resolved {browser_service->description_, interface_index});
+    browser_service->owner_.emit(dnssd_service_resolved {browser_service->description_, interface_index});
 
     DNSServiceRef getAddrInfoServiceRef = browser_service->owner_.shared_connection_.service_ref();
 
@@ -74,7 +74,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
 
     if (result != kDNSServiceErr_NoError) {
         browser_service->owner_.emit(
-            events::browse_error {fmt::format("Get addr info error: {}", dns_service_error_to_string(result))}
+            dnssd_browse_error {fmt::format("Get addr info error: {}", dns_service_error_to_string(result))}
         );
         return;
     }
@@ -96,7 +96,7 @@ void rav::dnssd::bonjour_browser::service::get_addr_info_callback(
 
     if (error_code != kDNSServiceErr_NoError) {
         browser_service->owner_.emit(
-            events::browse_error {fmt::format("Get addr info error: {}", dns_service_error_to_string(error_code))}
+            dnssd_browse_error {fmt::format("Get addr info error: {}", dns_service_error_to_string(error_code))}
         );
         return;
     }
@@ -120,11 +120,11 @@ void rav::dnssd::bonjour_browser::service::get_addr_info_callback(
     if (found_interface != browser_service->description_.interfaces.end()) {
         const auto result = found_interface->second.insert(ip_addr);
         browser_service->owner_.emit(
-            events::address_added {browser_service->description_, *result.first, interface_index}
+            dnssd_address_added {browser_service->description_, *result.first, interface_index}
         );
     } else {
         browser_service->owner_.emit(
-            events::browse_error {fmt::format("Interface with id \"{}\" not found", interface_index)}
+            dnssd_browse_error {fmt::format("Interface with id \"{}\" not found", interface_index)}
         );
         return;
     }
@@ -139,7 +139,7 @@ size_t rav::dnssd::bonjour_browser::service::remove_interface(uint32_t index) {
 
     if (description_.interfaces.size() > 1) {
         for (auto& addr : found_interface->second) {
-            owner_.emit(events::address_removed {description_, addr, index});
+            owner_.emit(dnssd_address_removed {description_, addr, index});
         }
     }
 
@@ -183,10 +183,10 @@ void rav::dnssd::bonjour_browser::async_process_results() {
 
         if (result != kDNSServiceErr_NoError) {
             RAV_ERROR("DNSServiceError: {}", dns_service_error_to_string(result));
-            emit(events::browse_error {fmt::format("Process result error: {}", dns_service_error_to_string(result))});
+            emit(dnssd_browse_error {fmt::format("Process result error: {}", dns_service_error_to_string(result))});
             if (++process_results_failed_attempts_ > 10) {
                 RAV_ERROR("Too many failed attempts to process results, stopping");
-                emit(events::browse_error {"Too many failed attempts to process results, stopping"});
+                emit(dnssd_browse_error {"Too many failed attempts to process results, stopping"});
                 return;
             }
         } else {
@@ -204,7 +204,7 @@ void rav::dnssd::bonjour_browser::browse_reply(
     auto* browser = static_cast<bonjour_browser*>(context);
 
     if (error_code != kDNSServiceErr_NoError) {
-        browser->emit(events::browse_error {
+        browser->emit(dnssd_browse_error {
             fmt::format("Browser repy called with error: {}", dns_service_error_to_string(error_code))
         });
         return;
@@ -219,7 +219,7 @@ void rav::dnssd::bonjour_browser::browse_reply(
     const auto result = DNSServiceConstructFullName(fullname, name, type, domain);
     if (result != kDNSServiceErr_NoError) {
         browser->emit(
-            events::browse_error {fmt::format("Failed to construct full name: {}", dns_service_error_to_string(result))}
+            dnssd_browse_error {fmt::format("Failed to construct full name: {}", dns_service_error_to_string(result))}
         );
         return;
     }
@@ -230,19 +230,19 @@ void rav::dnssd::bonjour_browser::browse_reply(
         if (s == browser->services_.end()) {
             s = browser->services_.insert({fullname, service(fullname, name, type, domain, *browser)}).first;
 
-            browser->emit(events::service_discovered {s->second.description()});
+            browser->emit(dnssd_service_discovered {s->second.description()});
         }
 
         s->second.resolve_on_interface(interface_index);
     } else {
         auto const foundService = browser->services_.find(fullname);
         if (foundService == browser->services_.end()) {
-            browser->emit(events::browse_error {fmt::format("Service with fullname \"{}\" not found", fullname)});
+            browser->emit(dnssd_browse_error {fmt::format("Service with fullname \"{}\" not found", fullname)});
         }
 
         if (foundService->second.remove_interface(interface_index) == 0) {
             // We just removed the last interface
-            browser->emit(events::service_removed {foundService->second.description()});
+            browser->emit(dnssd_service_removed {foundService->second.description()});
 
             // Remove the BrowseResult (as there are not interfaces left)
             browser->services_.erase(foundService);

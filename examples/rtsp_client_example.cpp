@@ -37,16 +37,16 @@ int main(int const argc, char* argv[]) {
 
     rav::rtsp_client client(io_context);
 
-    client.on<rav::rtsp::connect_event>([path](const rav::rtsp::connect_event&, rav::rtsp_client& c) {
+    client.on<rav::rtsp_connect_event>([path, &client](const rav::rtsp_connect_event&) {
         RAV_INFO("Connected, send DESCRIBE request");
-        c.describe(path);
+        client.describe(path);
     });
 
-    client.on<rav::rtsp_request>([](const rav::rtsp_request& request, rav::rtsp_client&) {
+    client.on<rav::rtsp_request>([](const rav::rtsp_request& request) {
         RAV_INFO("{}\n{}", request.to_debug_string(), rav::string_replace(request.data, "\r\n", "\n"));
     });
 
-    client.on<rav::rtsp_response>([](const rav::rtsp_response& response, rav::rtsp_client&) {
+    client.on<rav::rtsp_response>([](const rav::rtsp_response& response) {
         RAV_INFO("{}\n{}", response.to_debug_string(), rav::string_replace(response.data, "\r\n", "\n"));
     });
 

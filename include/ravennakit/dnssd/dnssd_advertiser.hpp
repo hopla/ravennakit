@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "service_description.hpp"
-#include "ravennakit/core/event_emitter.hpp"
+#include "ravennakit/core/events.hpp"
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/util/id.hpp"
 
@@ -12,27 +12,25 @@
 
 namespace rav::dnssd {
 
-namespace events {
     /**
      * Event for when a service was discovered.
      */
-    struct advertiser_error {
+    struct dnssd_advertiser_error {
         const std::string& error_message;
     };
 
     /**
      * Event for when a DNS-SD service registration failed due to a name conflict.
      */
-    struct name_conflict {
+    struct dnssd_name_conflict {
         const char* reg_type;
         const char* name;
     };
-}  // namespace events
 
 /**
  * Interface class which represents a dnssd advertiser object, which is able to present itself onto the network.
  */
-class dnssd_advertiser: public event_emitter<dnssd_advertiser, events::advertiser_error, events::name_conflict> {
+class dnssd_advertiser: public events<dnssd_advertiser_error, dnssd_name_conflict> {
   public:
     explicit dnssd_advertiser() = default;
     ~dnssd_advertiser() override = default;

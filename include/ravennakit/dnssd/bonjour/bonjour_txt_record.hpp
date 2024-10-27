@@ -27,14 +27,14 @@ public:
      * @param value Value.
      * @return A result indicating success or failure.
      */
-    void setValue(const std::string& key, const std::string& value);
+    void set_value(const std::string& key, const std::string& value);
 
     /**
      * Sets an empty value for key inside the TXT record.
      * @param key Key.
      * @return An Result indicating success or failure.
      */
-    void setValue(const std::string& key);
+    void set_value(const std::string& key);
 
     /**
      * @return Returns the length of the TXT record.
@@ -44,15 +44,15 @@ public:
     /**
      * @return Returns a pointer to the TXT record data. This pointer will be valid for as long as this instance lives.
      */
-    [[nodiscard]] const void* bytesPtr() const noexcept;
+    [[nodiscard]] const void* bytes_ptr() const noexcept;
 
     /**
      * Creates a TxtRecord from raw TXT record bytes.
-     * @param txtRecord The txt record data.
-     * @param txtRecordLength The length of the txt record.
+     * @param txt_record The txt record data.
+     * @param txt_record_length The length of the txt record.
      * @return The filled TxtRecord.
      */
-    static txt_record get_txt_record_from_raw_bytes (const unsigned char* txtRecord, uint16_t txtRecordLength) noexcept;
+    static txt_record get_txt_record_from_raw_bytes (const unsigned char* txt_record, uint16_t txt_record_length) noexcept;
 
 private:
     TXTRecordRef txt_record_ref_{};

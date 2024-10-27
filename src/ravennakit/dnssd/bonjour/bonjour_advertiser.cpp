@@ -38,7 +38,7 @@ rav::util::id rav::dnssd::bonjour_advertiser::register_service(
 
     const auto result = DNSServiceRegister(
         &service_ref, flags, 0, name, reg_type.c_str(), domain, nullptr, htons(port), record.length(),
-        record.bytesPtr(), register_service_callback, this
+        record.bytes_ptr(), register_service_callback, this
     );
 
     DNSSD_THROW_IF_ERROR(result, "Failed to register service");
@@ -129,7 +129,7 @@ void rav::dnssd::bonjour_advertiser::update_txt_record(const util::id id, const 
 
     // Second argument's nullptr tells us that we are updating the primary record.
     const auto result =
-        DNSServiceUpdateRecord(service->service_ref.service_ref(), nullptr, 0, record.length(), record.bytesPtr(), 0);
+        DNSServiceUpdateRecord(service->service_ref.service_ref(), nullptr, 0, record.length(), record.bytes_ptr(), 0);
 
     DNSSD_THROW_IF_ERROR(result, "Failed to update TXT record");
 }

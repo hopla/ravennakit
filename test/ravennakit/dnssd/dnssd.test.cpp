@@ -14,6 +14,10 @@
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
 
+namespace {
+const std::string reg_type = "_ravennakit_dnssd_unit_test._tcp.";
+}
+
 TEST_CASE("dnssd | Browse and advertise") {
     SECTION("On systems other than Apple and Windows, dnssd is not implemented") {
 #if !RAV_HAS_DNSSD
@@ -29,14 +33,11 @@ TEST_CASE("dnssd | Browse and advertise") {
 #if !RAV_HAS_DNSSD
         return;
 #endif
-
-        const std::string reg_type = "_ravennakit_dnssd_unit_test._tcp.";
+        asio::io_context io_context;
 
         std::vector<rav::dnssd::service_description> discovered_services;
         std::vector<rav::dnssd::service_description> resolved_services;
         std::vector<rav::dnssd::service_description> removed_services;
-
-        asio::io_context io_context;
 
         auto advertiser = rav::dnssd::dnssd_advertiser::create(io_context);
         REQUIRE(advertiser);
@@ -85,4 +86,35 @@ TEST_CASE("dnssd | Browse and advertise") {
         REQUIRE(removed_services.at(0).txt == txt_record);
         REQUIRE_FALSE(removed_services.at(0).host.empty());
     }
+
+    SECTION("Update a txt record") {}
+}
+
+TEST_CASE("dnssd | Update a txt record") {
+    asio::io_context io_context;
+    std::optional<rav::dnssd::service_description> updated_service;
+
+    const auto advertiser = rav::dnssd::dnssd_advertiser::create(io_context);
+    const rav::dnssd::txt_record txt_record {{"key1", "value1"}, {"key2", "value2"}};
+    const auto id = advertiser->register_service(reg_type, "test", nullptr, 1234, {}, false);
+
+    const auto browser = rav::dnssd::dnssd_browser::create(io_context);
+    bool updated = false;
+    browser->on<rav::dnssd::dnssd_service_resolved>([&](const rav::dnssd::dnssd_service_resolved& event) {
+        if (event.description.txt.empty() && !updated) {
+            advertiser->update_txt_record(id, txt_record);
+            updated = true;
+        }
+
+        if (event.description.txt == txt_record) {
+            updated_service = event.description;
+            io_context.stop();
+        }
+    });
+
+    browser->browse_for(reg_type);
+
+    io_context.run_for(std::chrono::seconds(10));
+
+    REQUIRE(updated_service.has_value());
 }

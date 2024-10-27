@@ -31,7 +31,7 @@ struct service_description
     std::string host;
 
     /// The port of the service (in native endian).
-    uint16_t port;
+    uint16_t port{};
 
     /// The TXT record of the service, represented as a map of keys and values.
     txt_record txt;

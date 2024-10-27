@@ -60,7 +60,7 @@ void rav::dnssd::bonjour_browser::service::resolve_callback(
     }
 
     browser_service->description_.host = host_target;
-    browser_service->description_.port = port;
+    browser_service->description_.port = ntohs(port);
     browser_service->description_.txt = bonjour_txt_record::get_txt_record_from_raw_bytes(txt_record, txt_len);
 
     browser_service->owner_.emit(dnssd_service_resolved {browser_service->description_, interface_index});

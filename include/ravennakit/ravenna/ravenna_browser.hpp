@@ -30,7 +30,7 @@ struct ravenna_session_resolved {
  */
 class ravenna_browser final {
   public:
-    using subscriber = linked_node<events<ravenna_session_resolved>>;
+    using subscriber = linked_node<events<ravenna_node_resolved, ravenna_session_resolved>>;
 
     explicit ravenna_browser(asio::io_context& io_context);
 

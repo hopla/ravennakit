@@ -28,9 +28,9 @@ rav::ravenna_browser::ravenna_browser(asio::io_context& io_context) : io_context
         session_browser_->on<dnssd::dnssd_service_resolved>([this](const dnssd::dnssd_service_resolved& event) {
             RAV_INFO("RAVENNA Stream resolved: {}", event.description.name);
 
-            for (auto& events : subscribers_) {
-                events.emit(ravenna_session_resolved {event.description});
-            }
+            subscribers_.foreach([&event](const auto& subscriber) {
+                subscriber.emit(ravenna_session_resolved {event.description});
+            });
         });
 
         // Browse for RAVENNA sessions (note the subtype _ravenna_session)

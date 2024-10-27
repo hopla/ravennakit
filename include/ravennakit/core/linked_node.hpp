@@ -229,7 +229,7 @@ class linked_node {
     /**
      * @param f The function to be called for each node in the linked list.
      */
-    void for_each(const std::function<void(T&)>& f) {
+    void foreach(const std::function<void(T&)>& f) {
         for (auto& node : *this) {
             f(node);
         }

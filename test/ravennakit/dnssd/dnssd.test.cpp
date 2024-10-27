@@ -91,6 +91,10 @@ TEST_CASE("dnssd | Browse and advertise") {
 }
 
 TEST_CASE("dnssd | Update a txt record") {
+#if !RAV_HAS_DNSSD
+    return;
+#endif
+
     asio::io_context io_context;
     std::optional<rav::dnssd::service_description> updated_service;
 

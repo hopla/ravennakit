@@ -74,8 +74,7 @@ void rav::dnssd::bonjour_advertiser::async_process_results() {
 
         if (result != kDNSServiceErr_NoError) {
             RAV_ERROR("DNSServiceError: {}", dns_service_error_to_string(result));
-            emit(dnssd_advertiser_error {fmt::format("Process result error: {}", dns_service_error_to_string(result))}
-            );
+            emit(dnssd_advertiser_error {fmt::format("Process result error: {}", dns_service_error_to_string(result))});
             if (++process_results_failed_attempts_ > 10) {
                 RAV_ERROR("Too many failed attempts to process results, stopping");
                 emit(dnssd_advertiser_error {"Too many failed attempts to process results, stopping"});

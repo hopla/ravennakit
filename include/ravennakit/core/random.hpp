@@ -12,6 +12,7 @@
 
 #include <random>
 #include <string>
+#include <algorithm>
 
 namespace rav::random {
 

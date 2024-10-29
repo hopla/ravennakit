@@ -2,6 +2,7 @@
 
 #include "service_description.hpp"
 #include "ravennakit/core/events.hpp"
+#include "ravennakit/core/linked_node.hpp"
 
 #include <asio.hpp>
 
@@ -11,77 +12,75 @@
 namespace rav::dnssd {
 
 /**
- * Event for when a service was discovered.
- * Note: this event will be emitted asynchronously from a background thread.
- */
-struct dnssd_service_discovered {
-    /// The service description of the discovered service.
-    const service_description& description;
-};
-
-/**
- * Event for when a service was removed.
- * Note: this event will be emitted asynchronously from a background thread.
- */
-struct dnssd_service_removed {
-    /// The service description of the removed service.
-    const service_description& description;
-};
-
-/**
- * Event for when a service was resolved (i.e. address information was resolved).
- * Note: this event will be emitted asynchronously from a background thread.
- */
-struct dnssd_service_resolved {
-    /// The service description of the resolved service.
-    const service_description& description;
-    /// The index of the interface on which the service was resolved on.
-    uint32_t interfaceIndex;
-};
-
-/**
- * Event for when the service became available on given address.
- * Note: this event will be emitted asynchronously from a background thread.
- */
-struct dnssd_address_added {
-    /// The service description of the service for which the address was added.
-    const service_description& description;
-    /// The address which was added.
-    const std::string& address;
-    /// The index of the interface on which the address was added.
-    uint32_t interface_index;
-};
-
-/**
- * Event for when the service became unavailable on given address.
- * Note: this event will be emitted asynchronously from a background thread.
- */
-struct dnssd_address_removed {
-    /// The service description of the service for which the address was removed.
-    const service_description& description;
-    /// The address which was removed.
-    const std::string& address;
-    /// The index of the interface on which the address was removed.
-    uint32_t interface_index;
-};
-
-/**
- * Event for when an error occurred during browsing for a service.
- * Note: this event might be emitted asynchronously from a background thread.
- */
-struct dnssd_browse_error {
-    const std::string& error_message;
-};
-
-/**
  * Interface class which represents a Bonjour browser.
  */
-class dnssd_browser:
-    public events<
-        dnssd_service_discovered, dnssd_service_removed, dnssd_service_resolved, dnssd_address_added,
-        dnssd_address_removed, dnssd_browse_error> {
+class dnssd_browser {
   public:
-    ~dnssd_browser() override = default;
+    /**
+     * Event for when a service was discovered.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_discovered {
+        /// The service description of the discovered service.
+        const service_description& description;
+    };
+
+    /**
+     * Event for when a service was removed.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_removed {
+        /// The service description of the removed service.
+        const service_description& description;
+    };
+
+    /**
+     * Event for when a service was resolved (i.e. address information was resolved).
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct service_resolved {
+        /// The service description of the resolved service.
+        const service_description& description;
+    };
+
+    /**
+     * Event for when the service became available on given address.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct address_added {
+        /// The service description of the service for which the address was added.
+        const service_description& description;
+        /// The address which was added.
+        const std::string& address;
+        /// The index of the interface on which the address was added.
+        uint32_t interface_index;
+    };
+
+    /**
+     * Event for when the service became unavailable on given address.
+     * Note: this event will be emitted asynchronously from a background thread.
+     */
+    struct address_removed {
+        /// The service description of the service for which the address was removed.
+        const service_description& description;
+        /// The address which was removed.
+        const std::string& address;
+        /// The index of the interface on which the address was removed.
+        uint32_t interface_index;
+    };
+
+    /**
+     * Event for when an error occurred during browsing for a service.
+     * Note: this event might be emitted asynchronously from a background thread.
+     */
+    struct browse_error {
+        const std::string& error_message;
+    };
+
+    using subscriber = linked_node<
+        events<service_discovered, service_removed, service_resolved, address_added, address_removed, browse_error>>;
+
+    virtual ~dnssd_browser() = default;
 
     /**
      * Starts browsing for a service.
@@ -101,6 +100,12 @@ class dnssd_browser:
      * @returns A list of existing services.
      */
     [[nodiscard]] virtual std::vector<service_description> get_services() const = 0;
+
+    /**
+     * Subscribes given subscriber to the browser. The subscriber will receive future events as well as previous events.
+     * @param s The subscriber to subscribe.
+     */
+    virtual void subscribe(subscriber& s) = 0;
 };
 
 }  // namespace rav::dnssd

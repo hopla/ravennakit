@@ -13,7 +13,7 @@
 
 rav::ravenna_sink::ravenna_sink(ravenna_rtsp_client& rtsp_client, std::string session_name) :
     rtsp_client_(rtsp_client) {
-    rtsp_subscriber_->on<ravenna_rtsp_client::sdp_updated>([this](const ravenna_rtsp_client::sdp_updated& event) {
+    rtsp_subscriber_->on<ravenna_rtsp_client::announced_event>([this](const ravenna_rtsp_client::announced_event& event) {
         RAV_ASSERT(event.session_name == session_name_, "Expecting session_name to match");
         auto_sdp_ = event.sdp;
         RAV_INFO("SDP updated for session '{}'", session_name_);
@@ -34,5 +34,5 @@ void rav::ravenna_sink::set_source(std::string session_name) {
     session_name_ = std::move(session_name);
     rtsp_client_.subscribe(session_name_, rtsp_subscriber_);
 
-    TODO("Implement");
+    // TODO("Implement");
 }

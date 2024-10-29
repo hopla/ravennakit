@@ -40,8 +40,8 @@ std::string rav::dnssd::service_description::description() const noexcept {
 
     std::stringstream output;
 
-    output << "fullname: " << fullname << ", name: " << name << ", type: " << type << ", domain: " << domain
-           << ", hostTarget: " << host << ", port: " << port << ", txtRecord: " << txtRecordDescription
+    output << "fullname: " << fullname << ", name: " << name << ", type: " << reg_type << ", domain: " << domain
+           << ", hostTarget: " << host_target << ", port: " << port << ", txtRecord: " << txtRecordDescription
            << "addresses: " << addressesDescription;
 
     return output.str();

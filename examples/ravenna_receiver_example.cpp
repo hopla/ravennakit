@@ -10,7 +10,7 @@
 
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
-#include "ravennakit/ravenna/ravenna_browser.hpp"
+#include "ravennakit/dnssd/bonjour/bonjour_browser.hpp"
 #include "ravennakit/ravenna/ravenna_rtsp_client.hpp"
 #include "ravennakit/ravenna/ravenna_sink.hpp"
 
@@ -35,10 +35,19 @@ int main(int const argc, char* argv[]) {
     fmt::print("RAVENNA Receiver example. Receive from stream: {}\n", stream_name);
 
     asio::io_context io_context;
-    rav::ravenna_browser browser(io_context);
-    rav::ravenna_rtsp_client rtsp_client(io_context, browser);
-    rav::ravenna_sink sink1(rtsp_client, "sink1");
-    rav::ravenna_sink sink2(rtsp_client, "sink2");
+
+    rav::dnssd::bonjour_browser node_browser(io_context);
+    node_browser.browse_for("_rtsp._tcp,_ravenna");
+
+    rav::dnssd::bonjour_browser::subscriber subscriber;
+    subscriber->on<rav::dnssd::dnssd_browser::service_resolved>([](const auto& event) {
+        RAV_INFO("RAVENNA Node resolved: {}", event.description.description());
+    });
+    node_browser.subscribe(subscriber);
+
+    rav::ravenna_rtsp_client rtsp_client(io_context, node_browser);
+    // rav::ravenna_sink sink1(rtsp_client, "sink1");
+    // rav::ravenna_sink sink2(rtsp_client, "sink2");
 
     io_context.run();
 }

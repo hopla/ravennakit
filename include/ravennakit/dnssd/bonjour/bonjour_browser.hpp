@@ -107,11 +107,10 @@ class bonjour_browser: public dnssd_browser {
     };
 
     explicit bonjour_browser(asio::io_context& io_context);
-
     void browse_for(const std::string& service) override;
-
     [[nodiscard]] std::vector<service_description> get_services() const override;
 
+    void subscribe(subscriber& s) override;
 
   private:
     asio::ip::tcp::socket service_socket_;
@@ -119,6 +118,7 @@ class bonjour_browser: public dnssd_browser {
     std::map<std::string, service> services_;
     std::map<std::string, bonjour_scoped_dns_service_ref> browsers_;
     size_t process_results_failed_attempts_ = 0;
+    subscriber subscribers_;
 
     void async_process_results();
 
@@ -141,6 +141,18 @@ class bonjour_browser: public dnssd_browser {
         DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
         DNSServiceErrorType error_code, const char* name, const char* type, const char* domain, void* context
     );
+
+    /**
+     * Emits fiven event to all subscribers.
+     * @tparam T The type of the event.
+     * @param event The event to emit.
+     */
+    template<class T>
+    void emit(const T& event) {
+        subscribers_.foreach ([&event](auto& s) {
+            s.emit(event);
+        });
+    }
 };
 
 }  // namespace rav::dnssd

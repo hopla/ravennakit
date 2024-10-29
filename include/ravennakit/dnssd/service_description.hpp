@@ -22,13 +22,13 @@ struct service_description
     std::string name;
 
     /// The type of the service (ie. _http._tcp.).
-    std::string type;
+    std::string reg_type;
 
     /// The domain of the service (local.).
     std::string domain;
 
     /// The host target of the service (name.local.).
-    std::string host;
+    std::string host_target;
 
     /// The port of the service (in native endian).
     uint16_t port{};

@@ -51,47 +51,50 @@ TEST_CASE("dnssd | Browse and advertise") {
         const rav::dnssd::txt_record txt_record {{"key1", "value1"}, {"key2", "value2"}};
         auto id = advertiser->register_service(reg_type, "test", nullptr, 1234, txt_record, false);
 
-        auto browser = rav::dnssd::dnssd_browser::create(io_context);
-        REQUIRE(browser);
-        browser->on<rav::dnssd::dnssd_service_discovered>([&](const rav::dnssd::dnssd_service_discovered& event) {
+        rav::dnssd::dnssd_browser::subscriber subscriber;
+        subscriber->on<rav::dnssd::dnssd_browser::service_discovered>([&](const auto& event) {
             discovered_services.push_back(event.description);
         });
-        browser->on<rav::dnssd::dnssd_service_resolved>([&](const rav::dnssd::dnssd_service_resolved& event) {
+        subscriber->on<rav::dnssd::dnssd_browser::service_resolved>([&](const auto& event) {
             resolved_services.push_back(event.description);
             advertiser->unregister_service(id);
         });
-        browser->on<rav::dnssd::dnssd_service_removed>([&](const rav::dnssd::dnssd_service_removed& event) {
+        subscriber->on<rav::dnssd::dnssd_browser::service_removed>([&](const auto& event) {
             removed_services.push_back(event.description);
             io_context.stop();
         });
 
+        auto browser = rav::dnssd::dnssd_browser::create(io_context);
+        REQUIRE(browser);
+
+        browser->subscribe(subscriber);
         browser->browse_for(reg_type);
 
         io_context.run_for(std::chrono::seconds(10));
 
         REQUIRE(discovered_services.size() == 1);
         REQUIRE(discovered_services.at(0).name == "test");
-        REQUIRE(discovered_services.at(0).type == reg_type);
+        REQUIRE(discovered_services.at(0).reg_type == reg_type);
         REQUIRE(discovered_services.at(0).domain == "local.");
         REQUIRE(discovered_services.at(0).port == 0);
         REQUIRE(discovered_services.at(0).txt.empty());
-        REQUIRE(discovered_services.at(0).host.empty());
+        REQUIRE(discovered_services.at(0).host_target.empty());
 
         REQUIRE_FALSE(resolved_services.empty());
         REQUIRE(resolved_services.at(0).name == "test");
-        REQUIRE(resolved_services.at(0).type == reg_type);
+        REQUIRE(resolved_services.at(0).reg_type == reg_type);
         REQUIRE(resolved_services.at(0).domain == "local.");
         REQUIRE(resolved_services.at(0).port == 1234);
         REQUIRE(resolved_services.at(0).txt == txt_record);
-        REQUIRE_FALSE(resolved_services.at(0).host.empty());
+        REQUIRE_FALSE(resolved_services.at(0).host_target.empty());
 
         REQUIRE(removed_services.size() == 1);
         REQUIRE(removed_services.at(0).name == "test");
-        REQUIRE(removed_services.at(0).type == reg_type);
+        REQUIRE(removed_services.at(0).reg_type == reg_type);
         REQUIRE(removed_services.at(0).domain == "local.");
         REQUIRE(removed_services.at(0).port == 1234);
         REQUIRE(removed_services.at(0).txt == txt_record);
-        REQUIRE_FALSE(removed_services.at(0).host.empty());
+        REQUIRE_FALSE(removed_services.at(0).host_target.empty());
     }
 
     SECTION("Update a txt record") {}
@@ -115,7 +118,8 @@ TEST_CASE("dnssd | Update a txt record") {
     const auto browser = rav::dnssd::dnssd_browser::create(io_context);
     RAV_ASSERT(browser, "Expected a dnssd browser");
     bool updated = false;
-    browser->on<rav::dnssd::dnssd_service_resolved>([&](const rav::dnssd::dnssd_service_resolved& event) {
+    rav::dnssd::dnssd_browser::subscriber subscriber;
+    subscriber->on<rav::dnssd::dnssd_browser::service_resolved>([&](const auto& event) {
         if (event.description.txt.empty() && !updated) {
             advertiser->update_txt_record(id, txt_record);
             updated = true;
@@ -127,6 +131,7 @@ TEST_CASE("dnssd | Update a txt record") {
         }
     });
 
+    browser->subscribe(subscriber);
     browser->browse_for(reg_type);
 
     io_context.run_for(std::chrono::seconds(10));

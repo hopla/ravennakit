@@ -10,12 +10,14 @@
 
 #include "ravennakit/ravenna/ravenna_rtsp_client.hpp"
 
-rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser) :
+rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, dnssd::dnssd_browser& browser) :
     io_context_(io_context) {
-    ravenna_browser_subscriber_->on<ravenna_session_resolved>([](const ravenna_session_resolved& event) {
-        RAV_INFO("RAVENNA Stream resolved: {}", event.description.name);
-    });
-    browser.subscribe(ravenna_browser_subscriber_);
+    browser_subscriber_->on<dnssd::dnssd_browser::service_resolved>(
+        [](const auto& event) {
+            RAV_INFO("RAVENNA Stream resolved: {}", event.description.name);
+        }
+    );
+    browser.subscribe(browser_subscriber_);
 }
 
 void rav::ravenna_rtsp_client::subscribe(const std::string& session_name, subscriber& s) {
@@ -26,7 +28,7 @@ void rav::ravenna_rtsp_client::subscribe(const std::string& session_name, subscr
     auto& session = sessions_[session_name];
     session.subscribers.push_back(s);
     if (session.sdp_) {
-        s->emit(sdp_updated{session_name, *session.sdp_});
+        s->emit(announced_event {session_name, *session.sdp_});
     }
 
     // TODO: See if there is connection info available on the browser, if so use that to create a connection.

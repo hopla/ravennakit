@@ -12,7 +12,6 @@
 
 #include "ravenna_rtsp_client.hpp"
 #include "ravennakit/sdp/session_description.hpp"
-#include "ravennakit/ravenna/ravenna_browser.hpp"
 
 namespace rav {
 

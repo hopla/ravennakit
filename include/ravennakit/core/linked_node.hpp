@@ -159,14 +159,28 @@ class linked_node {
     /**
      * @returns The data stored in the linked node.
      */
-    T& operator*() const {
+    T& operator*() {
         return value_;
     }
 
     /**
      * @returns The data stored in the linked node.
      */
-    T* operator->() const {
+    const T& operator*() const {
+        return value_;
+    }
+
+    /**
+     * @returns The data stored in the linked node.
+     */
+    T* operator->() {
+        return &value_;
+    }
+
+    /**
+     * @returns The data stored in the linked node.
+     */
+    const T* operator->() const {
         return &value_;
     }
 

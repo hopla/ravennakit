@@ -70,7 +70,7 @@ class bonjour_advertiser: public dnssd_advertiser {
     template<class T>
     void emit(const T& event) {
         subscribers_.foreach ([&event](auto& s) {
-            s.emit(event);
+            s->emit(event);
         });
     }
 };

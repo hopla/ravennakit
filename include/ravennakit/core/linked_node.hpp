@@ -28,12 +28,8 @@ class linked_node {
       public:
         explicit iterator(linked_node* node) : current(node) {}
 
-        T& operator*() const {
-            return current->value();
-        }
-
-        T* operator->() const {
-            return &current->value();
+        linked_node& operator*() const {
+            return *current;
         }
 
         iterator& operator++() {
@@ -73,13 +69,11 @@ class linked_node {
     linked_node& operator=(const linked_node&) = delete;
 
     linked_node(linked_node&& other) noexcept {
-        // other.remove();
         value_ = std::move(other.value_);
         other.value_ = T();
     }
 
     linked_node& operator=(linked_node&& other) noexcept {
-        // other.remove();
         value_ = std::move(other.value_);
         other.value_ = T();
         return *this;
@@ -147,11 +141,17 @@ class linked_node {
         next_ = nullptr;
     }
 
+    /**
+     * @returns The data stored in the linked node.
+     */
     T& operator*() const {
         return value_;
     }
 
-    T* operator->() {
+    /**
+     * @returns The data stored in the linked node.
+     */
+    T* operator->() const {
         return &value_;
     }
 
@@ -222,7 +222,7 @@ class linked_node {
     /**
      * @param f The function to be called for each node in the linked list.
      */
-    void foreach (const std::function<void(T&)>& f) {
+    void foreach (const std::function<void(linked_node&)>& f) {
         for (auto& node : *this) {
             f(node);
         }

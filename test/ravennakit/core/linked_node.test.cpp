@@ -38,7 +38,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         REQUIRE(n3.is_linked() == false);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1});
@@ -63,7 +63,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         REQUIRE(n3.is_linked() == false);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1, 2});
@@ -88,7 +88,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         REQUIRE(n3.is_linked() == true);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1, 2, 3});
@@ -113,7 +113,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         REQUIRE(n3.is_linked() == true);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1, 3});
@@ -138,7 +138,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         REQUIRE(n3.is_linked() == false);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1});
@@ -146,7 +146,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         nodes.clear();
 
         for (const auto& node : n2) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {2});
@@ -154,7 +154,7 @@ TEST_CASE("linked_node | Build a list", "[linked_node]") {
         nodes.clear();
 
         for (const auto& node : n3) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {3});
@@ -175,7 +175,7 @@ TEST_CASE("linked_node | try to break it", "[linked_node]") {
         n1.push_back(n2);
 
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
 
         REQUIRE(nodes == std::vector {1, 3, 2});
@@ -187,14 +187,14 @@ TEST_CASE("linked_node | try to break it", "[linked_node]") {
             n1.push_back(n4);
 
             for (const auto& node : n1) {
-                nodes.push_back(node);
+                nodes.push_back(node.value());
             }
             REQUIRE(nodes == std::vector {1, 2, 3, 4});
         }
 
         nodes.clear();
         for (const auto& node : n1) {
-            nodes.push_back(node);
+            nodes.push_back(node.value());
         }
         REQUIRE(nodes == std::vector {1, 2, 3});
     }
@@ -222,16 +222,16 @@ TEST_CASE("linked_node | move semantics") {
         l1.push_back(l2);
         l1.push_back(l3);
         l2 = std::move(n2);
-        for (const auto* node : n1) {
-            if (node != nullptr) {
-                nodes.emplace_back(node);
+        for (const auto& node : n1) {
+            if (node.value() != nullptr) {
+                nodes.emplace_back(node.value());
             } else {
                 nodes.emplace_back("nullptr");
             }
         }
-        for (const auto* node : l1) {
-            if (node != nullptr) {
-                nodes.emplace_back(node);
+        for (const auto& node : l1) {
+            if (node.value() != nullptr) {
+                nodes.emplace_back(node.value());
             } else {
                 nodes.emplace_back("nullptr");
             }
@@ -245,16 +245,16 @@ TEST_CASE("linked_node | move semantics") {
         rav::linked_node l3("l3");
         l1.push_back(l2);
         l1.push_back(l3);
-        for (const auto* node : n1) {
-            if (node != nullptr) {
-                nodes.emplace_back(node);
+        for (const auto& node : n1) {
+            if (node.value() != nullptr) {
+                nodes.emplace_back(node.value());
             } else {
                 nodes.emplace_back("nullptr");
             }
         }
-        for (const auto* node : l1) {
-            if (node != nullptr) {
-                nodes.emplace_back(node);
+        for (const auto& node : l1) {
+            if (node.value() != nullptr) {
+                nodes.emplace_back(node.value());
             } else {
                 nodes.emplace_back("nullptr");
             }
@@ -269,11 +269,11 @@ TEST_CASE("linked_node | move semantics") {
         l1.push_back(l2);
         l1.push_back(l3);
         std::swap(n2, l2);
-        for (const auto* node : n1) {
-            nodes.emplace_back(node);
+        for (const auto& node : n1) {
+            nodes.emplace_back(node.value());
         }
-        for (const auto* node : l1) {
-            nodes.emplace_back(node);
+        for (const auto& node : l1) {
+            nodes.emplace_back(node.value());
         }
         REQUIRE(nodes == std::vector<std::string> {"n1", "l2", "n3", "l1", "n2", "l3"});
     }

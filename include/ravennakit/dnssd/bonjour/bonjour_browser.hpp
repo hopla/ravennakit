@@ -150,8 +150,8 @@ class bonjour_browser: public dnssd_browser {
      */
     template<class T>
     void emit(const T& event) {
-        subscribers_.foreach ([&event](auto& s) {
-            s.emit(event);
+        subscribers_.foreach ([&event](auto& n) {
+            n->emit(event);
         });
     }
 };

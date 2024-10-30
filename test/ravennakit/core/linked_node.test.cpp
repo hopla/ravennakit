@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <catch2/catch_all.hpp>
+#include <fmt/base.h>
 
 TEST_CASE("linked_node | Build a list", "[linked_node]") {
     rav::linked_node n1(1);
@@ -196,5 +197,84 @@ TEST_CASE("linked_node | try to break it", "[linked_node]") {
             nodes.push_back(node);
         }
         REQUIRE(nodes == std::vector {1, 2, 3});
+    }
+}
+
+TEST_CASE("linked_node | Assign new value", "[linked_node]") {
+    rav::linked_node n1(1);
+    n1 = 4;
+    REQUIRE(n1.value() == 4);
+}
+
+TEST_CASE("linked_node | move semantics") {
+    rav::linked_node n1("n1");
+    rav::linked_node n2("n2");
+    rav::linked_node n3("n3");
+    n1.push_back(n2);
+    n1.push_back(n3);
+
+    std::vector<std::string> nodes;
+
+    SECTION("Move assignment") {
+        rav::linked_node l1("l1");
+        rav::linked_node l2("l2");
+        rav::linked_node l3("l3");
+        l1.push_back(l2);
+        l1.push_back(l3);
+        l2 = std::move(n2);
+        for (const auto* node : n1) {
+            if (node != nullptr) {
+                nodes.emplace_back(node);
+            } else {
+                nodes.emplace_back("nullptr");
+            }
+        }
+        for (const auto* node : l1) {
+            if (node != nullptr) {
+                nodes.emplace_back(node);
+            } else {
+                nodes.emplace_back("nullptr");
+            }
+        }
+        REQUIRE(nodes == std::vector<std::string> {"n1", "nullptr", "n3", "l1", "n2", "l3"});
+    }
+
+    SECTION("Move construction") {
+        rav::linked_node l1("l1");
+        rav::linked_node l2(std::move(n2));
+        rav::linked_node l3("l3");
+        l1.push_back(l2);
+        l1.push_back(l3);
+        for (const auto* node : n1) {
+            if (node != nullptr) {
+                nodes.emplace_back(node);
+            } else {
+                nodes.emplace_back("nullptr");
+            }
+        }
+        for (const auto* node : l1) {
+            if (node != nullptr) {
+                nodes.emplace_back(node);
+            } else {
+                nodes.emplace_back("nullptr");
+            }
+        }
+        REQUIRE(nodes == std::vector<std::string> {"n1", "nullptr", "n3", "l1", "n2", "l3"});
+    }
+
+    SECTION("Swap") {
+        rav::linked_node l1("l1");
+        rav::linked_node l2("l2");
+        rav::linked_node l3("l3");
+        l1.push_back(l2);
+        l1.push_back(l3);
+        std::swap(n2, l2);
+        for (const auto* node : n1) {
+            nodes.emplace_back(node);
+        }
+        for (const auto* node : l1) {
+            nodes.emplace_back(node);
+        }
+        REQUIRE(nodes == std::vector<std::string> {"n1", "l2", "n3", "l1", "n2", "l3"});
     }
 }

@@ -21,8 +21,7 @@ void rav::ravenna_rtsp_client::subscriber::subscribe(ravenna_rtsp_client& client
 
     unsubscribe();
 
-    node_ = this;
-    owner_ = &client;
+    node_ = {this, &client};
 
     // Subscribe to existing session
     for (auto& session : client.sessions_) {
@@ -46,19 +45,12 @@ void rav::ravenna_rtsp_client::subscriber::subscribe(ravenna_rtsp_client& client
     }
 }
 
-void rav::ravenna_rtsp_client::subscriber::unsubscribe(const bool schedule_maintenance) {
+void rav::ravenna_rtsp_client::subscriber::unsubscribe() {
     node_.unlink();
-    if (owner_) {
-        if (schedule_maintenance) {
-            owner_->do_maintenance();
-        }
-        owner_ = nullptr;
+    if (auto* owner = node_.value().second) {
+        owner->schedule_maintenance();
     }
-}
-
-void rav::ravenna_rtsp_client::subscriber::release() {
-    node_.unlink();
-    owner_ = nullptr;
+    node_.reset();
 }
 
 rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, dnssd::dnssd_browser& browser) :
@@ -77,9 +69,7 @@ rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, dnss
 rav::ravenna_rtsp_client::~ravenna_rtsp_client() {
     for (auto& session : sessions_) {
         session.subscribers.foreach ([](auto& node) {
-            if (node.value()) {
-                node.value()->release();
-            }
+            node.reset();
         });
     }
 }
@@ -126,8 +116,8 @@ void rav::ravenna_rtsp_client::update_session_with_service(
     connection.client.async_describe(fmt::format("/by-name/{}", session.session_name));
 }
 
-void rav::ravenna_rtsp_client::do_maintenance() {
-    asio::dispatch([this] {
+void rav::ravenna_rtsp_client::schedule_maintenance() {
+    asio::post(io_context_, [this] {
         for (auto& session : sessions_) {
             if (!session.subscribers.is_linked()) {
                 if (!session.host_target.empty() && session.port != 0) {

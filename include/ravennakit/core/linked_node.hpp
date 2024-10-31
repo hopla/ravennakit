@@ -229,6 +229,13 @@ class linked_node {
     }
 
     /**
+     * Resets the data stored in the linked node to its default value. Does not unlink the node.
+     */
+    void reset() {
+        value_ = T();
+    }
+
+    /**
      * @returns An iterator to the first node in the linked list.
      */
     iterator begin() {

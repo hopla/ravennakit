@@ -29,7 +29,7 @@ class ravenna_rtsp_client {
     };
 
     class subscriber final: public events<announced> {
-    public:
+      public:
         subscriber() = default;
         ~subscriber() override;
 
@@ -42,18 +42,11 @@ class ravenna_rtsp_client {
 
         /**
          * Unsubscribes this subscriber from the ravenna_rtsp_client.
-         * @param schedule_maintenance If true, maintenance will be scheduled after unsubscribing.
          */
-        void unsubscribe(bool schedule_maintenance = true);
-
-        /**
-         * Unsubscribes this subscriber from the ravenna_rtsp_client, but without triggering maintenance.
-         */
-        void release();
+        void unsubscribe();
 
       private:
-        ravenna_rtsp_client* owner_{};
-        linked_node<subscriber*> node_;
+        linked_node<std::pair<subscriber*, ravenna_rtsp_client*>> node_;
     };
 
     explicit ravenna_rtsp_client(asio::io_context& io_context, dnssd::dnssd_browser& browser);
@@ -62,7 +55,7 @@ class ravenna_rtsp_client {
   private:
     struct session_context {
         std::string session_name;
-        linked_node<subscriber*> subscribers;
+        linked_node<std::pair<subscriber*, ravenna_rtsp_client*>> subscribers;
         std::optional<sdp::session_description> sdp_;
         std::string host_target;
         uint16_t port {};
@@ -83,7 +76,7 @@ class ravenna_rtsp_client {
     connection_context& find_or_create_connection(const std::string& host_target, uint16_t port);
     connection_context* find_connection(const std::string& host_target, uint16_t port);
     void update_session_with_service(session_context& session, const dnssd::service_description& service);
-    void do_maintenance();
+    void schedule_maintenance();
 };
 
 }  // namespace rav

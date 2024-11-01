@@ -11,6 +11,7 @@
 #pragma once
 
 #include "platform.hpp"
+#include "env.hpp"
 
 #include <cstdlib>
 
@@ -123,23 +124,25 @@ namespace rav::log {
  * @param env_var The environment variable to read the log level from.
  */
 inline void set_level_from_env(const char* env_var = "RAV_LOG_LEVEL") {
-    if (const auto* env_value = std::getenv(env_var)) {
-        const std::string_view level(env_value);
+    if (const auto env_value = rav::env::get(env_var)) {
 #if RAV_ENABLE_SPDLOG
-        if (level == "TRACE") {
+        if (env_value == "TRACE") {
             spdlog::set_level(spdlog::level::trace);
-        } else if (level == "DEBUG") {
+        } else if (env_value == "DEBUG") {
             spdlog::set_level(spdlog::level::debug);
-        } else if (level == "INFO") {
+        } else if (env_value == "INFO") {
             spdlog::set_level(spdlog::level::info);
-        } else if (level == "WARN") {
+        } else if (env_value == "WARN") {
             spdlog::set_level(spdlog::level::warn);
-        } else if (level == "ERROR") {
+        } else if (env_value == "ERROR") {
             spdlog::set_level(spdlog::level::err);
-        } else if (level == "CRITICAL") {
+        } else if (env_value == "CRITICAL") {
             spdlog::set_level(spdlog::level::critical);
-        } else if (level == "CRITICAL") {
+        } else if (env_value == "CRITICAL") {
             spdlog::set_level(spdlog::level::off);
+        } else {
+            fmt::println("Invalid value for {}: {}. Setting log level to info.", env_var, *env_value);
+            spdlog::set_level(spdlog::level::info);
         }
 #endif
     } else {

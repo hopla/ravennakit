@@ -29,17 +29,17 @@ class rtsp_server {
     class connection;
 
     struct connection_event {
-        connection& connection;
+        connection& client_connection;
     };
 
     struct request_event {
         const rtsp_request& request;
-        connection& connection;
+        connection& client_connection;
     };
 
     struct response_event {
         const rtsp_response& response;
-        connection& connection;
+        connection& client_connection;
     };
 
     using events_type = events<connection_event, request_event, response_event>;

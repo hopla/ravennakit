@@ -50,7 +50,7 @@ TEST_CASE("rtsp_server | DESCRIBE", "[rtsp_server]") {
     });
     server.on<rav::rtsp_server::request_event>([=](const rav::rtsp_server::request_event& event) {
         RAV_TRACE("{}", event.request.to_debug_string(true));
-        event.connection.async_send_response(rav::rtsp_response(200, "OK", test_data));
+        event.client_connection.async_send_response(rav::rtsp_response(200, "OK", test_data));
     });
     server.on<rav::rtsp_server::response_event>([](const rav::rtsp_server::response_event& event) {
         RAV_TRACE("{}", event.response.to_debug_string(true));

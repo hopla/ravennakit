@@ -27,21 +27,8 @@ namespace rav {
  */
 class rtsp_server {
   public:
-    struct connection_event {
-        rtsp_connection& client_connection;
-    };
-
-    struct request_event {
-        const rtsp_request& request;
-        rtsp_connection& client_connection;
-    };
-
-    struct response_event {
-        const rtsp_response& response;
-        rtsp_connection& client_connection;
-    };
-
-    using events_type = events<connection_event, request_event, response_event>;
+    using events_type =
+        events<rtsp_connection::connection_event, rtsp_connection::request_event, rtsp_connection::response_event>;
 
     rtsp_server(asio::io_context& io_context, const asio::ip::tcp::endpoint& endpoint);
     rtsp_server(asio::io_context& io_context, const char* address, uint16_t port);
@@ -68,7 +55,7 @@ class rtsp_server {
      * @param handler The handler to register.
      */
     template<class T>
-    void on(events<connection_event>::handler<T> handler) {
+    void on(events_type::handler<T> handler) {
         events_.on(handler);
     }
 

@@ -18,17 +18,13 @@
 
 namespace rav {
 
-class rtsp_client;
-
-struct rtsp_connect_event {
-    rtsp_client& client;
-};
-
 /**
  * Client for connecting to an RTSP server. Given io_context must be single-threaded to implicitly support
  * thread-safety.
  */
-class rtsp_client final: public events<rtsp_connect_event, rtsp_response, rtsp_request>, public rtsp_connection {
+class rtsp_client final:
+    public events<rtsp_connection::connection_event, rtsp_connection::response_event, rtsp_connection::request_event>,
+    public rtsp_connection {
   public:
     explicit rtsp_client(asio::io_context& io_context);
 
@@ -77,7 +73,7 @@ class rtsp_client final: public events<rtsp_connect_event, rtsp_response, rtsp_r
      */
     void async_teardown(const std::string& path);
 
-protected:
+  protected:
     void on_connected() override;
     void on_rtsp_request(const rtsp_request& request) override;
     void on_rtsp_response(const rtsp_response& response) override;
@@ -86,7 +82,8 @@ protected:
     asio::ip::tcp::resolver resolver_;
     std::string host_;
 
-    void async_resolve_connect(const std::string& host, const std::string& service, asio::ip::resolver_base::flags flags);
+    void
+    async_resolve_connect(const std::string& host, const std::string& service, asio::ip::resolver_base::flags flags);
 };
 
 }  // namespace rav

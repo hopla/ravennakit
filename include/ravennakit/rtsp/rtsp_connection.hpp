@@ -19,6 +19,20 @@ namespace rav {
 
 class rtsp_connection {
 public:
+    struct connection_event {
+        rtsp_connection& connection;
+    };
+
+    struct request_event {
+        const rtsp_request& request;
+        rtsp_connection& connection;
+    };
+
+    struct response_event {
+        const rtsp_response& response;
+        rtsp_connection& connection;
+    };
+
     virtual ~rtsp_connection();
     explicit rtsp_connection(asio::ip::tcp::socket socket);
 

@@ -28,6 +28,11 @@ struct rtsp_request {
     rtsp_headers headers;
     std::string data;
 
+    rtsp_request() = default;
+
+    rtsp_request(std::string request_method, std::string request_uri, std::string request_data = "") :
+        method(std::move(request_method)), uri(std::move(request_uri)), data(std::move(request_data)) {}
+
     /**
      * Resets the request to its initial state.
      */

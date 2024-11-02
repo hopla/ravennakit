@@ -58,12 +58,7 @@ class rav::rtsp_server::connection_impl final:
     rtsp_server* owner_ {};
 };
 
-rav::rtsp_server::~rtsp_server() {
-    for (auto& c : connections_) {
-        c->reset();
-        c->shutdown();
-    }
-}
+rav::rtsp_server::~rtsp_server() = default;
 
 uint16_t rav::rtsp_server::port() const {
     return acceptor_.local_endpoint().port();

@@ -28,7 +28,7 @@ namespace rav {
 class rtsp_server {
   public:
     using events_type =
-        events<rtsp_connection::connection_event, rtsp_connection::request_event, rtsp_connection::response_event>;
+        events<rtsp_connection::connect_event, rtsp_connection::request_event, rtsp_connection::response_event>;
 
     rtsp_server(asio::io_context& io_context, const asio::ip::tcp::endpoint& endpoint);
     rtsp_server(asio::io_context& io_context, const char* address, uint16_t port);

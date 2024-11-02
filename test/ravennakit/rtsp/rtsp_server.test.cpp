@@ -47,8 +47,8 @@ TEST_CASE("rtsp_server | DESCRIBE", "[rtsp_server]") {
     int server_num_requests_received = 0;
     int server_num_responses_received = 0;
     rav::rtsp_server server(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 0));
-    server.on<rav::rtsp_connection::connection_event>(
-        [&server_num_clients_connected](const rav::rtsp_connection::connection_event& event) {
+    server.on<rav::rtsp_connection::connect_event>(
+        [&server_num_clients_connected](const rav::rtsp_connection::connect_event&) {
             server_num_clients_connected++;
         }
     );
@@ -77,12 +77,12 @@ TEST_CASE("rtsp_server | DESCRIBE", "[rtsp_server]") {
     int client_num_requests_received = 0;
     int client_num_responses_received = 0;
     rav::rtsp_client client(io_context);
-    client.on<rav::rtsp_connection::connection_event>([](const rav::rtsp_connection::connection_event& event) {
+    client.on<rav::rtsp_connection::connect_event>([](const rav::rtsp_connection::connect_event& event) {
         RAV_TRACE("Connected, send DESCRIBE request");
         event.connection.async_send_request(rav::rtsp_request("DESCRIBE", "rtsp://::1/", "describe request data"));
     });
     client.on<rav::rtsp_connection::request_event>(
-        [&client_num_requests_received, &server](const rav::rtsp_connection::request_event& event) {
+        [&client_num_requests_received](const rav::rtsp_connection::request_event& event) {
             RAV_INFO("{}", event.request.to_debug_string(true));
             REQUIRE(event.request.method == "ANNOUNCE");
             REQUIRE(event.request.uri == "rtsp://::1/");
@@ -105,6 +105,7 @@ TEST_CASE("rtsp_server | DESCRIBE", "[rtsp_server]") {
 
     io_context.run();
 
+    REQUIRE(server_num_clients_connected == 1);
     REQUIRE(server_num_requests_received == 1);
     REQUIRE(server_num_responses_received == 1);
     REQUIRE(client_num_requests_received == 1);

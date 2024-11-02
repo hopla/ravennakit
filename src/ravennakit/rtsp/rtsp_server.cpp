@@ -38,7 +38,7 @@ class rav::rtsp_server::connection_impl final:
   protected:
     void on_connected() override {
         if (owner_) {
-            owner_->events_.emit(connection_event {*this});
+            owner_->events_.emit(connect_event {*this});
         }
     }
 

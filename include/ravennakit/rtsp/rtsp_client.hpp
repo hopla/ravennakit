@@ -23,7 +23,7 @@ namespace rav {
  * thread-safety.
  */
 class rtsp_client final:
-    public events<rtsp_connection::connection_event, rtsp_connection::response_event, rtsp_connection::request_event>,
+    public events<rtsp_connection::connect_event, rtsp_connection::response_event, rtsp_connection::request_event>,
     public rtsp_connection {
   public:
     explicit rtsp_client(asio::io_context& io_context);

@@ -83,7 +83,7 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
     connections_.push_back({host_target, port, rtsp_client {io_context_}});
     auto& new_connection = connections_.back();
 
-    new_connection.client.on<rtsp_connection::connection_event>([=](const auto&) {
+    new_connection.client.on<rtsp_connection::connect_event>([=](const auto&) {
         RAV_TRACE("Connected to: rtsp://{}:{}", host_target, port);
     });
     new_connection.client.on<rtsp_connection::request_event>([this, &client = new_connection.client](const auto& event) {

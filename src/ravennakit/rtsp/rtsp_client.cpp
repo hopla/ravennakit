@@ -82,7 +82,7 @@ void rav::rtsp_client::async_teardown(const std::string& path) {
 }
 
 void rav::rtsp_client::on_connected() {
-    emit(connection_event {*this});
+    emit(connect_event {*this});
 }
 
 void rav::rtsp_client::on_rtsp_request(const rtsp_request& request) {

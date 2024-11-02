@@ -19,7 +19,7 @@ namespace rav {
 
 class rtsp_connection {
 public:
-    struct connection_event {
+    struct connect_event {
         rtsp_connection& connection;
     };
 

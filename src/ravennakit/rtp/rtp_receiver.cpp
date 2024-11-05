@@ -162,6 +162,19 @@ rav::rtp_receiver::~rtp_receiver() {
     impl_->reset_owner();
 }
 
+void rav::rtp_receiver::subscriber::subscribe(rtp_receiver& receiver) {
+    RAV_ASSERT(receiver.impl_ == nullptr, "Expecting valid receiver implementation");
+    rtp_receiver_ = &receiver;
+    rtp_receiver_->subscribers_.add(this);
+}
+
+void rav::rtp_receiver::subscriber::unsubscribe() {
+    if (rtp_receiver_) {
+        rtp_receiver_->subscribers_.remove(this);
+        rtp_receiver_ = nullptr;
+    }
+}
+
 void rav::rtp_receiver::bind(const std::string& address, const uint16_t port) const {
     impl_->bind(address, port);
 }

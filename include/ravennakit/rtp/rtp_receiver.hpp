@@ -57,22 +57,15 @@ class rtp_receiver {
          * Subscribes to the given RTP receiver.
          * @param receiver The receiver to subscribe to.
          */
-        void subscribe(rtp_receiver& receiver) {
-            receiver.subscribers_.add(this);
-        }
+        void subscribe(rtp_receiver& receiver);
 
         /**
          * Unsubscribes from the current RTP receiver.
          */
-        void unsubscribe() {
-            if (rtp_receiver_) {
-                rtp_receiver_->subscribers_.remove(this);
-            }
-        }
+        void unsubscribe();
 
       private:
         rtp_receiver* rtp_receiver_ {};
-        linked_node<subscriber*> node_;
     };
 
     rtp_receiver() = delete;

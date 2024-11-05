@@ -28,34 +28,85 @@
 constexpr short k_port = 5004;
 constexpr int k_block_size = 256;
 
-struct audio_context {
-    rav::circular_audio_buffer<float, rav::fifo::spsc> buffer;
-    size_t num_channels;
+class example_receiver final: public rav::rtp_receiver::subscriber {
+  public:
+    explicit example_receiver(
+        rav::rtp_receiver& rtp_receiver, const size_t num_channels, const rav::file& audio_file,
+        const double sample_rate
+    ) :
+        buffer_(num_channels, k_block_size * 20),
+        num_channels_(num_channels),
+        audio_file_stream(audio_file),
+        audio_writer_(audio_file_stream, rav::wav_audio_format::format_code::pcm, sample_rate, num_channels, 16) {
+        subscribe(rtp_receiver);
+    }
+
+    ~example_receiver() override {
+        unsubscribe();
+    }
+
+    void on(const rav::rtp_receiver::rtp_packet_event& event) override {
+        RAV_INFO("{}", event.packet.to_string());
+
+        auto payload = event.packet.payload_data();
+        audio_data_buffer_.resize(payload.size());
+        std::memcpy(audio_data_buffer_.data(), payload.data(), payload.size());
+        rav::byte_order::swap_bytes(audio_data_buffer_.data(), audio_data_buffer_.size(), sizeof(int16_t));
+        audio_writer_.write_audio_data(audio_data_buffer_.data(), audio_data_buffer_.size());
+
+        const auto audio_payload = payload.reinterpret<const int16_t>();
+        const auto num_frames = audio_payload.size() / num_channels_;
+
+        const auto result =
+            buffer_
+                .write_from_data<int16_t, rav::audio_data::byte_order::be, rav::audio_data::interleaving::interleaved>(
+                    audio_payload.data(), num_frames
+                );
+
+        if (!result) {
+            RAV_ERROR("Failed to write {} frames to buffer!", num_frames);
+        }
+    }
+
+    void on(const rav::rtp_receiver::rtcp_packet_event& event) override {
+        fmt::println("{}", event.packet.to_string());
+    }
+
+    static int audio_callback(
+        [[maybe_unused]] const void* input, void* output, const unsigned long num_frames,
+        [[maybe_unused]] const PaStreamCallbackTimeInfo* time_info, [[maybe_unused]] PaStreamCallbackFlags status,
+        void* user_data
+    ) {
+        TRACY_ZONE_SCOPED;
+
+        if (num_frames != k_block_size) {
+            RAV_ERROR("Unexpected number of frames: {}", num_frames);
+        }
+        auto* context = static_cast<example_receiver*>(user_data);
+        const auto result =
+            context->buffer_
+                .read_to_data<float, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
+                    static_cast<float*>(output), num_frames
+                );
+        if (!result) {
+            RAV_ERROR("Failed to read from buffer!");
+            std::memset(output, 0, num_frames * context->num_channels_ * sizeof(float));
+        }
+
+        return 0;
+    }
+
+    [[nodiscard]] size_t num_channels() const {
+        return num_channels_;
+    }
+
+  private:
+    std::vector<uint8_t> audio_data_buffer_;
+    rav::circular_audio_buffer<float, rav::fifo::spsc> buffer_;
+    size_t num_channels_ {};
+    rav::file_output_stream audio_file_stream;
+    rav::wav_audio_format::writer audio_writer_;
 };
-
-static int audio_callback(
-    [[maybe_unused]] const void* input, void* output, const unsigned long num_frames,
-    [[maybe_unused]] const PaStreamCallbackTimeInfo* time_info, [[maybe_unused]] PaStreamCallbackFlags status,
-    void* user_data
-) {
-    TRACY_ZONE_SCOPED;
-
-    if (num_frames != k_block_size) {
-        RAV_ERROR("Unexpected number of frames: {}", num_frames);
-    }
-    auto* context = static_cast<audio_context*>(user_data);
-    const auto result =
-        context->buffer
-            .read_to_data<float, rav::audio_data::byte_order::ne, rav::audio_data::interleaving::interleaved>(
-                static_cast<float*>(output), num_frames
-            );
-    if (!result) {
-        RAV_ERROR("Failed to read from buffer!");
-        std::memset(output, 0, num_frames * context->num_channels * sizeof(float));
-    }
-
-    return 0;
-}
 
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
@@ -92,10 +143,6 @@ int main(int const argc, char* argv[]) {
         exit(1);
     }
 
-    audio_context audio_context {
-        rav::circular_audio_buffer<float, rav::fifo::spsc>(num_channels, k_block_size * 20), num_channels
-    };
-
     if (auto error = Pa_Initialize(); error != paNoError) {
         RAV_ERROR("PortAudio failed to initialize! Error: {}", Pa_GetErrorText(error));
         exit(0);
@@ -107,54 +154,18 @@ int main(int const argc, char* argv[]) {
 
     asio::io_context io_context;
 
-    rav::file_output_stream audio_file_stream(audio_file);
-    rav::wav_audio_format::writer audio_writer(
-        audio_file_stream, rav::wav_audio_format::format_code::pcm, sample_rate, num_channels, 16
-    );
-
-    rav::rtp_receiver receiver(io_context);
-
-    asio::signal_set signals(io_context, SIGINT, SIGTERM);
-
-    std::vector<uint8_t> audio_data_buffer;
-
-    receiver.on<rav::rtp_packet_event>([&audio_context, &audio_writer,
-                                        &audio_data_buffer](const rav::rtp_packet_event& event) {
-        RAV_INFO("{}", event.packet.to_string());
-
-        auto payload = event.packet.payload_data();
-        audio_data_buffer.resize(payload.size());
-        std::memcpy(audio_data_buffer.data(), payload.data(), payload.size());
-        rav::byte_order::swap_bytes(audio_data_buffer.data(), audio_data_buffer.size(), sizeof(int16_t));
-        audio_writer.write_audio_data(audio_data_buffer.data(), audio_data_buffer.size());
-
-        const auto audio_payload = payload.reinterpret<const int16_t>();
-        const auto num_frames = audio_payload.size() / audio_context.num_channels;
-
-        const auto result =
-            audio_context.buffer
-                .write_from_data<int16_t, rav::audio_data::byte_order::be, rav::audio_data::interleaving::interleaved>(
-                    audio_payload.data(), num_frames
-                );
-        if (!result) {
-            RAV_ERROR("Failed to write {} frames to buffer!", num_frames);
-        }
-    });
-    receiver.on<rav::rtcp_packet_event>([](const rav::rtcp_packet_event& event) {
-        fmt::println("{}", event.packet.to_string());
-    });
-
-    receiver.bind(listen_addr, k_port);
+    rav::rtp_receiver rtp_receiver(io_context);
+    rtp_receiver.bind(listen_addr, k_port);
 
     if (multicast_addr.has_value()) {
         if (multicast_interface.has_value()) {
-            receiver.join_multicast_group(*multicast_addr, *multicast_interface);
+            rtp_receiver.join_multicast_group(*multicast_addr, *multicast_interface);
         } else {
-            receiver.join_multicast_group(*multicast_addr, {});
+            rtp_receiver.join_multicast_group(*multicast_addr, {});
         }
     }
 
-    receiver.start();
+    example_receiver example_receiver(rtp_receiver, num_channels, audio_file, sample_rate);
 
     auto num_devices = Pa_GetDeviceCount();
     if (num_devices < 0) {
@@ -178,14 +189,15 @@ int main(int const argc, char* argv[]) {
 
     PaStreamParameters output_params;
     output_params.device = selected_device;
-    output_params.channelCount = static_cast<int>(audio_context.num_channels);
+    output_params.channelCount = static_cast<int>(example_receiver.num_channels());
     output_params.sampleFormat = paFloat32;
     output_params.suggestedLatency = Pa_GetDeviceInfo(selected_device)->defaultHighOutputLatency;
     output_params.hostApiSpecificStreamInfo = nullptr;
 
     PaStream* stream;
     if (auto error = Pa_OpenStream(
-            &stream, nullptr, &output_params, sample_rate, k_block_size, paNoFlag, audio_callback, &audio_context
+            &stream, nullptr, &output_params, sample_rate, k_block_size, paNoFlag, example_receiver::audio_callback,
+            &example_receiver
         );
         error != paNoError) {
         RAV_ERROR("PortAudio failed to open stream! Error: {}", Pa_GetErrorText(error));
@@ -197,8 +209,12 @@ int main(int const argc, char* argv[]) {
         exit(1);
     }
 
-    signals.async_wait([&receiver](const std::error_code&, int) {
-        receiver.stop();
+    rtp_receiver.start();
+
+    asio::signal_set signals(io_context, SIGINT, SIGTERM);
+
+    signals.async_wait([&rtp_receiver](const std::error_code&, int) {
+        rtp_receiver.stop();
     });
 
     std::thread io_thread([&io_context] {
@@ -208,11 +224,9 @@ int main(int const argc, char* argv[]) {
     fmt::println("Press return key to stop...");
     std::cin.get();
 
-    receiver.stop();
+    rtp_receiver.stop();
     signals.cancel();
     io_thread.join();
-
-    audio_writer.finalize();  // Not necessary, but good practice. This will write the header to the file.
 
     if (auto error = Pa_StopStream(stream); error != paNoError) {
         RAV_ERROR("PortAudio failed to stop stream! Error: {}", Pa_GetErrorText(error));

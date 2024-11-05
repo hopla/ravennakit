@@ -11,6 +11,8 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/rtp/rtcp_packet_view.hpp"
 #include "ravennakit/rtp/rtp_receiver.hpp"
+
+#include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 #include "ravennakit/core/tracy.hpp"
 
@@ -19,7 +21,7 @@
 class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
   public:
     explicit impl(asio::io_context& io_context, rtp_receiver& owner) :
-        owner_(owner), rtp_socket_(io_context), rtcp_socket_(io_context) {}
+        owner_(&owner), rtp_socket_(io_context), rtcp_socket_(io_context) {}
 
     impl(const impl&) = delete;
     impl& operator=(const impl&) = delete;
@@ -73,14 +75,17 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
 
     void stop() {
         // No need to call shutdown on the sockets as they are datagram sockets.
-
         rtp_socket_.close();
         rtcp_socket_.close();
         is_running_ = false;
     }
 
+    void reset_owner() {
+        owner_ = nullptr;
+    }
+
   private:
-    rtp_receiver& owner_;
+    rtp_receiver* owner_ {};
     asio::ip::udp::socket rtp_socket_;
     asio::ip::udp::socket rtcp_socket_;
     asio::ip::udp::endpoint rtp_sender_endpoint_;   // For receiving the senders address.
@@ -95,13 +100,27 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
             asio::buffer(rtp_data_), rtp_sender_endpoint_,
             [self](const std::error_code& ec, const std::size_t length) {
                 TRACY_ZONE_SCOPED;
-                if (!ec) {
-                    const rtp_packet_view rtp_packet(self->rtp_data_.data(), length);
-                    self->owner_.emit(rtp_packet_event {rtp_packet});
-                    self->receive_rtp();
-                } else {
-                    RAV_ERROR("RTP receiver error: {}", ec.message());
+                if (ec) {
+                    if (ec == asio::error::operation_aborted) {
+                        RAV_TRACE("Operation aborted");
+                        return;
+                    }
+                    if (ec == asio::error::eof) {
+                        RAV_TRACE("EOF");
+                        return;
+                    }
+                    RAV_ERROR("Read error: {}. Closing connection.", ec.message());
+                    return;
                 }
+                if (self->owner_ == nullptr) {
+                    RAV_ERROR("Owner is null. Closing connection.");
+                    return;
+                }
+                const rtp_packet_view rtp_packet(self->rtp_data_.data(), length);
+                for (auto* sub : self->owner_->subscribers_) {
+                    sub->on(rtp_packet_event {rtp_packet});
+                }
+                self->receive_rtp();
             }
         );
     }
@@ -111,13 +130,27 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
         rtcp_socket_.async_receive_from(
             asio::buffer(rtcp_data_), rtcp_sender_endpoint_,
             [self](const std::error_code& ec, const std::size_t length) {
-                if (!ec) {
-                    const rtcp_packet_view rtcp_packet(self->rtcp_data_.data(), length);
-                    self->owner_.emit(rtcp_packet_event {rtcp_packet});
-                    self->receive_rtcp();
-                } else {
-                    RAV_ERROR("RTCP receiver error: {}", ec.message());
+                if (ec) {
+                    if (ec == asio::error::operation_aborted) {
+                        RAV_TRACE("Operation aborted");
+                        return;
+                    }
+                    if (ec == asio::error::eof) {
+                        RAV_TRACE("EOF");
+                        return;
+                    }
+                    RAV_ERROR("Read error: {}. Closing connection.", ec.message());
+                    return;
                 }
+                if (self->owner_ == nullptr) {
+                    RAV_ERROR("Owner is null. Closing connection.");
+                    return;
+                }
+                const rtcp_packet_view rtcp_packet(self->rtcp_data_.data(), length);
+                for (auto* sub : self->owner_->subscribers_) {
+                    sub->on(rtcp_packet_event {rtcp_packet});
+                }
+                self->receive_rtcp();
             }
         );
     }
@@ -125,7 +158,9 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
 
 rav::rtp_receiver::rtp_receiver(asio::io_context& io_context) : impl_(std::make_unique<impl>(io_context, *this)) {}
 
-rav::rtp_receiver::~rtp_receiver() = default;
+rav::rtp_receiver::~rtp_receiver() {
+    impl_->reset_owner();
+}
 
 void rav::rtp_receiver::bind(const std::string& address, const uint16_t port) const {
     impl_->bind(address, port);

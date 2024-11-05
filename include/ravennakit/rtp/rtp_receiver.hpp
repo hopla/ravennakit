@@ -14,21 +14,25 @@
 #include "rtp_packet_view.hpp"
 #include "ravennakit/core/events.hpp"
 #include "ravennakit/core/linked_node.hpp"
+#include "ravennakit/core/subscriber_list.hpp"
 
 #include <asio.hpp>
 
 namespace rav {
 
-struct rtp_packet_event {
-    rtp_packet_view packet;
-};
-
-struct rtcp_packet_event {
-    rtcp_packet_view packet;
-};
-
-class rtp_receiver final: public events<rtp_packet_event, rtcp_packet_event> {
+/**
+ * A class which sets up sockets for receiver RTP and RTCP packets, and allows subscribing to the received packets.
+ */
+class rtp_receiver {
   public:
+    struct rtp_packet_event {
+        rtp_packet_view packet;
+    };
+
+    struct rtcp_packet_event {
+        rtcp_packet_view packet;
+    };
+
     /**
      * Baseclass for other classes that want to subscribe to receiving RTP and RTCP packets.
      * The class provides several facilities to filter the traffic.
@@ -37,20 +41,42 @@ class rtp_receiver final: public events<rtp_packet_event, rtcp_packet_event> {
       public:
         virtual ~subscriber() = default;
 
-        virtual void on(const rtp_packet_event& rtp_event) {
-            std::ignore = rtp_event;
+        /**
+         * Called when an RTP packet is received.
+         * @param rtp_event The RTP packet event.
+         */
+        virtual void on([[maybe_unused]] const rtp_packet_event& rtp_event) {}
+
+        /**
+         * Called when an RTCP packet is received.
+         * @param rtcp_event The RTCP packet event.
+         */
+        virtual void on([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
+
+        /**
+         * Subscribes to the given RTP receiver.
+         * @param receiver The receiver to subscribe to.
+         */
+        void subscribe(rtp_receiver& receiver) {
+            receiver.subscribers_.add(this);
         }
 
-        virtual void on(const rtcp_packet_event& rtcp_event) {
-            std::ignore = rtcp_event;
+        /**
+         * Unsubscribes from the current RTP receiver.
+         */
+        void unsubscribe() {
+            if (rtp_receiver_) {
+                rtp_receiver_->subscribers_.remove(this);
+            }
         }
 
       private:
+        rtp_receiver* rtp_receiver_ {};
         linked_node<subscriber*> node_;
     };
 
     rtp_receiver() = delete;
-    ~rtp_receiver() override;
+    ~rtp_receiver();
 
     /**
      * Constructs a new RTP receiver using given loop.
@@ -95,6 +121,7 @@ class rtp_receiver final: public events<rtp_packet_event, rtcp_packet_event> {
   private:
     class impl;
     std::shared_ptr<impl> impl_;
+    subscriber_list<subscriber> subscribers_;
 };
 
 }  // namespace rav

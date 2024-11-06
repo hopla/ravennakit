@@ -35,6 +35,8 @@ class rtp_receiver {
      */
     class subscriber {
       public:
+        using node_type = linked_node<std::pair<subscriber*, rtp_receiver*>>;
+
         subscriber() = default;
         virtual ~subscriber() = default;
 
@@ -66,7 +68,7 @@ class rtp_receiver {
         void subscribe_to_rtp_session(rtp_receiver& receiver, const asio::ip::address& address, uint16_t port);
 
       private:
-        linked_node<std::pair<subscriber*, rtp_receiver*>> node_;
+        node_type node_;
     };
 
     rtp_receiver() = delete;
@@ -85,19 +87,28 @@ class rtp_receiver {
     rtp_receiver& operator=(rtp_receiver&&) = delete;
 
   private:
-    class session : public rtp_endpoint::handler {
+    class session: public rtp_endpoint::handler {
       public:
         session(asio::io_context& io_context, asio::ip::udp::endpoint endpoint);
         ~session() override;
+
+        void start(const asio::ip::address& interface_addr = asio::ip::address_v6());
+        void stop();
 
         void on(const rtp_packet_event& rtp_event) override;
         void on(const rtcp_packet_event& rtcp_event) override;
 
         [[nodiscard]] asio::ip::udp::endpoint connection_endpoint() const;
 
+        void subscribe(subscriber::node_type& node);
+
       private:
+        asio::io_context& io_context_;
+        // The RTP connection address as defined in
+        // https://datatracker.ietf.org/doc/html/rfc8866#name-connection-information-c
+        asio::ip::udp::endpoint connection_endpoint_;
         std::shared_ptr<rtp_endpoint> rtp_endpoint_;
-        linked_node<std::pair<subscriber*, rtp_receiver*>> subscriber_nodes_;
+        subscriber::node_type subscriber_nodes_;
     };
 
     asio::io_context& io_context_;

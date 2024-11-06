@@ -18,6 +18,8 @@
 
 #include <fmt/core.h>
 
+#include <utility>
+
 rav::rtp_receiver::rtp_receiver(asio::io_context& io_context) : io_context_(io_context) {}
 
 rav::rtp_receiver::~rtp_receiver() = default;
@@ -31,27 +33,47 @@ void rav::rtp_receiver::subscriber::subscribe_to_rtp_session(
 
     for (const auto& session : receiver.sessions_) {
         if (session->connection_endpoint() == endpoint) {
-            // TODO: Subscribe to the session.
+            session->subscribe(node_);
             return;
         }
     }
 
     // Create new session
-    auto& it = receiver.sessions_.emplace_back(std::make_unique<session>(receiver.io_context_, endpoint));
-    // TODO: Subscribe to the session.
-    // TODO: Start the session.
+    const auto& it = receiver.sessions_.emplace_back(std::make_unique<session>(receiver.io_context_, endpoint));
+    it->subscribe(node_);
+    it->start();
 }
 
 rav::rtp_receiver::session::session(asio::io_context& io_context, asio::ip::udp::endpoint endpoint) :
-    rtp_endpoint_(rtp_endpoint::create(io_context, std::move(endpoint))) {}
+    io_context_(io_context), connection_endpoint_(std::move(endpoint)) {}
 
 rav::rtp_receiver::session::~session() {
-    if (rtp_endpoint_) {
-        rtp_endpoint_->stop();
-    }
+    stop();
     for (auto& node : subscriber_nodes_) {
         node.reset();
     }
+}
+
+void rav::rtp_receiver::session::start(const asio::ip::address& interface_addr) {
+    if (rtp_endpoint_) {
+        RAV_WARNING("RTP endpoint already started");
+        return;
+    }
+    rtp_endpoint_ = rtp_endpoint::make_rtp_endpoint(io_context_, interface_addr, connection_endpoint_.port());
+    rtp_endpoint_->start(*this);
+
+    RAV_TRACE(
+        "Session started for connection {}:{}", connection_endpoint_.address().to_string(), connection_endpoint_.port()
+    );
+}
+
+void rav::rtp_receiver::session::stop() {
+    rtp_endpoint_->stop();
+    rtp_endpoint_.reset();
+
+    RAV_TRACE(
+        "Session stopped for endpoint {}:{}", connection_endpoint_.address().to_string(), connection_endpoint_.port()
+    );
 }
 
 void rav::rtp_receiver::session::on(const rtp_packet_event& rtp_event) {
@@ -63,6 +85,12 @@ void rav::rtp_receiver::session::on(const rtcp_packet_event& rtcp_event) {
 }
 
 asio::ip::udp::endpoint rav::rtp_receiver::session::connection_endpoint() const {
-    RAV_ASSERT(rtp_endpoint_, "Expecting valid rtp_endpoint");
-    return rtp_endpoint_->local_rtp_endpoint();
+    if (!rtp_endpoint_) {
+        return {};
+    }
+    return connection_endpoint_;
+}
+
+void rav::rtp_receiver::session::subscribe(subscriber::node_type& node) {
+    subscriber_nodes_.push_back(node);
 }

@@ -92,17 +92,13 @@ void rav::ravenna_sink::on(const ravenna_rtsp_client::announced_event& event) {
     }
 
     asio::error_code ec;
-    const auto addr = asio::ip::make_address(connection_info.address, ec);
+    const auto connection_address = asio::ip::make_address(connection_info.address, ec);
     if (ec) {
         RAV_WARNING("Failed to create address from '{}': {}", connection_info.address, ec.message());
         return;
     }
 
-    if (addr.is_multicast()) {
-        // TODO: Subscribe to multicast
-    }
-
-    subscribe_to_rtp_session(rtp_receiver_, addr, media_description.port());
+    subscribe_to_rtp_session(rtp_receiver_, connection_address, media_description.port());
 }
 
 void rav::ravenna_sink::start() {

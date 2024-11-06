@@ -39,7 +39,8 @@ class rtp_endpoint: public std::enable_shared_from_this<rtp_endpoint> {
         virtual void on(const rtcp_packet_event& rtcp_event) = 0;
     };
 
-    static std::shared_ptr<rtp_endpoint> create(asio::io_context& io_context, asio::ip::udp::endpoint endpoint);
+    static std::shared_ptr<rtp_endpoint>
+    make_rtp_endpoint(asio::io_context& io_context, const asio::ip::address& interface_address, uint16_t port);
 
     ~rtp_endpoint();
 
@@ -49,7 +50,6 @@ class rtp_endpoint: public std::enable_shared_from_this<rtp_endpoint> {
     rtp_endpoint(rtp_endpoint&&) = delete;
     rtp_endpoint& operator=(rtp_endpoint&&) = delete;
 
-    [[nodiscard]] asio::ip::udp::endpoint local_rtp_endpoint() const;
     void start(handler& handler);
     void stop();
 
@@ -61,9 +61,8 @@ class rtp_endpoint: public std::enable_shared_from_this<rtp_endpoint> {
     asio::ip::udp::endpoint rtcp_sender_endpoint_;  // For receiving the senders address.
     std::array<uint8_t, 1500> rtp_data_ {};
     std::array<uint8_t, 1500> rtcp_data_ {};
-    bool is_running_ = false;
 
-    explicit rtp_endpoint(asio::io_context& io_context, asio::ip::udp::endpoint endpoint);
+    explicit rtp_endpoint(asio::io_context& io_context, const asio::ip::address& interface_address, uint16_t port);
     void receive_rtp();
     void receive_rtcp();
 };

@@ -13,9 +13,10 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/tracy.hpp"
 
-rav::rtp_endpoint::rtp_endpoint(asio::io_context& io_context, asio::ip::udp::endpoint endpoint) :
+rav::rtp_endpoint::rtp_endpoint(asio::io_context& io_context, const asio::ip::address& interface_address, const uint16_t port) :
     rtp_socket_(io_context), rtcp_socket_(io_context) {
     // RTP
+    asio::ip::udp::endpoint endpoint(interface_address, port);
     rtp_socket_.open(endpoint.protocol());
     rtp_socket_.set_option(asio::ip::udp::socket::reuse_address(true));
     rtp_socket_.bind(endpoint);
@@ -28,8 +29,8 @@ rav::rtp_endpoint::rtp_endpoint(asio::io_context& io_context, asio::ip::udp::end
 }
 
 std::shared_ptr<rav::rtp_endpoint>
-rav::rtp_endpoint::create(asio::io_context& io_context, asio::ip::udp::endpoint endpoint) {
-    return std::shared_ptr<rtp_endpoint>(new rtp_endpoint(io_context, std::move(endpoint)));
+rav::rtp_endpoint::make_rtp_endpoint(asio::io_context& io_context, const asio::ip::address& interface_address, const uint16_t port) {
+    return std::shared_ptr<rtp_endpoint>(new rtp_endpoint(io_context, interface_address, port));
 }
 
 rav::rtp_endpoint::~rtp_endpoint() {
@@ -40,10 +41,6 @@ rav::rtp_endpoint::~rtp_endpoint() {
     } catch (...) {
         RAV_ERROR("Failed to stop RTP receiver: unknown error");
     }
-}
-
-asio::ip::udp::endpoint rav::rtp_endpoint::local_rtp_endpoint() const {
-    return rtp_socket_.local_endpoint();
 }
 
 void rav::rtp_endpoint::start(handler& handler) {
@@ -62,6 +59,12 @@ void rav::rtp_endpoint::start(handler& handler) {
     handler_ = &handler;
     receive_rtp();
     receive_rtcp();
+
+    RAV_TRACE(
+        "Endpoint started. RTP on {}:{} and RTCP on {}:{}", rtp_socket_.local_endpoint().address().to_string(),
+        rtp_socket_.local_endpoint().port(), rtcp_socket_.local_endpoint().address().to_string(),
+        rtcp_socket_.local_endpoint().port()
+    );
 }
 
 void rav::rtp_endpoint::stop() {
@@ -69,6 +72,8 @@ void rav::rtp_endpoint::stop() {
     // No need to call shutdown on the sockets as they are datagram sockets.
     rtp_socket_.close();
     rtcp_socket_.close();
+
+    RAV_TRACE("Endpoint stopped.");
 }
 
 void rav::rtp_endpoint::receive_rtp() {

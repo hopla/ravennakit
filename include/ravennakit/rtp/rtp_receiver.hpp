@@ -53,11 +53,12 @@ class rtp_receiver {
          */
         virtual void on([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
 
+      protected:
         /**
          * Subscribes to the given RTP receiver.
          * @param receiver The receiver to subscribe to.
          */
-        void subscribe(rtp_receiver& receiver);
+        void subscribe_to_rtp_receiver(rtp_receiver& receiver);
 
       private:
         linked_node<std::pair<subscriber*, rtp_receiver*>> node_;
@@ -110,7 +111,6 @@ class rtp_receiver {
     class impl;
     std::shared_ptr<impl> impl_;
     linked_node<std::pair<subscriber*, rtp_receiver*>> subscriber_nodes_;
-
 };
 
 }  // namespace rav

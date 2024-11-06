@@ -11,16 +11,17 @@
 #pragma once
 
 #include "ravenna_rtsp_client.hpp"
+#include "ravennakit/rtp/rtp_receiver.hpp"
 #include "ravennakit/sdp/session_description.hpp"
 
 namespace rav {
 
-class ravenna_sink {
+class ravenna_sink: ravenna_rtsp_client::subscriber, rtp_receiver::subscriber {
   public:
     enum class mode { manual, automatic };
 
     explicit ravenna_sink(ravenna_rtsp_client& rtsp_client, std::string session_name);
-    ~ravenna_sink() = default;
+    ~ravenna_sink() override = default;
 
     void set_mode(mode new_mode);
     void set_source(std::string session_name);
@@ -32,7 +33,11 @@ class ravenna_sink {
     std::string session_name_;
     std::optional<sdp::session_description> manual_sdp_;
     std::optional<sdp::session_description> auto_sdp_;
-    ravenna_rtsp_client::subscriber rtsp_subscriber_;
+
+  protected:
+    void on(const rtp_receiver::rtp_packet_event& rtp_event) override;
+    void on(const rtp_receiver::rtcp_packet_event& rtcp_event) override;
+    void on(const ravenna_rtsp_client::announced_event& event) override;
 };
 
 }  // namespace rav

@@ -38,7 +38,7 @@ class example_receiver final: public rav::rtp_receiver::subscriber {
         num_channels_(num_channels),
         audio_file_stream(audio_file),
         audio_writer_(audio_file_stream, rav::wav_audio_format::format_code::pcm, sample_rate, num_channels, 16) {
-        subscribe(rtp_receiver);
+        subscribe_to_rtp_receiver(rtp_receiver);
     }
 
     void on(const rav::rtp_receiver::rtp_packet_event& event) override {

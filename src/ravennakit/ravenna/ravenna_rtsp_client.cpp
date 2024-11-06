@@ -14,7 +14,7 @@ rav::ravenna_rtsp_client::subscriber::~subscriber() {
     unsubscribe();
 }
 
-void rav::ravenna_rtsp_client::subscriber::subscribe(ravenna_rtsp_client& client, const std::string& session_name) {
+void rav::ravenna_rtsp_client::subscriber::subscribe_to_ravenna_rtsp_client(ravenna_rtsp_client& client, const std::string& session_name) {
     if (session_name.empty()) {
         RAV_THROW_EXCEPTION("session_name cannot be empty");
     }
@@ -28,7 +28,7 @@ void rav::ravenna_rtsp_client::subscriber::subscribe(ravenna_rtsp_client& client
         if (session.session_name == session_name) {
             session.subscribers.push_back(node_);
             if (session.sdp_.has_value()) {
-                emit(announced {session_name, *session.sdp_});
+                on(announced_event {session_name, *session.sdp_});
             }
             return;
         }
@@ -47,7 +47,7 @@ void rav::ravenna_rtsp_client::subscriber::subscribe(ravenna_rtsp_client& client
 
 void rav::ravenna_rtsp_client::subscriber::unsubscribe() {
     node_.unlink();
-    if (auto* owner = node_.value().second) {
+    if (auto* owner = node_->second) {
         owner->do_maintenance();
     }
     node_.reset();
@@ -157,7 +157,7 @@ void rav::ravenna_rtsp_client::update_session_with_service(
     session.host_target = service.host_target;
     session.port = service.port;
 
-    auto& connection = find_or_create_connection(service.host_target, service.port);
+    const auto& connection = find_or_create_connection(service.host_target, service.port);
     connection.client.async_describe(fmt::format("/by-name/{}", session.session_name));
 }
 
@@ -165,7 +165,7 @@ void rav::ravenna_rtsp_client::do_maintenance() {
     for (auto& session : sessions_) {
         if (!session.subscribers.is_linked()) {
             if (!session.host_target.empty() && session.port != 0) {
-                if (auto* connection = find_connection(session.host_target, session.port)) {
+                if (const auto* connection = find_connection(session.host_target, session.port)) {
                     connection->client.async_teardown(fmt::format("/by-name/{}", session.session_name));
                 }
             }
@@ -196,8 +196,8 @@ void rav::ravenna_rtsp_client::handle_incoming_sdp(const std::string& sdp_text) 
         if (session.session_name == sdp.session_name()) {
             session.sdp_ = sdp;
             session.subscribers.foreach ([&](auto& node) {
-                if (auto* s = node.value().first) {
-                    s->emit(announced {session.session_name, sdp});
+                if (auto* s = node->first) {
+                    s->on(announced_event {session.session_name, sdp});
                 }
             });
         }

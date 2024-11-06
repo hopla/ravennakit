@@ -23,22 +23,29 @@ namespace rav {
  */
 class ravenna_rtsp_client {
   public:
-    struct announced {
+    struct announced_event {
         const std::string& session_name;
         const sdp::session_description& sdp;
     };
 
-    class subscriber final: public events<announced> {
+    class subscriber {
       public:
         subscriber() = default;
-        ~subscriber() override;
+        virtual ~subscriber();
 
+        /**
+         * Called when a session is announced.
+         * @param event The announced event.
+         */
+        virtual void on([[maybe_unused]] const announced_event& event) {}
+
+      protected:
         /**
          * Subscribes this subscriber to the ravenna_rtsp_client.
          * @param client The ravenna_rtsp_client to subscribe to.
          * @param session_name The name of the session to subscribe to.
          */
-        void subscribe(ravenna_rtsp_client& client, const std::string& session_name);
+        void subscribe_to_ravenna_rtsp_client(ravenna_rtsp_client& client, const std::string& session_name);
 
         /**
          * Unsubscribes this subscriber from the ravenna_rtsp_client.

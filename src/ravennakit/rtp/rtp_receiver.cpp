@@ -171,7 +171,7 @@ rav::rtp_receiver::~rtp_receiver() {
     }
 }
 
-void rav::rtp_receiver::subscriber::subscribe(rtp_receiver& receiver) {
+void rav::rtp_receiver::subscriber::subscribe_to_rtp_receiver(rtp_receiver& receiver) {
     RAV_ASSERT(receiver.impl_ != nullptr, "Expecting valid receiver implementation");
     *node_ = {this, &receiver};
     receiver.subscriber_nodes_.push_back(node_);

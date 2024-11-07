@@ -15,16 +15,35 @@
 #include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 #include "ravennakit/core/tracy.hpp"
+#include "ravennakit/core/subscription.hpp"
 
 #include <fmt/core.h>
+#include <tl/expected.hpp>
 
 #include <utility>
 
 #if RAV_APPLE
     #define IP_RECVDSTADDR_PKTINFO IP_RECVDSTADDR
-#elif RAV_LINUX
+#else
     #define IP_RECVDSTADDR_PKTINFO IP_PKTINFO
 #endif
+
+#if RAV_WINDOWS
+typedef BOOL(PASCAL* LPFN_WSARECVMSG)(
+    SOCKET s, LPWSAMSG lpMsg, LPDWORD lpNumberOfBytesRecvd, LPWSAOVERLAPPED lpOverlapped,
+    LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+);
+#endif
+
+namespace {
+void prepare_socket(asio::ip::udp::socket& socket, asio::ip::udp::endpoint& endpoint) {
+    socket.open(endpoint.protocol());
+    socket.set_option(asio::ip::udp::socket::reuse_address(true));
+    socket.bind(endpoint);
+    socket.non_blocking(true);
+    socket.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1));
+}
+}  // namespace
 
 class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
   public:
@@ -35,50 +54,15 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
         rtp_socket_(io_context), rtcp_socket_(io_context) {
         // RTP
         asio::ip::udp::endpoint endpoint(interface_address, rtp_port);
-        asio::error_code ec;
-        rtp_socket_.open(endpoint.protocol(), ec);
-        if (ec) {
-            RAV_ERROR("Failed to open RTP socket: {}", ec.message());
-        }
-        rtp_socket_.set_option(asio::ip::udp::socket::reuse_address(true), ec);
-        if (ec) {
-            RAV_ERROR("Failed to set reuse address option on RTP socket: {}", ec.message());
-        }
-        rtp_socket_.bind(endpoint, ec);
-        if (ec) {
-            RAV_ERROR("Failed to bind RTP socket: {}", ec.message());
-        }
-        rtp_socket_.non_blocking(true, ec);
-        if (ec) {
-            RAV_ERROR("Failed to set non-blocking mode on RTP socket: {}", ec.message());
-        }
-        rtp_socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1), ec);
-        if (ec) {
-            RAV_ERROR("Failed to set IP_RECVDSTADDR option on RTP socket: {}", ec.message());
-        }
+        prepare_socket(rtp_socket_, endpoint);
 
         // RTCP
         endpoint.port(rtcp_port);
-        rtcp_socket_.open(endpoint.protocol(), ec);
-        if (ec) {
-            RAV_ERROR("Failed to open RTCP socket: {}", ec.message());
-        }
-        rtcp_socket_.set_option(asio::ip::udp::socket::reuse_address(true), ec);
-        if (ec) {
-            RAV_ERROR("Failed to set reuse address option on RTCP socket: {}", ec.message());
-        }
-        rtcp_socket_.bind(endpoint, ec);
-        if (ec) {
-            RAV_ERROR("Failed to bind RTCP socket: {}", ec.message());
-        }
-        rtcp_socket_.non_blocking(true, ec);
-        if (ec) {
-            RAV_ERROR("Failed to set non-blocking mode on RTP socket: {}", ec.message());
-        }
-        rtcp_socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1), ec);
-        if (ec) {
-            RAV_ERROR("Failed to set IP_RECVDSTADDR option on RTCP socket: {}", ec.message());
-        }
+        prepare_socket(rtcp_socket_, endpoint);
+
+#if RAV_WINDOWS
+        load_wsa_recv_msg_func();
+#endif
     }
 
     void start(rtp_receiver& owner) {
@@ -143,6 +127,27 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
     std::array<uint8_t, 1500> rtp_data_ {};
     std::array<uint8_t, 1500> rtcp_data_ {};
 
+#if RAV_WINDOWS
+    LPFN_WSARECVMSG wsa_recv_msg_func {};
+
+    void load_wsa_recv_msg_func() {
+        SOCKET temp_sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        rav::defer defer_close_socket([&temp_sock] {
+            closesocket(temp_sock);
+        });
+        DWORD bytes_returned = 0;
+        GUID WSARecvMsg_GUID = WSAID_WSARECVMSG;
+
+        if (WSAIoctl(
+                temp_sock, SIO_GET_EXTENSION_FUNCTION_POINTER, &WSARecvMsg_GUID, sizeof(WSARecvMsg_GUID),
+                &wsa_recv_msg_func, sizeof(wsa_recv_msg_func), &bytes_returned, nullptr, nullptr
+            )
+            == SOCKET_ERROR) {
+            RAV_THROW_EXCEPTION(fmt::format("Failed to get WSARecvMsg function: {}", WSAGetLastError()));
+        }
+    }
+#endif
+
     void async_wait_rtp() {
         auto self = shared_from_this();
         rtp_socket_.async_wait(asio::socket_base::wait_read, [self](std::error_code ec) {
@@ -163,8 +168,12 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 return;
             }
             RAV_TRACE("RTP Socket ready to read.");
-            while (self->rtp_socket_.available() > 0) {
-                const auto bytes_received = receive_from_socket(self->rtp_socket_, self->rtp_data_, ec);
+            while (self->rtp_socket_.available(ec) > 0) {
+                if (ec) {
+                    RAV_ERROR("Read error: {}. Closing connection.", ec.message());
+                    return;
+                }
+                const auto bytes_received = receive_from_socket(self->rtp_socket_, self->rtp_data_, self, ec);
                 if (ec) {
                     RAV_ERROR("Read error: {}. Closing connection.", ec.message());
                     return;
@@ -186,7 +195,7 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
 
     void async_wait_rtcp() {
         auto self = shared_from_this();
-        rtp_socket_.async_wait(asio::socket_base::wait_read, [self](const std::error_code& ec) {
+        rtp_socket_.async_wait(asio::socket_base::wait_read, [self](std::error_code ec) {
             if (ec) {
                 if (ec == asio::error::operation_aborted) {
                     RAV_TRACE("Operation aborted");
@@ -204,11 +213,78 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 return;
             }
             RAV_TRACE("RTCP Socket ready to read.");
+            while (self->rtcp_socket_.available(ec) > 0) {
+                if (ec) {
+                    RAV_ERROR("Read error: {}. Closing connection.", ec.message());
+                    return;
+                }
+                const auto bytes_received = receive_from_socket(self->rtcp_socket_, self->rtp_data_, self, ec);
+                if (ec) {
+                    RAV_ERROR("Read error: {}. Closing connection.", ec.message());
+                    return;
+                }
+                if (bytes_received == 0) {
+                    break;
+                }
+                const rtp_packet_view rtp_packet(self->rtcp_data_.data(), bytes_received);
+                if (rtp_packet.validate()) {
+                    const rtp_packet_event event {rtp_packet};
+                    self->owner_->on(event);
+                } else {
+                    RAV_WARNING("Invalid RTP packet received. Ignoring.");
+                }
+            }
         });
     }
 
-    static size_t
-    receive_from_socket(asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, asio::error_code& ec) {
+#if RAV_WINDOWS
+    static size_t receive_from_socket(
+        asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, const std::shared_ptr<impl>& self,
+        asio::error_code& ec
+    ) {
+        // Set up the message structure
+        char control_buf[1024];
+        WSABUF wsabuf;
+        wsabuf.buf = reinterpret_cast<char*>(data_buf.data());
+        wsabuf.len = static_cast<ULONG>(data_buf.size());
+
+        sockaddr src_addr {};
+
+        WSAMSG msg;
+        memset(&msg, 0, sizeof(msg));
+        msg.name = &src_addr;
+        msg.namelen = sizeof(src_addr);
+        msg.lpBuffers = &wsabuf;
+        msg.dwBufferCount = 1;
+        msg.Control.len = sizeof(control_buf);
+        msg.Control.buf = control_buf;
+
+        DWORD bytes_received = 0;
+        if (self->wsa_recv_msg_func(socket.native_handle(), &msg, &bytes_received, nullptr, nullptr) == SOCKET_ERROR) {
+            ec = asio::error_code(WSAGetLastError(), asio::system_category());
+            return 0;
+        }
+
+        // Process control messages to get the destination IP
+        IN_ADDR dest_addr;
+        for (WSACMSGHDR* cmsg = WSA_CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = WSA_CMSG_NXTHDR(&msg, cmsg)) {
+            if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
+                auto* pktinfo = reinterpret_cast<IN_PKTINFO*>(WSA_CMSG_DATA(cmsg));
+                dest_addr = pktinfo->ipi_addr;
+                char dest_ip[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &dest_addr, dest_ip, sizeof(dest_ip));
+                std::cout << "Received packet destined to: " << dest_ip << std::endl;
+                break;
+            }
+        }
+
+        return bytes_received;
+    }
+#else
+    static size_t receive_from_socket(
+        asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, const std::shared_ptr<impl>& self,
+        asio::error_code& ec
+    ) {
         sockaddr_in src_addr {};
         iovec iov[1];
         char ctrl_buf[CMSG_SPACE(sizeof(in_addr))];
@@ -243,6 +319,7 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
 
         return received_bytes;
     }
+#endif
 };
 
 rav::rtp_receiver::rtp_receiver(asio::io_context& io_context) : io_context_(io_context) {}

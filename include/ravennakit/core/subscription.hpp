@@ -42,8 +42,6 @@ class subscription {
         on_destruction_callback_ = std::move(other.on_destruction_callback_);
         other.on_destruction_callback_ = nullptr;
 
-        RAV_ASSERT(other.on_destruction_callback_ == nullptr, "Move failed to reset the std::function");
-
         return *this;
     }
 

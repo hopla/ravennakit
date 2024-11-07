@@ -36,7 +36,7 @@ typedef BOOL(PASCAL* LPFN_WSARECVMSG)(
 #endif
 
 namespace {
-void prepare_socket(asio::ip::udp::socket& socket, asio::ip::udp::endpoint& endpoint) {
+void prepare_socket(asio::ip::udp::socket& socket, const asio::ip::udp::endpoint& endpoint) {
     socket.open(endpoint.protocol());
     socket.set_option(asio::ip::udp::socket::reuse_address(true));
     socket.bind(endpoint);
@@ -167,13 +167,19 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 RAV_ERROR("Owner is null. Closing connection.");
                 return;
             }
-            RAV_TRACE("RTP Socket ready to read.");
+
             while (self->rtp_socket_.available(ec) > 0) {
                 if (ec) {
                     RAV_ERROR("Read error: {}. Closing connection.", ec.message());
                     return;
                 }
-                const auto bytes_received = receive_from_socket(self->rtp_socket_, self->rtp_data_, self, ec);
+
+                asio::ip::udp::endpoint src_endpoint;
+                asio::ip::udp::endpoint dst_endpoint;
+
+                const auto bytes_received =
+                    receive_from_socket(self->rtp_socket_, self->rtp_data_, self, src_endpoint, dst_endpoint, ec);
+
                 if (ec) {
                     RAV_ERROR("Read error: {}. Closing connection.", ec.message());
                     return;
@@ -183,7 +189,7 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 }
                 const rtp_packet_view rtp_packet(self->rtp_data_.data(), bytes_received);
                 if (rtp_packet.validate()) {
-                    const rtp_packet_event event {rtp_packet};
+                    const rtp_packet_event event {rtp_packet, src_endpoint, dst_endpoint};
                     self->owner_->on(event);
                 } else {
                     RAV_WARNING("Invalid RTP packet received. Ignoring.");
@@ -212,13 +218,18 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 RAV_ERROR("Owner is null. Closing connection.");
                 return;
             }
-            RAV_TRACE("RTCP Socket ready to read.");
+
             while (self->rtcp_socket_.available(ec) > 0) {
                 if (ec) {
                     RAV_ERROR("Read error: {}. Closing connection.", ec.message());
                     return;
                 }
-                const auto bytes_received = receive_from_socket(self->rtcp_socket_, self->rtp_data_, self, ec);
+
+                asio::ip::udp::endpoint src_endpoint;
+                asio::ip::udp::endpoint dst_endpoint;
+
+                const auto bytes_received =
+                    receive_from_socket(self->rtcp_socket_, self->rtp_data_, self, src_endpoint, dst_endpoint, ec);
                 if (ec) {
                     RAV_ERROR("Read error: {}. Closing connection.", ec.message());
                     return;
@@ -228,7 +239,7 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
                 }
                 const rtp_packet_view rtp_packet(self->rtcp_data_.data(), bytes_received);
                 if (rtp_packet.validate()) {
-                    const rtp_packet_event event {rtp_packet};
+                    const rtp_packet_event event {rtp_packet, src_endpoint, dst_endpoint};
                     self->owner_->on(event);
                 } else {
                     RAV_WARNING("Invalid RTP packet received. Ignoring.");
@@ -283,8 +294,9 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
 #else
     static size_t receive_from_socket(
         asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, const std::shared_ptr<impl>& self,
-        asio::error_code& ec
+        asio::ip::udp::endpoint& src_endpoint, asio::ip::udp::endpoint& dst_endpoint, asio::error_code& ec
     ) {
+        std::ignore = self;
         sockaddr_in src_addr {};
         iovec iov[1];
         char ctrl_buf[CMSG_SPACE(sizeof(in_addr))];
@@ -311,13 +323,20 @@ class rav::rtp_receiver::impl: public std::enable_shared_from_this<impl> {
         for (cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
             if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR_PKTINFO) {
                 const auto* dst_addr = reinterpret_cast<struct in_addr*>(CMSG_DATA(cmsg));
-                char dest_ip[INET_ADDRSTRLEN];
-                inet_ntop(AF_INET, dst_addr, dest_ip, sizeof(dest_ip));
-                RAV_TRACE("Received packet destined to: {}", dest_ip);
+                dst_endpoint =
+                    asio::ip::udp::endpoint(asio::ip::address_v4(ntohl(dst_addr->s_addr)), ntohs(src_addr.sin_port));
             }
         }
 
-        return received_bytes;
+        src_endpoint =
+            asio::ip::udp::endpoint(asio::ip::address_v4(ntohl(src_addr.sin_addr.s_addr)), ntohs(src_addr.sin_port));
+
+        RAV_TRACE(
+            "Received packet destined from {}:{} to {}:{}", src_endpoint.address().to_string(), src_endpoint.port(),
+            dst_endpoint.address().to_string(), dst_endpoint.port()
+        );
+
+        return static_cast<size_t>(received_bytes);
     }
 #endif
 };

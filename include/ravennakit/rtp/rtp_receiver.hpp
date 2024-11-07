@@ -28,10 +28,14 @@ class rtp_receiver {
   public:
     struct rtp_packet_event {
         const rtp_packet_view& packet;
+        const asio::ip::udp::endpoint& src_endpoint;
+        const asio::ip::udp::endpoint& dst_endpoint;
     };
 
     struct rtcp_packet_event {
         const rtcp_packet_view& packet;
+        const asio::ip::udp::endpoint& src_endpoint;
+        const asio::ip::udp::endpoint& dst_endpoint;
     };
 
     /**
@@ -60,8 +64,6 @@ class rtp_receiver {
          * @param rtcp_event The RTCP packet event.
          */
         virtual void on([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
-
-    private:
     };
 
     rtp_receiver() = delete;
@@ -99,7 +101,6 @@ class rtp_receiver {
 
     asio::io_context& io_context_;
     subscriber_list<subscriber> subscribers_;
-
 
     void on(const rtp_packet_event& rtp_event);
     void on(const rtcp_packet_event& rtcp_event);

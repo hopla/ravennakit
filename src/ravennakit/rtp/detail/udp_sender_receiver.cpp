@@ -9,7 +9,14 @@
  */
 
 #include "ravennakit/rtp/detail/udp_sender_receiver.hpp"
+#include "ravennakit/core/tracy.hpp"
 #include "ravennakit/core/platform/windows/wsa_recv_msg_function.hpp"
+
+#if RAV_APPLE
+    #define IP_RECVDSTADDR_PKTINFO IP_RECVDSTADDR
+#else
+    #define IP_RECVDSTADDR_PKTINFO IP_PKTINFO
+#endif
 
 void rav::udp_sender_receiver::start(handler_type handler) {
     TRACY_ZONE_SCOPED;

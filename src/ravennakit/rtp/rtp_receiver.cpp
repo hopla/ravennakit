@@ -42,17 +42,17 @@ rav::rtp_receiver::~rtp_receiver() {
 }
 
 void rav::rtp_receiver::start(const asio::ip::address& bind_addr, uint16_t rtp_port, uint16_t rtcp_port) {
-    // While RFC 3550 recommends, rather than requires, a specific pairing pattern for RTP and RTCP ports,
-    // we enforce a stricter limitation to ensure compatibility when managing multiple `rtp_receiver` instances.
-    // Allowing arbitrary port assignments could result in conflicts, such as two pairs like 5004/5005 and 5004/5006,
-    // where both receivers would attempt to listen on the same RTP port — a scenario incompatible with most platforms.
-    // By enforcing this stricter port pairing, we avoid potential conflicts, ensure predictable behavior,
-    // and facilitate the effective reuse of `rtp_receiver` instances.
-    // https://datatracker.ietf.org/doc/html/rfc3550#section-11
-    RAV_ASSERT(rtp_port % 2 == 0, "RTP port must be even");
-    RAV_ASSERT(rtp_port + 1 == rtcp_port, "RTCP port must be one higher than RTP port");
+    if (rtp_port % 2 != 0) {
+        RAV_WARNING("RFC 3550 strongly recommends an even RTP port");
+        // https://datatracker.ietf.org/doc/html/rfc3550#section-11
+    }
 
-    if (rtp_socket_ || rtcp_socket_) {
+    if (rtp_port + 1 != rtcp_port) {
+        RAV_WARNING("RFC 3550 strongly recommends for the RTCP port to be one higher than RTP port");
+        // https://datatracker.ietf.org/doc/html/rfc3550#section-11
+    }
+
+    if (!udp_receivers_.empty()) {
         RAV_WARNING("RTP receiver already running");
         return;
     }
@@ -60,10 +60,8 @@ void rav::rtp_receiver::start(const asio::ip::address& bind_addr, uint16_t rtp_p
     auto rtp_socket = udp_sender_receiver::make(io_context_, bind_addr, rtp_port);
     auto rtcp_socket = udp_sender_receiver::make(io_context_, bind_addr, rtcp_port);
 
-    rtp_socket->start([this](
-                          const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
-                          const asio::ip::udp::endpoint& dst
-                      ) {
+    rtp_socket->start([](const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
+                         const asio::ip::udp::endpoint& dst) {
         const rtp_packet_view packet(data, size);
         if (!packet.validate()) {
             RAV_WARNING("Invalid RTP packet received");
@@ -78,10 +76,8 @@ void rav::rtp_receiver::start(const asio::ip::address& bind_addr, uint16_t rtp_p
         // TODO: Process the packet
     });
 
-    rtcp_socket->start([this](
-                           const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
-                           const asio::ip::udp::endpoint& dst
-                       ) {
+    rtcp_socket->start([](const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
+                          const asio::ip::udp::endpoint& dst) {
         const rtcp_packet_view packet(data, size);
         if (!packet.validate()) {
             RAV_WARNING("Invalid RTCP packet received");
@@ -100,24 +96,20 @@ void rav::rtp_receiver::start(const asio::ip::address& bind_addr, uint16_t rtp_p
         rtcp_port
     );
 
-    rtp_socket_ = std::move(rtp_socket);
-    rtcp_socket_ = std::move(rtcp_socket);
+    udp_receivers_.push_back(std::move(rtp_socket));
+    udp_receivers_.push_back(std::move(rtcp_socket));
 }
 
 void rav::rtp_receiver::stop() {
-    if (!rtp_socket_ && !rtcp_socket_) {
+    if (udp_receivers_.empty()) {
         return;  // Nothing to do here
     }
 
-    if (rtp_socket_) {
-        rtp_socket_->stop();
-        rtp_socket_.reset();
+    for (const auto& receiver : udp_receivers_) {
+        receiver->stop();
     }
 
-    if (rtcp_socket_) {
-        rtcp_socket_->stop();
-        rtcp_socket_.reset();
-    }
+    udp_receivers_.clear();
 
     RAV_TRACE("RTP Receiver stopped.");
 }
@@ -125,12 +117,14 @@ void rav::rtp_receiver::stop() {
 void rav::rtp_receiver::join_multicast_group(
     const asio::ip::address& multicast_address, const asio::ip::address& interface_address
 ) const {
-    if (rtp_socket_ == nullptr || rtcp_socket_ == nullptr) {
-        RAV_ERROR("RTP receiver is not running");
+    if (udp_receivers_.empty()) {
+        RAV_WARNING("RTP receiver is not running");
         return;
     }
-    rtp_socket_->join_multicast_group(multicast_address, interface_address);
-    rtcp_socket_->join_multicast_group(multicast_address, interface_address);
+
+    for (auto& receiver : udp_receivers_) {
+        receiver->join_multicast_group(multicast_address, interface_address);
+    }
 }
 
 void rav::rtp_receiver::subscribe(subscriber& subscriber) {

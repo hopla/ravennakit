@@ -10,19 +10,9 @@
 
 #pragma once
 
-#if RAV_APPLE
-    #define IP_RECVDSTADDR_PKTINFO IP_RECVDSTADDR
-#else
-    #define IP_RECVDSTADDR_PKTINFO IP_PKTINFO
-#endif
-
-#include "ravennakit/core/log.hpp"
-#include "ravennakit/core/tracy.hpp"
 #include "ravennakit/core/subscription.hpp"
 
 #include <asio.hpp>
-
-#include <memory>
 
 namespace rav {
 

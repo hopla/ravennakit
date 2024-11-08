@@ -98,8 +98,7 @@ class rtp_receiver {
     };
 
     asio::io_context& io_context_;
-    std::shared_ptr<udp_sender_receiver> rtp_socket_;
-    std::shared_ptr<udp_sender_receiver> rtcp_socket_;
+    std::vector<std::shared_ptr<udp_sender_receiver>> udp_receivers_;
     subscriber_list<subscriber> subscribers_;
 };
 

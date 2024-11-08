@@ -27,11 +27,9 @@ void rav::ravenna_sink::set_manual_sdp(sdp::session_description sdp) {
     manual_sdp_ = std::move(sdp);
 }
 
-void rav::ravenna_sink::on(const rtp_receiver::rtp_packet_event& rtp_event) {}
+void rav::ravenna_sink::on([[maybe_unused]] const rtp_receiver::rtp_packet_event& rtp_event) {}
 
-void rav::ravenna_sink::on(const rtp_receiver::rtcp_packet_event& rtcp_event) {
-    RAV_TRACE("{}", rtcp_event.packet.to_string());
-}
+void rav::ravenna_sink::on([[maybe_unused]] const rtp_receiver::rtcp_packet_event& rtcp_event) {}
 
 void rav::ravenna_sink::on(const ravenna_rtsp_client::announced_event& event) {
     RAV_ASSERT(event.session_name == session_name_, "Expecting session_name to match");
@@ -45,68 +43,56 @@ void rav::ravenna_sink::on(const ravenna_rtsp_client::announced_event& event) {
     }
 
     // Try to find a suitable media description
+    const sdp::media_description* found_media_description = nullptr;
     for (auto& media_description : sdp.media_descriptions()) {
         if (media_description.media_type() != "audio") {
-            RAV_TRACE(
+            RAV_WARNING(
                 "Unsupported media type '{}' in SDP for session '{}'", media_description.media_type(), session_name_
             );
             continue;
         }
 
-        // At this moment we only support the default port. In the future we may support other ports.
-        if (media_description.port() != ravenna::constants::k_default_rtp_port) {
-            RAV_WARNING("Unsupported port '{}' in SDP for session '{}'", media_description.port(), session_name_);
-            return;
+        if (media_description.protocol() != "RTP/AVP") {
+            RAV_WARNING(
+                "Unsupported protocol '{}' in SDP for session '{}'", media_description.protocol(), session_name_
+            );
+            continue;
         }
 
+        if (media_description.formats().empty()) {
+            RAV_WARNING("No formats in SDP for session '{}'", session_name_);
+            continue;
+        }
+
+        bool found_suitable_format = false;
+        const auto& names = ravenna::constants::k_supported_rtp_encoding_names;
+        for (auto& format : media_description.formats()) {
+            if (std::find(names.begin(), names.end(), format.encoding_name) == names.end()) {
+                RAV_WARNING(
+                    "Unsupported encoding name '{}' in SDP for session '{}'", format.encoding_name, session_name_
+                );
+                continue;
+            }
+            found_suitable_format = true;
+        }
+
+        if (!found_suitable_format) {
+            RAV_WARNING("No suitable format in SDP for session '{}'", session_name_);
+            continue;
+        }
+
+        found_media_description = &media_description;
     }
 
-
-    auto& media_description = sdp.media_descriptions().front();
-
-
-
-    if (media_description.protocol() != "RTP/AVP") {
-        RAV_WARNING("Unsupported protocol '{}' in SDP for session '{}'", media_description.protocol(), session_name_);
+    if (!found_media_description) {
+        RAV_WARNING("No suitable media description found in SDP for session '{}'", session_name_);
         return;
     }
 
-    if (media_description.formats().empty()) {
-        RAV_WARNING("No formats in SDP for session '{}'", session_name_);
-        return;
-    }
+    // Now we have a suitable media description
+    RAV_TRACE("Found suitable media description in SDP for session '{}'", session_name_);
 
-    auto& fmt = media_description.formats().front();
-
-    const auto& names = ravenna::constants::k_supported_rtp_encoding_names;
-    if (std::find(names.begin(), names.end(), fmt.encoding_name) == names.end()) {
-        RAV_WARNING("Unsupported encoding name '{}' in SDP for session '{}'", fmt.encoding_name, session_name_);
-        return;
-    }
-
-    sdp::connection_info_field connection_info;
-
-    if (!media_description.connection_infos().empty()) {
-        connection_info = media_description.connection_infos().front();
-    } else if (auto info = sdp.connection_info()) {
-        connection_info = std::move(info.value());
-    } else {
-        RAV_WARNING("No connection info in SDP for session '{}'", session_name_);
-        return;
-    }
-
-    if (!media_description.source_filters().empty()) {
-        // TODO: Implement source filters
-    }
-
-    asio::error_code ec;
-    const auto connection_address = asio::ip::make_address(connection_info.address, ec);
-    if (ec) {
-        RAV_WARNING("Failed to create address from '{}': {}", connection_info.address, ec.message());
-        return;
-    }
-
-    // TODO: Compile a list of ip destinations and sources from the SDP
+    rtp_receiver_.subscribe(*this /* , rtp_port, rtcp_port, rtp_filter */);
 }
 
 void rav::ravenna_sink::start() {

@@ -13,6 +13,28 @@
 #include "ravennakit/ravenna/ravenna_constants.hpp"
 #include "ravennakit/rtp/detail/rtp_filter.hpp"
 
+namespace {
+
+bool is_connection_info_valid(const rav::sdp::connection_info_field& conn) {
+    if (conn.network_type != rav::sdp::netw_type::internet) {
+        RAV_WARNING("Unsupported network type in connection_info_field");
+        return false;
+    }
+    if (!(conn.address_type == rav::sdp::addr_type::ipv4 || conn.address_type == rav::sdp::addr_type::ipv6)) {
+        RAV_WARNING("Unsupported network type in connection_info_field");
+        return false;
+    }
+    if (auto& num_addrs = conn.number_of_addresses) {
+        if (num_addrs > 1) {
+            RAV_WARNING("Unsupported number of addresses in connection_info_field");
+            return false;
+        }
+    }
+    return true;
+}
+
+}  // namespace
+
 rav::ravenna_sink::ravenna_sink(
     ravenna_rtsp_client& rtsp_client, rtp_receiver& rtp_receiver, std::string session_name
 ) :
@@ -142,24 +164,6 @@ void rav::ravenna_sink::on(const ravenna_rtsp_client::announced_event& event) {
     } catch (const std::exception& e) {
         RAV_ERROR("Failed to process SDP for session '{}': {}", session_name_, e.what());
     }
-}
-
-bool rav::ravenna_sink::is_connection_info_valid(const sdp::connection_info_field& conn) const {
-    if (conn.network_type != sdp::netw_type::internet) {
-        RAV_WARNING("Unsupported network type in SDP for session '{}'", session_name_);
-        return false;
-    }
-    if (!(conn.address_type == sdp::addr_type::ipv4 || conn.address_type == sdp::addr_type::ipv6)) {
-        RAV_WARNING("Unsupported network type in SDP for session '{}'", session_name_);
-        return false;
-    }
-    if (auto& num_addrs = conn.number_of_addresses) {
-        if (num_addrs > 1) {
-            RAV_WARNING("Unsupported number of addresses in SDP for session '{}'", session_name_);
-            return false;
-        }
-    }
-    return true;
 }
 
 void rav::ravenna_sink::start() {

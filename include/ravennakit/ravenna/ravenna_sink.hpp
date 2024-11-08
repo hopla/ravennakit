@@ -52,8 +52,6 @@ class ravenna_sink: ravenna_rtsp_client::subscriber, rtp_receiver::subscriber {
     void on(const rtp_receiver::rtp_packet_event& rtp_event) override;
     void on(const rtp_receiver::rtcp_packet_event& rtcp_event) override;
     void on(const ravenna_rtsp_client::announced_event& event) override;
-
-    [[nodiscard]] bool is_connection_info_valid(const sdp::connection_info_field& conn) const;
 };
 
 }  // namespace rav

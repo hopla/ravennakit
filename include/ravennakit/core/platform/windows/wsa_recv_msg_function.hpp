@@ -43,7 +43,7 @@ class wsa_recv_msg_function {
 
         if (WSAIoctl(
                 temp_sock, SIO_GET_EXTENSION_FUNCTION_POINTER, &WSARecvMsg_GUID, sizeof(WSARecvMsg_GUID),
-                &wsa_recv_msg_func, sizeof(wsa_recv_msg_func), &bytes_returned, nullptr, nullptr
+                &wsa_recv_msg_func_, sizeof(wsa_recv_msg_func_), &bytes_returned, nullptr, nullptr
             )
             == SOCKET_ERROR) {
             RAV_THROW_EXCEPTION(fmt::format("Failed to get WSARecvMsg function: {}", WSAGetLastError()));
@@ -55,7 +55,7 @@ class wsa_recv_msg_function {
      * @return The WSARecvMsg function.
      */
     [[nodiscard]] LPFN_WSARECVMSG get() const {
-        return wsa_recv_msg_func;
+        return wsa_recv_msg_func_;
     }
 
     /**
@@ -65,11 +65,11 @@ class wsa_recv_msg_function {
      */
     static LPFN_WSARECVMSG get_global() {
         static wsa_recv_msg_function instance;
-        return instance.get();
+        return instance.wsa_recv_msg_func_;
     }
 
   private:
-    LPFN_WSARECVMSG wsa_recv_msg_func {};
+    LPFN_WSARECVMSG wsa_recv_msg_func_ {};
 };
 
 }  // namespace rav

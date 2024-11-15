@@ -12,6 +12,7 @@
 
 #include "rtcp_packet_view.hpp"
 #include "rtp_packet_view.hpp"
+#include "detail/rtp_session.hpp"
 #include "detail/udp_sender_receiver.hpp"
 #include "ravennakit/core/events.hpp"
 #include "ravennakit/core/linked_node.hpp"
@@ -82,24 +83,37 @@ class rtp_receiver {
     rtp_receiver(rtp_receiver&&) = delete;
     rtp_receiver& operator=(rtp_receiver&&) = delete;
 
-    void start(
-        const asio::ip::address& bind_addr = asio::ip::address_v4(), uint16_t rtp_port = 5004, uint16_t rtcp_port = 5005
-    );
-    void stop();
-
-    void join_multicast_group(const asio::ip::address& multicast_address, const asio::ip::address& interface_address) const;
-
-    void subscribe(subscriber& subscriber);
+    void subscribe(subscriber& subscriber, const rtp_session& session);
     void unsubscribe(subscriber& subscriber);
 
   private:
-    struct subscriber_context {
-        asio::ip::address connection_address;
+    struct source {
+        uint32_t ssrc {};
+    };
+
+    struct session_context {
+        rtp_session session;
+        std::vector<source> sources;
+        subscriber_list<subscriber> subscribers;
+        std::shared_ptr<udp_sender_receiver> rtp_sender_receiver;
+        std::shared_ptr<udp_sender_receiver> rtcp_sender_receiver;
     };
 
     asio::io_context& io_context_;
-    std::vector<std::shared_ptr<udp_sender_receiver>> udp_receivers_;
-    subscriber_list<subscriber> subscribers_;
+    std::vector<session_context> sessions_contexts_;
+
+    session_context* find_session_context(const rtp_session& session);
+    session_context* create_new_session_context(const rtp_session& session);
+    session_context* find_or_create_session_context(const rtp_session& session);
+    std::shared_ptr<udp_sender_receiver> find_rtp_sender_receiver(uint16_t port);
+    std::shared_ptr<udp_sender_receiver> find_rtcp_sender_receiver(uint16_t port);
+    void handle_incoming_rtp_data(
+        const uint8_t* data, size_t size, const asio::ip::udp::endpoint& src, const asio::ip::udp::endpoint& dst
+    );
+    void handle_incoming_rtcp_data(
+        const uint8_t* data, size_t size, const asio::ip::udp::endpoint& src, const asio::ip::udp::endpoint& dst
+    );
+    void stop();
 };
 
 }  // namespace rav

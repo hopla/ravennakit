@@ -60,12 +60,16 @@ class subscriber_list {
     }
 
     /**
-     * Adds the given subscriber to the list. If subscriber is already in the list it will be first removed.
+     * Adds the given subscriber to the list. If subscriber is already in the list it will not be added.
      * @param subscriber The subscriber to add.
+     * @return true if the subscriber was added, or false if it was already in the list.
      */
-    void add(T* subscriber) {
-        remove(subscriber);
+    bool add(T* subscriber) {
+        if (contains(subscriber)) {
+            return false;
+        }
         subscribers_.push_back(subscriber);
+        return true;
     }
 
     /**
@@ -84,7 +88,7 @@ class subscriber_list {
      * @param f The function to call for each subscriber. Must be not null.
      * @param excluding The subscriber to exclude from the call.
      */
-    void foreach(const std::function<void(T*)>& f, const T* excluding = nullptr) {
+    void foreach (const std::function<void(T*)>& f, const T* excluding = nullptr) {
         for (auto subscriber : subscribers_) {
             if (subscriber != excluding) {
                 f(subscriber);
@@ -102,8 +106,17 @@ class subscriber_list {
     /**
      * @return true if there are no subscribers.
      */
-    bool empty() const {
+    [[nodiscard]] bool empty() const {
         return subscribers_.empty();
+    }
+
+    /**
+     * Checks if the list contains the given subscriber.
+     * @param subscriber The subscriber to check.
+     * @return true if the list contains the subscriber, or false if not.
+     */
+    bool contains(T* subscriber) const {
+        return std::find(subscribers_.begin(), subscribers_.end(), subscriber) != subscribers_.end();
     }
 
   private:

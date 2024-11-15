@@ -38,10 +38,8 @@ class ravenna_sink: ravenna_rtsp_client::subscriber, rtp_receiver::subscriber {
     std::string session_name_;
 
     struct settings {
-        asio::ip::address connection_address;
+        rtp_session session;
         sdp::format format;
-        uint16_t rtp_port;
-        uint16_t rtcp_port;
         rtp_filter rtp_filter;
     };
 

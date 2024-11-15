@@ -41,96 +41,153 @@ rav::rtp_receiver::~rtp_receiver() {
     stop();
 }
 
-void rav::rtp_receiver::start(const asio::ip::address& bind_addr, uint16_t rtp_port, uint16_t rtcp_port) {
-    if (rtp_port % 2 != 0) {
-        RAV_WARNING("RFC 3550 strongly recommends an even RTP port");
-        // https://datatracker.ietf.org/doc/html/rfc3550#section-11
-    }
-
-    if (rtp_port + 1 != rtcp_port) {
-        RAV_WARNING("RFC 3550 strongly recommends for the RTCP port to be one higher than RTP port");
-        // https://datatracker.ietf.org/doc/html/rfc3550#section-11
-    }
-
-    if (!udp_receivers_.empty()) {
-        RAV_WARNING("RTP receiver already running");
-        return;
-    }
-
-    auto rtp_socket = udp_sender_receiver::make(io_context_, bind_addr, rtp_port);
-    auto rtcp_socket = udp_sender_receiver::make(io_context_, bind_addr, rtcp_port);
-
-    rtp_socket->start([](const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
-                         const asio::ip::udp::endpoint& dst) {
-        const rtp_packet_view packet(data, size);
-        if (!packet.validate()) {
-            RAV_WARNING("Invalid RTP packet received");
-            return;
-        }
-        const rtp_packet_event event {packet, src, dst};
-        RAV_INFO(
-            "{} from {}:{} to {}:{}", packet.to_string(), event.src_endpoint.address().to_string(),
-            event.src_endpoint.port(), event.dst_endpoint.address().to_string(), event.dst_endpoint.port()
-        );
-
-        // TODO: Process the packet
-    });
-
-    rtcp_socket->start([](const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src,
-                          const asio::ip::udp::endpoint& dst) {
-        const rtcp_packet_view packet(data, size);
-        if (!packet.validate()) {
-            RAV_WARNING("Invalid RTCP packet received");
-            return;
-        }
-        const rtcp_packet_event event {packet, src, dst};
-        RAV_INFO(
-            "{} from {}:{} to {}:{}", packet.to_string(), event.src_endpoint.address().to_string(),
-            event.src_endpoint.port(), event.dst_endpoint.address().to_string(), event.dst_endpoint.port()
-        );
-        // TODO: Process the packet
-    });
-
-    RAV_TRACE(
-        "RTP Receiver started. RTP on {}:{}, RTCP on {}:{}", bind_addr.to_string(), rtp_port, bind_addr.to_string(),
-        rtcp_port
-    );
-
-    udp_receivers_.push_back(std::move(rtp_socket));
-    udp_receivers_.push_back(std::move(rtcp_socket));
-}
-
 void rav::rtp_receiver::stop() {
-    if (udp_receivers_.empty()) {
-        return;  // Nothing to do here
+    for (auto& context : sessions_contexts_) {
+        RAV_ASSERT(context.rtp_sender_receiver != nullptr, "Expecting valid rtp_sender_receiver");
+        RAV_ASSERT(context.rtcp_sender_receiver != nullptr, "Expecting valid rtcp_sender_receiver");
+        context.rtp_sender_receiver->stop();
+        context.rtcp_sender_receiver->stop();
+        context.rtp_sender_receiver.reset();
+        context.rtcp_sender_receiver.reset();
     }
 
-    for (const auto& receiver : udp_receivers_) {
-        receiver->stop();
-    }
-
-    udp_receivers_.clear();
+    sessions_contexts_.clear();
 
     RAV_TRACE("RTP Receiver stopped.");
 }
 
-void rav::rtp_receiver::join_multicast_group(
-    const asio::ip::address& multicast_address, const asio::ip::address& interface_address
-) const {
-    if (udp_receivers_.empty()) {
-        RAV_WARNING("RTP receiver is not running");
+void rav::rtp_receiver::subscribe(subscriber& subscriber, const rtp_session& session) {
+    auto* context = find_or_create_session_context(session);
+
+    if (context == nullptr) {
+        RAV_WARNING("Failed to find or create new session");
         return;
     }
 
-    for (auto& receiver : udp_receivers_) {
-        receiver->join_multicast_group(multicast_address, interface_address);
+    RAV_ASSERT(context != nullptr, "Expecting valid session at this point");
+
+    if (!context->subscribers.add(&subscriber)) {
+        // Note: this can never happen if the session was created, hence it's find to not clean up the session here.
+        RAV_WARNING("Already subscribed to session");
+        return;
+    }
+
+    if (session.connection_address.is_multicast()) {
+        // TODO: Join multicast group (ref counted)
     }
 }
 
-void rav::rtp_receiver::subscribe(subscriber& subscriber) {
-    subscribers_.add(&subscriber);
+void rav::rtp_receiver::unsubscribe(subscriber& subscriber) {}
+
+rav::rtp_receiver::session_context* rav::rtp_receiver::find_session_context(const rtp_session& session) {
+    for (auto& context : sessions_contexts_) {
+        if (context.session == session) {
+            return &context;
+        }
+    }
+    return nullptr;
 }
 
-void rav::rtp_receiver::unsubscribe(subscriber& subscriber) {
-    subscribers_.remove(&subscriber);
+rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_context(const rtp_session& session) {
+    session_context new_session;
+    new_session.session = session;
+    new_session.rtp_sender_receiver = find_rtp_sender_receiver(session.rtp_port);
+    new_session.rtcp_sender_receiver = find_rtcp_sender_receiver(session.rtcp_port);
+
+    const auto bind_addr = asio::ip::address_v4();
+
+    if (new_session.rtp_sender_receiver == nullptr) {
+        new_session.rtp_sender_receiver = udp_sender_receiver::make(io_context_, bind_addr, session.rtp_port);
+        // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
+        new_session.rtp_sender_receiver->start([this](
+                                                   const uint8_t* data, const size_t size,
+                                                   const asio::ip::udp::endpoint& src,
+                                                   const asio::ip::udp::endpoint& dst
+                                               ) {
+            handle_incoming_rtp_data(data, size, src, dst);
+        });
+    }
+
+    if (new_session.rtcp_sender_receiver == nullptr) {
+        new_session.rtcp_sender_receiver = udp_sender_receiver::make(io_context_, bind_addr, session.rtcp_port);
+        // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
+        new_session.rtcp_sender_receiver->start([this](
+                                                    const uint8_t* data, const size_t size,
+                                                    const asio::ip::udp::endpoint& src,
+                                                    const asio::ip::udp::endpoint& dst
+                                                ) {
+            handle_incoming_rtcp_data(data, size, src, dst);
+        });
+    }
+
+    sessions_contexts_.push_back(std::move(new_session));
+    return &sessions_contexts_.back();
+}
+
+rav::rtp_receiver::session_context* rav::rtp_receiver::find_or_create_session_context(const rtp_session& session) {
+    auto context = find_session_context(session);
+    if (context == nullptr) {
+        context = create_new_session_context(session);
+    }
+    return context;
+}
+
+std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtp_sender_receiver(const uint16_t port) {
+    for (auto& context : sessions_contexts_) {
+        if (context.session.rtcp_port == port) {
+            RAV_WARNING("RTCP port found instead of RTP port. This is a network administration error.");
+            return nullptr;
+        }
+        if (context.session.rtp_port == port) {
+            return context.rtp_sender_receiver;
+        }
+    }
+    return {};
+}
+
+std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtcp_sender_receiver(const uint16_t port) {
+    for (auto& session : sessions_contexts_) {
+        if (session.session.rtp_port == port) {
+            RAV_WARNING("RTP port found instead of RTCP port. This is a network administration error.");
+            return nullptr;
+        }
+        if (session.session.rtcp_port == port) {
+            return session.rtcp_sender_receiver;
+        }
+    }
+    return {};
+}
+
+void rav::rtp_receiver::handle_incoming_rtp_data(
+    const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src, const asio::ip::udp::endpoint& dst
+) {
+    const rtp_packet_view packet(data, size);
+    if (!packet.validate()) {
+        RAV_WARNING("Invalid RTP packet received");
+        return;
+    }
+    const rtp_packet_event event {packet, src, dst};
+    RAV_INFO(
+        "{} from {}:{} to {}:{}", packet.to_string(), event.src_endpoint.address().to_string(),
+        event.src_endpoint.port(), event.dst_endpoint.address().to_string(), event.dst_endpoint.port()
+    );
+
+    // TODO: Process the packet
+}
+
+void rav::rtp_receiver::handle_incoming_rtcp_data(
+    const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& src, const asio::ip::udp::endpoint& dst
+) {
+    const rtcp_packet_view packet(data, size);
+    if (!packet.validate()) {
+        RAV_WARNING("Invalid RTCP packet received");
+        return;
+    }
+    const rtcp_packet_event event {packet, src, dst};
+    RAV_INFO(
+        "{} from {}:{} to {}:{}", packet.to_string(), event.src_endpoint.address().to_string(),
+        event.src_endpoint.port(), event.dst_endpoint.address().to_string(), event.dst_endpoint.port()
+    );
+
+    // TODO: Process the packet
 }

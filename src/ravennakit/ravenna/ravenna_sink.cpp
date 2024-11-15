@@ -43,6 +43,7 @@ rav::ravenna_sink::ravenna_sink(
 }
 
 rav::ravenna_sink::~ravenna_sink() {
+    rtp_receiver_.unsubscribe(*this);
     stop();
 }
 
@@ -149,16 +150,16 @@ void rav::ravenna_sink::on(const ravenna_rtsp_client::announced_event& event) {
 
         settings new_settings;
 
-        new_settings.connection_address = std::move(connection_address);
+        new_settings.session.connection_address = std::move(connection_address);
         new_settings.format = *found_format;
-        new_settings.rtp_port = found_media_description->port();
-        new_settings.rtcp_port = new_settings.rtp_port + 1;  // Note: non-standard rtcp port not supported
+        new_settings.session.rtp_port = found_media_description->port();
+        new_settings.session.rtcp_port = new_settings.session.rtp_port + 1;
         new_settings.rtp_filter = std::move(filter);
 
         // Now we have a suitable media description
         RAV_TRACE("Found suitable media description in SDP for session '{}'", session_name_);
 
-        rtp_receiver_.subscribe(*this /* , rtp_port, rtcp_port, rtp_filter */);
+        rtp_receiver_.subscribe(*this, new_settings.session);
 
         current_settings_ = std::move(new_settings);
     } catch (const std::exception& e) {

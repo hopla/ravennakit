@@ -31,7 +31,7 @@ void rav::udp_sender_receiver::start(handler_type handler) {
     async_receive();
 
     RAV_TRACE(
-        "udp_sender_receiver started on {}:{}", socket_.local_endpoint().address().to_string(),
+        "Started udp_sender_receiver on {}:{}", socket_.local_endpoint().address().to_string(),
         socket_.local_endpoint().port()
     );
 }

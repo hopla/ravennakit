@@ -75,12 +75,15 @@ class subscriber_list {
     /**
      * Removes the given subscriber from the list.
      * @param subscriber The subscriber to remove.
+     * @returns true if the subscriber was removed, or false if it was not in the list.
      */
-    void remove(T* subscriber) {
+    bool remove(T* subscriber) {
         auto it = std::find(subscribers_.begin(), subscribers_.end(), subscriber);
-        if (it != subscribers_.end()) {
-            subscribers_.erase(it);
+        if (it == subscribers_.end()) {
+            return false;
         }
+        subscribers_.erase(it);
+        return true;
     }
 
     /**

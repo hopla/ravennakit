@@ -203,22 +203,20 @@ int main(int const argc, char* argv[]) {
         exit(1);
     }
 
-    rtp_receiver.start(bind_addr, k_base_port, k_base_port + 1);
-
-    if (multicast_addr.has_value()) {
-        if (multicast_interface.has_value()) {
-            rtp_receiver.join_multicast_group(
-                asio::ip::make_address(*multicast_addr), asio::ip::make_address(*multicast_interface)
-            );
-        } else {
-            rtp_receiver.join_multicast_group(asio::ip::make_address(*multicast_addr), {});
-        }
-    }
+    // if (multicast_addr.has_value()) {
+        // if (multicast_interface.has_value()) {
+            // rtp_receiver.join_multicast_group(
+                // asio::ip::make_address(*multicast_addr), asio::ip::make_address(*multicast_interface)
+            // );
+        // } else {
+            // rtp_receiver.join_multicast_group(asio::ip::make_address(*multicast_addr), {});
+        // }
+    // }
 
     asio::signal_set signals(io_context, SIGINT, SIGTERM);
 
     signals.async_wait([&rtp_receiver](const std::error_code&, int) {
-        rtp_receiver.stop();
+        // rtp_receiver.stop();
     });
 
     std::thread io_thread([&io_context] {
@@ -228,7 +226,6 @@ int main(int const argc, char* argv[]) {
     fmt::println("Press return key to stop...");
     std::cin.get();
 
-    rtp_receiver.stop();
     signals.cancel();
     io_thread.join();
 

@@ -22,7 +22,7 @@ namespace {
 
 #if RAV_WINDOWS
 size_t receive_from_socket(
-    asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf asio::ip::udp::endpoint& src_endpoint,
+    asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, asio::ip::udp::endpoint& src_endpoint,
     asio::ip::udp::endpoint& dst_endpoint, asio::error_code& ec
 ) {
     // Set up the message structure

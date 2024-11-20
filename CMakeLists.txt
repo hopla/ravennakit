@@ -270,6 +270,27 @@ if (${BUILD_EXAMPLES})
         target_link_libraries(ravenna_node_example PUBLIC tracy)
     endif ()
 
+    ###############################
+    # udp_sender_receiver_example #
+    ###############################
+
+    add_executable(udp_sender_receiver_example
+            examples/udp_sender_receiver_example.cpp
+    )
+
+    target_link_libraries(udp_sender_receiver_example
+            PUBLIC
+            rav_recommended_warning_flags
+            rav_recommended_lto_flags
+            PRIVATE
+            ravennakit
+            CLI11::CLI11
+    )
+
+    if (TRACY_ENABLE)
+        target_link_libraries(ravenna_node_example PUBLIC tracy)
+    endif ()
+
 endif ()
 
 ##############

@@ -105,26 +105,8 @@ class rtp_receiver {
     void unsubscribe(const subscriber& subscriber_to_remove);
 
   private:
-    class subscriber_context {
-      public:
-        subscriber_context(subscriber* subscriber, rtp_filter filter) :
-            subscriber_(subscriber), filter_(std::move(filter)) {}
-
-        [[nodiscard]] subscriber* get_subscriber() const {
-            return subscriber_;
-        }
-
-        [[nodiscard]] const rtp_filter& get_filter() const {
-            return filter_;
-        }
-
-        void set_filter(rtp_filter filter) {
-            filter_ = std::move(filter);
-        }
-
-      private:
-        subscriber* subscriber_ {};
-        rtp_filter filter_;
+    struct subscriber_context {
+        rtp_filter filter;
     };
 
     class stream_state {
@@ -142,7 +124,7 @@ class rtp_receiver {
     struct session_context {
         rtp_session session;
         std::vector<stream_state> streams;
-        std::vector<subscriber_context> subscribers;
+        subscriber_list<subscriber, subscriber_context> subscribers;
         std::shared_ptr<udp_sender_receiver> rtp_sender_receiver;
         std::shared_ptr<udp_sender_receiver> rtcp_sender_receiver;
         subscription rtp_multicast_subscription;

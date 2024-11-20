@@ -114,7 +114,7 @@ class subscriber_list {
      * @param subscriber The subscriber to remove.
      * @returns true if the subscriber was removed, or false if it was not in the list.
      */
-    bool remove(T* subscriber) {
+    bool remove(const T* subscriber) {
         for (auto it = subscribers_.begin(); it != subscribers_.end(); ++it) {
             if (it->first == subscriber) {
                 subscribers_.erase(it);

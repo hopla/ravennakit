@@ -48,32 +48,15 @@ void rav::rtp_receiver::subscribe(subscriber& subscriber_to_add, const rtp_sessi
 
     RAV_ASSERT(context != nullptr, "Expecting valid session at this point");
 
-    // Check if already subscribed, and update the filter if so
-    for (auto& sub : context->subscribers) {
-        if (sub.get_subscriber() == &subscriber_to_add) {
-            sub.set_filter(filter);
-            return;
-        }
-    }
-
-    context->subscribers.emplace_back(&subscriber_to_add, filter);
+    context->subscribers.add_or_update_context(&subscriber_to_add, subscriber_context {filter});
 }
 
 void rav::rtp_receiver::unsubscribe(const subscriber& subscriber_to_remove) {
-    for (auto session = sessions_contexts_.begin(); session != sessions_contexts_.end();) {
-        for (auto sub = session->subscribers.begin(); sub != session->subscribers.end();) {
-            if (sub->get_subscriber() == &subscriber_to_remove) {
-                sub = session->subscribers.erase(sub);
-            } else {
-                ++sub;
-            }
-        }
-
-        // Remove the session if there are no more subscribers
-        if (session->subscribers.empty()) {
-            session = sessions_contexts_.erase(session);
+    for (auto it = sessions_contexts_.begin(); it != sessions_contexts_.end();) {
+        if (it->subscribers.remove(&subscriber_to_remove) && it->subscribers.empty()) {
+            it = sessions_contexts_.erase(it);
         } else {
-            ++session;
+            ++it;
         }
     }
 }
@@ -179,30 +162,28 @@ void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv
     }
     const rtp_packet_event rtp_event {packet, event.src_endpoint, event.dst_endpoint};
 
-    for (auto& context : sessions_contexts_) {
-        if (context.session.connection_address == event.dst_endpoint.address()
-            && context.session.rtp_port == event.dst_endpoint.port()) {
+    for (auto& session_context : sessions_contexts_) {
+        if (session_context.session.connection_address == event.dst_endpoint.address()
+            && session_context.session.rtp_port == event.dst_endpoint.port()) {
             bool did_find_stream = false;
 
-            for (auto& stream : context.streams) {
+            for (auto& stream : session_context.streams) {
                 if (stream.ssrc() == packet.ssrc()) {
                     did_find_stream = true;
                 }
             }
 
             if (!did_find_stream) {
-                auto& it = context.streams.emplace_back(packet.ssrc());
+                auto& it = session_context.streams.emplace_back(packet.ssrc());
                 RAV_TRACE(
                     "Added new stream with SSRC {} from {}:{}", it.ssrc(), event.src_endpoint.address().to_string(),
                     event.src_endpoint.port()
                 );
             }
 
-            for (auto& subscriber : context.subscribers) {
-                if (subscriber.get_filter().is_valid_source(
-                        event.dst_endpoint.address(), event.src_endpoint.address()
-                    )) {
-                    subscriber.get_subscriber()->on_rtp_packet(rtp_event);
+            for (auto& [subscriber, context] : session_context.subscribers) {
+                if (context.filter.is_valid_source(event.dst_endpoint.address(), event.src_endpoint.address())) {
+                    subscriber->on_rtp_packet(rtp_event);
                 }
             }
         }

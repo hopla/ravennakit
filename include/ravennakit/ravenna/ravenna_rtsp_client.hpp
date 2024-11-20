@@ -43,7 +43,7 @@ class ravenna_rtsp_client {
          * Called when a session is announced.
          * @param event The announced event.
          */
-        virtual void on([[maybe_unused]] const announced_event& event) {}
+        virtual void on_announced([[maybe_unused]] const announced_event& event) {}
 
       protected:
         /**

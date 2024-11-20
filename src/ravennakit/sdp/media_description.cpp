@@ -15,6 +15,10 @@
 #include "ravennakit/sdp/session_description.hpp"
 #include "ravennakit/sdp/source_filter.hpp"
 
+std::string rav::sdp::format::to_string() const {
+    return fmt::format("{} {}/{}/{}", payload_type, encoding_name, clock_rate, num_channels);
+}
+
 rav::sdp::format::parse_result<rav::sdp::format> rav::sdp::format::parse_new(const std::string_view line) {
     string_parser parser(line);
 
@@ -523,4 +527,13 @@ std::optional<int> rav::sdp::media_description::framecount() const {
 
 const std::map<std::string, std::string>& rav::sdp::media_description::attributes() const {
     return attributes_;
+}
+
+bool rav::sdp::operator==(const format& lhs, const format& rhs) {
+    return std::tie(lhs.payload_type, lhs.encoding_name, lhs.clock_rate, lhs.num_channels)
+        == std::tie(rhs.payload_type, rhs.encoding_name, rhs.clock_rate, rhs.num_channels);
+}
+
+bool rav::sdp::operator!=(const format& lhs, const format& rhs) {
+    return !(lhs == rhs);
 }

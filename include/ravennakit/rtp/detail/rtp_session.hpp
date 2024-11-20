@@ -11,6 +11,7 @@
 #pragma once
 
 #include <asio.hpp>
+#include <fmt/format.h>
 
 namespace rav {
 
@@ -23,6 +24,10 @@ struct rtp_session {
         connection_address = asio::ip::address{};
         rtp_port = {};
         rtcp_port = {};
+    }
+
+    [[nodiscard]] std::string to_string() const {
+        return fmt::format("{}:{}:{}", connection_address.to_string(), rtp_port, rtcp_port);
     }
 
     friend auto operator==(const rtp_session& lhs, const rtp_session& rhs) -> bool {

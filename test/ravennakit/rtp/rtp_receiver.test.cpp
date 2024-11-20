@@ -8,7 +8,7 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
-#include "ravennakit/rtp/rtp_receiver.hpp"
+#include "ravennakit/rtp/detail/rtp_receiver.hpp"
 
 #include <catch2/catch_all.hpp>
 

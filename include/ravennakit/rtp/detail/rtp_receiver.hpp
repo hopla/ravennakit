@@ -10,10 +10,11 @@
 
 #pragma once
 
-#include "rtcp_packet_view.hpp"
-#include "rtp_packet_view.hpp"
-#include "detail/rtp_session.hpp"
-#include "detail/udp_sender_receiver.hpp"
+#include "../rtcp_packet_view.hpp"
+#include "../rtp_packet_view.hpp"
+#include "rtp_session.hpp"
+#include "rtp_stream.hpp"
+#include "udp_sender_receiver.hpp"
 #include "ravennakit/core/events.hpp"
 #include "ravennakit/core/linked_node.hpp"
 #include "ravennakit/core/subscriber_list.hpp"
@@ -63,13 +64,13 @@ class rtp_receiver {
          * Called when an RTP packet is received.
          * @param rtp_event The RTP packet event.
          */
-        virtual void on([[maybe_unused]] const rtp_packet_event& rtp_event) {}
+        virtual void on_rtp_packet([[maybe_unused]] const rtp_packet_event& rtp_event) {}
 
         /**
          * Called when an RTCP packet is received.
          * @param rtcp_event The RTCP packet event.
          */
-        virtual void on([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
+        virtual void on_rtcp_packet([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
     };
 
     rtp_receiver() = delete;
@@ -102,13 +103,9 @@ class rtp_receiver {
     void unsubscribe(subscriber& subscriber_to_add);
 
   private:
-    struct source {
-        uint32_t ssrc {};
-    };
-
     struct session_context {
         rtp_session session;
-        std::vector<source> sources;
+        std::vector<rtp_stream> streams;
         subscriber_list<subscriber> subscribers;
         std::shared_ptr<udp_sender_receiver> rtp_sender_receiver;
         std::shared_ptr<udp_sender_receiver> rtcp_sender_receiver;

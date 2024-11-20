@@ -10,7 +10,7 @@
 
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/rtp/rtcp_packet_view.hpp"
-#include "ravennakit/rtp/rtp_receiver.hpp"
+#include "ravennakit/rtp/detail/rtp_receiver.hpp"
 
 #include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
@@ -79,19 +79,12 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_contex
     new_session.rtp_sender_receiver = find_rtp_sender_receiver(session.rtp_port);
     new_session.rtcp_sender_receiver = find_rtcp_sender_receiver(session.rtcp_port);
 
-    const auto any_addr = asio::ip::address_v4();
-    const auto bind_addr = config_.interface_address;
+    // TODO: The udp_sender_receivers should be differentiated by the binding address because for multicast we need to
+    // bind to the any (0.0.0.0) address, but for unicast we need to bind to the interface address.
 
     if (new_session.rtp_sender_receiver == nullptr) {
-        if (session.connection_address.is_multicast()) {
-            new_session.rtp_sender_receiver =
-                std::make_shared<udp_sender_receiver>(io_context_, any_addr, session.rtp_port);
-            new_session.rtp_multicast_subscription =
-                new_session.rtp_sender_receiver->join_multicast_group(session.connection_address, bind_addr);
-        } else {
-            new_session.rtp_sender_receiver =
-                std::make_shared<udp_sender_receiver>(io_context_, bind_addr, session.rtp_port);
-        }
+        new_session.rtp_sender_receiver =
+            std::make_shared<udp_sender_receiver>(io_context_, asio::ip::address_v4(), session.rtp_port);
         // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
         new_session.rtp_sender_receiver->start([this](const udp_sender_receiver::recv_event& event) {
             handle_incoming_rtp_data(event);
@@ -99,22 +92,25 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_contex
     }
 
     if (new_session.rtcp_sender_receiver == nullptr) {
-        if (session.connection_address.is_multicast()) {
-            new_session.rtcp_sender_receiver =
-                std::make_shared<udp_sender_receiver>(io_context_, any_addr, session.rtcp_port);
-            new_session.rtcp_multicast_subscription =
-                new_session.rtcp_sender_receiver->join_multicast_group(session.connection_address, bind_addr);
-        } else {
-            new_session.rtcp_sender_receiver =
-                std::make_shared<udp_sender_receiver>(io_context_, bind_addr, session.rtcp_port);
-        }
+        new_session.rtcp_sender_receiver =
+            std::make_shared<udp_sender_receiver>(io_context_, asio::ip::address_v4(), session.rtcp_port);
         // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
         new_session.rtcp_sender_receiver->start([this](const udp_sender_receiver::recv_event& event) {
             handle_incoming_rtcp_data(event);
         });
     }
 
+    if (session.connection_address.is_multicast()) {
+        new_session.rtp_multicast_subscription = new_session.rtp_sender_receiver->join_multicast_group(
+            session.connection_address, config_.interface_address
+        );
+        new_session.rtcp_multicast_subscription = new_session.rtcp_sender_receiver->join_multicast_group(
+            session.connection_address, config_.interface_address
+        );
+    }
+
     sessions_contexts_.emplace_back(std::move(new_session));
+    RAV_TRACE("New session context created for session {}", session.to_string());
     return &sessions_contexts_.back();
 }
 
@@ -163,6 +159,24 @@ void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv
         "{} from {}:{} to {}:{}", packet.to_string(), rtp_event.src_endpoint.address().to_string(),
         rtp_event.src_endpoint.port(), rtp_event.dst_endpoint.address().to_string(), rtp_event.dst_endpoint.port()
     );
+
+    for (auto& context : sessions_contexts_) {
+        if (context.session.connection_address == event.dst_endpoint.address()
+            && context.session.rtp_port == event.dst_endpoint.port()) {
+            bool did_find_source = false;
+
+            for (auto& source : context.streams) {
+                if (source.ssrc() == packet.ssrc()) {
+                    did_find_source = true;
+                }
+            }
+
+            if (!did_find_source) {
+                auto& it = context.streams.emplace_back(packet.ssrc());
+                RAV_TRACE("Added new source with SSRC {}", packet.ssrc());
+            }
+        }
+    }
 
     // TODO: Process the packet
 }

@@ -28,7 +28,7 @@ void rav::ravenna_rtsp_client::subscriber::subscribe_to_ravenna_rtsp_client(rave
         if (session.session_name == session_name) {
             session.subscribers.push_back(node_);
             if (session.sdp_.has_value()) {
-                on(announced_event {session_name, *session.sdp_});
+                on_announced(announced_event {session_name, *session.sdp_});
             }
             return;
         }
@@ -197,7 +197,7 @@ void rav::ravenna_rtsp_client::handle_incoming_sdp(const std::string& sdp_text) 
             session.sdp_ = sdp;
             session.subscribers.foreach ([&](auto& node) {
                 if (auto* s = node->first) {
-                    s->on(announced_event {session.session_name, sdp});
+                    s->on_announced(announced_event {session.session_name, sdp});
                 }
             });
         }

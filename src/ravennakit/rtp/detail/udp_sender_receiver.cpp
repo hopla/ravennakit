@@ -71,15 +71,9 @@ size_t receive_from_socket(
 
             char dest_ip[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &dest_addr, dest_ip, sizeof(dest_ip));
-            std::cout << "Received packet destined to: " << dest_ip << std::endl;
             break;
         }
     }
-
-    RAV_TRACE(
-        "Received from {}:{} to {}:{}", src_endpoint.address().to_string(), src_endpoint.port(),
-        dst_endpoint.address().to_string(), dst_endpoint.port()
-    );
 
     return bytes_received;
 }

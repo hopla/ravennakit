@@ -22,33 +22,31 @@ void rav::fifo::position::update(const size_t pointer, const size_t capacity, co
 }
 
 rav::fifo::single::lock rav::fifo::single::prepare_for_write(const size_t number_of_elements) {
-    if (size_ + number_of_elements > capacity_) {
+    if (size() + number_of_elements > capacity_) {
         return {};
     }
 
     lock write_lock([this, number_of_elements] {
         write_ts_ += number_of_elements;
-        size_ += number_of_elements;
     });
     write_lock.position.update(write_ts_, capacity_, number_of_elements);
     return write_lock;
 }
 
 rav::fifo::single::lock rav::fifo::single::prepare_for_read(const size_t number_of_elements) {
-    if (size_ < number_of_elements) {
+    if (size() < number_of_elements) {
         return {};
     }
 
     lock read_lock([this, number_of_elements] {
         read_ts_ += number_of_elements;
-        size_ -= number_of_elements;
     });
     read_lock.position.update(read_ts_, capacity_, number_of_elements);
     return read_lock;
 }
 
 size_t rav::fifo::single::size() const {
-    return size_;
+    return write_ts_ - read_ts_;
 }
 
 void rav::fifo::single::resize(const size_t capacity) {
@@ -59,7 +57,6 @@ void rav::fifo::single::resize(const size_t capacity) {
 void rav::fifo::single::reset() {
     read_ts_ = 0;
     write_ts_ = 0;
-    size_ = 0;
 }
 
 rav::fifo::spsc::lock rav::fifo::spsc::prepare_for_write(const size_t number_of_elements) {
@@ -68,10 +65,10 @@ rav::fifo::spsc::lock rav::fifo::spsc::prepare_for_write(const size_t number_of_
     }
 
     lock write_lock([this, number_of_elements] {
-        write_ = (write_ + number_of_elements) % capacity_;
+        write_ts_ += number_of_elements;
         size_.fetch_add(number_of_elements, std::memory_order_release);
     });
-    write_lock.position.update(write_, capacity_, number_of_elements);
+    write_lock.position.update(write_ts_, capacity_, number_of_elements);
     return write_lock;
 }
 
@@ -81,10 +78,10 @@ rav::fifo::spsc::lock rav::fifo::spsc::prepare_for_read(const size_t number_of_e
     }
 
     lock read_lock([this, number_of_elements] {
-        read_ = (read_ + number_of_elements) % capacity_;
+        read_ts_ += number_of_elements;
         size_.fetch_sub(number_of_elements, std::memory_order_release);
     });
-    read_lock.position.update(read_, capacity_, number_of_elements);
+    read_lock.position.update(read_ts_, capacity_, number_of_elements);
     return read_lock;
 }
 
@@ -94,8 +91,8 @@ void rav::fifo::spsc::resize(const size_t capacity) {
 }
 
 void rav::fifo::spsc::reset() {
-    read_ = 0;
-    write_ = 0;
+    read_ts_ = 0;
+    write_ts_ = 0;
     size_ = 0;
 }
 

@@ -19,29 +19,17 @@ std::string rav::sdp::format::to_string() const {
     return fmt::format("{} {}/{}/{}", payload_type, encoding_name, clock_rate, num_channels);
 }
 
-std::optional<size_t> rav::sdp::format::bytes_per_sample() const {
+std::optional<rav::audio_format> rav::sdp::format::to_audio_format() const {
     if (encoding_name == "L16") {
-        return 2;
+        return audio_format{audio_encoding::pcm_s16be, clock_rate, num_channels};
     }
     if (encoding_name == "L24") {
-        return 3;
+        return audio_format{audio_encoding::pcm_s24be, clock_rate, num_channels};
     }
     if (encoding_name == "L32") {
-        return 4;
+        return audio_format{audio_encoding::pcm_s32be, clock_rate, num_channels};
     }
     return std::nullopt;
-}
-
-std::optional<size_t> rav::sdp::format::bytes_per_frame() const {
-    const auto bytes_per_sample = this->bytes_per_sample();
-    if (!bytes_per_sample) {
-        return std::nullopt;
-    }
-    if (num_channels == 0) {
-        RAV_WARNING("Number of channels is 0, cannot determine bytes per frame.");
-        return std::nullopt;
-    }
-    return *bytes_per_sample * num_channels;
 }
 
 rav::sdp::format::parse_result<rav::sdp::format> rav::sdp::format::parse_new(const std::string_view line) {

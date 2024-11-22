@@ -41,7 +41,7 @@ rav::rtp_stream_receiver::~rtp_stream_receiver() {
 void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     const sdp::media_description* selected_media_description = nullptr;
     const sdp::connection_info_field* selected_connection_info = nullptr;
-    const sdp::format* selected_format = nullptr;
+    std::optional<audio_format> selected_audio_format;
 
     for (auto& media_description : sdp.media_descriptions()) {
         if (media_description.media_type() != "audio") {
@@ -58,13 +58,21 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
 
         // The first acceptable payload format from the beginning of the list SHOULD be used for the session.
         // https://datatracker.ietf.org/doc/html/rfc8866#name-media-descriptions-m
-        if (media_description.formats().empty()) {
-            RAV_WARNING("No formats in SDP");
-            continue;
+        // TODO: Query subclass for supported formats (by looping the available formats)
+        selected_audio_format.reset();  // Prevent format from previous iteration from being used
+        for (auto& format : media_description.formats()) {
+            selected_audio_format = format.to_audio_format();
+            if (!selected_audio_format) {
+                RAV_WARNING("Not a supported audio format: {}", format.to_string());
+                continue;
+            }
+            break;
         }
 
-        // TODO: Query subclass for supported formats (by looping the available formats)
-        selected_format = &media_description.formats().front();
+        if (!selected_audio_format) {
+            RAV_WARNING("No supported audio format found");
+            continue;
+        }
 
         for (auto& conn : media_description.connection_infos()) {
             if (!is_connection_info_valid(conn)) {
@@ -82,8 +90,8 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
         return;
     }
 
-    if (!selected_format) {
-        RAV_WARNING("No suitable format found in SDP");
+    if (!selected_audio_format) {
+        RAV_WARNING("No media description with supported audio format available");
         return;
     }
 
@@ -105,7 +113,7 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     uint32_t packet_time_frames = 0;
     const auto ptime = selected_media_description->ptime();
     if (ptime.has_value()) {
-        packet_time_frames = static_cast<uint32_t>(std::round(*ptime * selected_format->clock_rate)) / 1000;
+        packet_time_frames = static_cast<uint32_t>(std::round(*ptime * selected_audio_format->sample_rate)) / 1000;
     }
 
     if (packet_time_frames == 0) {
@@ -152,18 +160,27 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     stream.filter = filter;
     stream.packet_time_frames = packet_time_frames;
 
-    if (selected_format_ != *selected_format) {
+    if (selected_format_ != *selected_audio_format) {
         should_restart = true;
-        selected_format_ = *selected_format;
-        RAV_TRACE("Format changed from {} to {}", selected_format_, *selected_format);
+        RAV_TRACE(
+            "Audio format changed from {} to {}", selected_format_.to_string(), selected_audio_format->to_string()
+        );
+        on_audio_format_changed(*selected_audio_format);
+        selected_format_ = *selected_audio_format;
     }
 
-    // TODO: Remove stream_infos which are not in the SDP anymore. If there are such sessions we would probably also
-    // want to do a restart.
+    // Delete all streams that are not in the SDP anymore
+    for (auto it = streams_.begin(); it != streams_.end();) {
+        if (it->session != session) {
+            it = streams_.erase(it);
+            should_restart = true;
+        } else {
+            ++it;
+        }
+    }
 
     if (should_restart) {
         restart();
-        RAV_TRACE("Restarted rtp_stream_receiver");
     }
 }
 
@@ -176,19 +193,20 @@ void rav::rtp_stream_receiver::set_delay(const uint32_t delay) {
 }
 
 void rav::rtp_stream_receiver::restart() {
-    rtp_receiver_.unsubscribe(*this);  // This unsubscribes this from all sessions
+    rtp_receiver_.unsubscribe(*this);  // This unsubscribes `this` from all sessions
 
-    const auto bytes_per_frame = selected_format_.bytes_per_sample();
-    if (!bytes_per_frame.has_value()) {
-        RAV_ERROR("Unable to determine bytes per frame for format {}", selected_format_.to_string());
-        return;
-    }
+    const auto bytes_per_frame = selected_format_.bytes_per_frame();
+    RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
-    receiver_buffer_.resize(delay_ * k_delay_multiplier, bytes_per_frame.value());
+    receiver_buffer_.resize(delay_ * k_delay_multiplier, bytes_per_frame);
 
     for (auto& stream : streams_) {
         rtp_receiver_.subscribe(*this, stream.session, stream.filter);
     }
+
+    on_stream_started();
+
+    RAV_TRACE("(Re)Started rtp_stream_receiver");
 }
 
 rav::rtp_stream_receiver::stream_info&

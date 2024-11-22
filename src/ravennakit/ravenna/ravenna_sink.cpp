@@ -56,3 +56,9 @@ void rav::ravenna_sink::set_session_name(std::string session_name) {
     session_name_ = std::move(session_name);
     subscribe_to_ravenna_rtsp_client(rtsp_client_, session_name_);
 }
+
+void rav::ravenna_sink::on_audio_format_changed(const audio_format& new_format) {
+}
+
+void rav::ravenna_sink::on_stream_started() {
+}

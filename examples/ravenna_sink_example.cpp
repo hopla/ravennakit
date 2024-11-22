@@ -37,8 +37,7 @@ int main(int const argc, char* argv[]) {
     auto node_browser = rav::dnssd::dnssd_browser::create(io_context);
 
     if (node_browser == nullptr) {
-        fmt::println("No dnssd browser available. Exiting.");
-        exit(0);
+        RAV_THROW_EXCEPTION("No dnssd browser available");
     }
 
     node_browser->browse_for("_rtsp._tcp,_ravenna_session");

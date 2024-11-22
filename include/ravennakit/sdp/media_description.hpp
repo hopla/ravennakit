@@ -20,6 +20,7 @@
 #include "ravennakit/core/string_parser.hpp"
 #include "reference_clock.hpp"
 #include "source_filter.hpp"
+#include "ravennakit/core/audio/audio_format.hpp"
 
 #include <map>
 
@@ -41,14 +42,9 @@ struct format {
     [[nodiscard]] std::string to_string() const;
 
     /**
-     * @return The size of a sample in bytes, or an empty optional if the size cannot be determined.
+     * @return The format as audio_format, or nullopt if the format is not supported or cannot be converted.
      */
-    [[nodiscard]] std::optional<size_t> bytes_per_sample() const;
-
-    /**
-     * @return The size of a frame in bytes, or an empty optional if the size cannot be determined.
-     */
-    [[nodiscard]] std::optional<size_t> bytes_per_frame() const;
+    [[nodiscard]] std::optional<audio_format> to_audio_format() const;
 
     /**
      * Parses a format from a string.

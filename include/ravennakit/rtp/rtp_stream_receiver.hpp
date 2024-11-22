@@ -29,6 +29,10 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     void on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) override;
     void on_rtcp_packet(const rtp_receiver::rtcp_packet_event& rtcp_event) override;
 
+  protected:
+    virtual void on_audio_format_changed([[maybe_unused]] const audio_format& new_format) {}
+    virtual void on_stream_started() {}
+
   private:
     struct stream_info {
         rtp_session session;
@@ -37,10 +41,10 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
         uint32_t packet_time_frames = 0;
     };
 
-    static constexpr uint32_t k_delay_multiplier = 2; // The buffer size is twice the delay.
+    static constexpr uint32_t k_delay_multiplier = 2;  // The buffer size is twice the delay.
 
     rtp_receiver& rtp_receiver_;
-    sdp::format selected_format_;
+    audio_format selected_format_;
     rtp_receive_buffer receiver_buffer_;
     std::vector<stream_info> streams_;
     uint32_t delay_ = 480;

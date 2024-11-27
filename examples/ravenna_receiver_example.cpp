@@ -53,7 +53,7 @@ class portaudio_stream {
         output_params.device = *device_index;
         output_params.channelCount = channel_count;
         output_params.sampleFormat = sample_format;
-        output_params.suggestedLatency = Pa_GetDeviceInfo(*device_index)->defaultHighOutputLatency;
+        output_params.suggestedLatency = Pa_GetDeviceInfo(*device_index)->defaultLowOutputLatency;
         output_params.hostApiSpecificStreamInfo = nullptr;
 
         auto error =

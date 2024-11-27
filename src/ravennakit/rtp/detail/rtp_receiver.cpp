@@ -106,6 +106,7 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_contex
             std::make_shared<udp_sender_receiver>(io_context_, asio::ip::address_v4(), session.rtp_port);
         // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
         new_session.rtp_sender_receiver->start([this](const udp_sender_receiver::recv_event& event) {
+            TRACY_ZONE_SCOPED;
             handle_incoming_rtp_data(event);
         });
     }
@@ -115,6 +116,7 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_contex
             std::make_shared<udp_sender_receiver>(io_context_, asio::ip::address_v4(), session.rtcp_port);
         // Capturing this is valid because rtp_receiver will stop the udp_sender_receiver before it goes out of scope.
         new_session.rtcp_sender_receiver->start([this](const udp_sender_receiver::recv_event& event) {
+            TRACY_ZONE_SCOPED;
             handle_incoming_rtcp_data(event);
         });
     }
@@ -168,6 +170,8 @@ std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtcp_sender_re
 }
 
 void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv_event& event) {
+    TRACY_ZONE_SCOPED;
+
     const rtp_packet_view packet(event.data, event.size);
     if (!packet.validate()) {
         RAV_WARNING("Invalid RTP packet received");
@@ -207,6 +211,8 @@ void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv
 }
 
 void rav::rtp_receiver::handle_incoming_rtcp_data(const udp_sender_receiver::recv_event& event) {
+    TRACY_ZONE_SCOPED;
+
     const rtcp_packet_view packet(event.data, event.size);
     if (!packet.validate()) {
         RAV_WARNING("Invalid RTCP packet received");

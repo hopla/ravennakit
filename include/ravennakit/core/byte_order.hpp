@@ -54,7 +54,7 @@ static constexpr bool big_endian = false;
 
 namespace rav::byte_order {
 
-enum class endianness { little_endian = 0, big_endian };
+
 
 /**
  * Swaps given amount of bytes in the given data, in place.

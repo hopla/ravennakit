@@ -10,6 +10,8 @@
 
 #include "ravennakit/rtp/rtp_stream_receiver.hpp"
 
+#include "ravennakit/core/tracy.hpp"
+
 namespace {
 
 bool is_connection_info_valid(const rav::sdp::connection_info_field& conn) {
@@ -165,7 +167,9 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
         RAV_TRACE(
             "Audio format changed from {} to {}", selected_format_.to_string(), selected_audio_format->to_string()
         );
-        on_audio_format_changed(*selected_audio_format);
+        for (const auto& subscriber : subscribers_) {
+            subscriber->on_audio_format_changed(*selected_audio_format);
+        }
         selected_format_ = *selected_audio_format;
     }
 
@@ -192,6 +196,23 @@ void rav::rtp_stream_receiver::set_delay(const uint32_t delay) {
     restart();
 }
 
+bool rav::rtp_stream_receiver::add_subscriber(subscriber* subscriber) {
+    // TODO: call subscriber with current state
+    if (!subscribers_.add(subscriber)) {
+        return false;
+    }
+    subscriber->on_stream_started();
+    return true;
+}
+
+bool rav::rtp_stream_receiver::remove_subscriber(subscriber* subscriber) {
+    return subscribers_.remove(subscriber);
+}
+
+bool rav::rtp_stream_receiver::read_data(const size_t at_timestamp, uint8_t* buffer, const size_t buffer_size) {
+    return receiver_buffer_.read(at_timestamp, buffer, buffer_size);
+}
+
 void rav::rtp_stream_receiver::restart() {
     rtp_receiver_.unsubscribe(*this);  // This unsubscribes `this` from all sessions
 
@@ -202,9 +223,12 @@ void rav::rtp_stream_receiver::restart() {
 
     for (auto& stream : streams_) {
         rtp_receiver_.subscribe(*this, stream.session, stream.filter);
+        stream.first_packet = true;
     }
 
-    on_stream_started();
+    for (const auto& subscriber : subscribers_) {
+        subscriber->on_stream_started();
+    }
 
     RAV_TRACE("(Re)Started rtp_stream_receiver");
 }
@@ -221,11 +245,9 @@ rav::rtp_stream_receiver::find_or_create_stream_info(const rtp_session& session)
 }
 
 void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_view& packet, stream_info& stream) {
-    receiver_buffer_.clear_until(packet.timestamp());
+    TRACY_ZONE_SCOPED;
 
-    if (packet.sequence_number() > stream.sequence_number) {
-        stream.sequence_number = packet.sequence_number();
-    }
+    receiver_buffer_.clear_until(packet.timestamp());
 
     // Discard packet if it's too old
     if (packet.timestamp() + stream.packet_time_frames < receiver_buffer_.next_ts() - delay_) {
@@ -236,6 +258,26 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
     if (!receiver_buffer_.write(packet.timestamp(), packet.payload_data())) {
         RAV_ERROR("Packet not written to buffer");
     }
+
+    if (stream.first_packet) {
+        stream.first_packet = false;
+        for (const auto& subscriber : subscribers_) {
+            subscriber->on_first_packet(packet.timestamp(), delay_);
+        }
+    }
+
+    TRACY_PLOT("RTP Timestamp", static_cast<int64_t>(packet.timestamp()));
+
+    if (stream.sequence_number != 0 && packet.sequence_number() > stream.sequence_number + 1) {
+        RAV_TRACE(
+            "Packets dropped: [{}, {}] total: {}", stream.sequence_number, packet.sequence_number() - 1,
+            packet.sequence_number() - stream.sequence_number - 1
+        );
+    }
+
+    if (packet.sequence_number() > stream.sequence_number) {
+        stream.sequence_number = packet.sequence_number();
+    }
 }
 
 void rav::rtp_stream_receiver::on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) {
@@ -244,10 +286,10 @@ void rav::rtp_stream_receiver::on_rtp_packet(const rtp_receiver::rtp_packet_even
     // rtp_receiver::subscriber to determine whether the packet should be filtered or not. But since we need to call a
     // virtual function anyway (this one) we might as well filter it here.
 
-    RAV_TRACE(
-        "{} for session {} from {}:{}", rtp_event.packet.to_string(), rtp_event.session.to_string(),
-        rtp_event.src_endpoint.address().to_string(), rtp_event.src_endpoint.port()
-    );
+    // RAV_TRACE(
+    // "{} for session {} from {}:{}", rtp_event.packet.to_string(), rtp_event.session.to_string(),
+    // rtp_event.src_endpoint.address().to_string(), rtp_event.src_endpoint.port()
+    // );
 
     for (auto& stream : streams_) {
         if (rtp_event.session == stream.session) {

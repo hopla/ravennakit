@@ -21,13 +21,13 @@ std::string rav::sdp::format::to_string() const {
 
 std::optional<rav::audio_format> rav::sdp::format::to_audio_format() const {
     if (encoding_name == "L16") {
-        return audio_format{audio_encoding::pcm_s16be, clock_rate, num_channels};
+        return audio_format {audio_encoding::pcm_s16, clock_rate, num_channels, audio_format::byte_order::be};
     }
     if (encoding_name == "L24") {
-        return audio_format{audio_encoding::pcm_s24be, clock_rate, num_channels};
+        return audio_format {audio_encoding::pcm_s24, clock_rate, num_channels, audio_format::byte_order::be};
     }
     if (encoding_name == "L32") {
-        return audio_format{audio_encoding::pcm_s32be, clock_rate, num_channels};
+        return audio_format {audio_encoding::pcm_s32, clock_rate, num_channels, audio_format::byte_order::be};
     }
     return std::nullopt;
 }

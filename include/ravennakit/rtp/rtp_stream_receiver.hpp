@@ -19,6 +19,15 @@ namespace rav {
 
 class rtp_stream_receiver: public rtp_receiver::subscriber {
   public:
+    class subscriber {
+    public:
+        virtual ~subscriber() = default;
+
+        virtual void on_audio_format_changed([[maybe_unused]] const audio_format& new_format) {}
+        virtual void on_stream_started() {}
+        virtual void on_first_packet([[maybe_unused]] uint32_t timestamp, [[maybe_unused]] uint32_t delay) {}
+    };
+
     explicit rtp_stream_receiver(rtp_receiver& receiver);
 
     ~rtp_stream_receiver() override;
@@ -26,12 +35,21 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     void update_sdp(const sdp::session_description& sdp);
     void set_delay(uint32_t delay);
 
+    bool add_subscriber(subscriber* subscriber);
+    bool remove_subscriber(subscriber* subscriber);
+
+    /**
+     * Reads data from the buffer at the given timestamp.
+     * @param at_timestamp The timestamp to read from.
+     * @param buffer The destination to write the data to.
+     * @param buffer_size The size of the buffer in bytes.
+     * @return true if buffer_size bytes were read, or false if buffer_size bytes couldn't be read.
+     */
+    bool read_data(size_t at_timestamp, uint8_t* buffer, size_t buffer_size);
+
+    // rtp_receiver::subscriber overrides
     void on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) override;
     void on_rtcp_packet(const rtp_receiver::rtcp_packet_event& rtcp_event) override;
-
-  protected:
-    virtual void on_audio_format_changed([[maybe_unused]] const audio_format& new_format) {}
-    virtual void on_stream_started() {}
 
   private:
     struct stream_info {
@@ -39,6 +57,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
         rtp_filter filter;
         uint32_t sequence_number = 0;
         uint32_t packet_time_frames = 0;
+        bool first_packet {true};
     };
 
     static constexpr uint32_t k_delay_multiplier = 2;  // The buffer size is twice the delay.
@@ -47,7 +66,8 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     audio_format selected_format_;
     rtp_receive_buffer receiver_buffer_;
     std::vector<stream_info> streams_;
-    uint32_t delay_ = 480;
+    uint32_t delay_ = 4800; // 100ms at 48KHz
+    subscriber_list<subscriber> subscribers_;
 
     /// Restarts the streaming
     void restart();

@@ -24,6 +24,10 @@ struct position {
     size_t size1 {};
     size_t size2 {};
 
+    position() = default;
+
+    position(size_t timestamp, size_t capacity, size_t number_of_elements);
+
     /**
      * Updates the position with the given parameters.
      * @param timestamp The read or write timestamp.

@@ -42,8 +42,8 @@ class rtp_receive_buffer {
     }
 
     /**
-     * Writes data to the buffer. Expecting no gaps in the timestamps. Older packets can be written as well, but make
-     * sure packet are not too old, otherwise they might overwrite newer packets (as a result of circular buffering).
+     * Writes data to the buffer. Older packets can be written as well, but make sure packet are not too old, otherwise
+     * they might overwrite newer packets (as a result of circular buffering).
      * @param at_timestamp Places the data at this timestamp.
      * @param payload The data to write to the buffer.
      * @return true if the data was written, false if the buffer is full or the timestamp is too old.
@@ -62,12 +62,12 @@ class rtp_receive_buffer {
             return false;
         }
 
-        position_.update(at_timestamp * bytes_per_frame_, buffer_.size(), payload.size());
+        const fifo::position position(at_timestamp * bytes_per_frame_, buffer_.size(), payload.size());
 
-        std::memcpy(buffer_.data() + position_.index1, payload.data(), position_.size1);
+        std::memcpy(buffer_.data() + position.index1, payload.data(), position.size1);
 
-        if (position_.size2 > 0) {
-            std::memcpy(buffer_.data(), payload.data() + position_.size1, position_.size2);
+        if (position.size2 > 0) {
+            std::memcpy(buffer_.data(), payload.data() + position.size1, position.size2);
         }
 
         const auto end_ts = at_timestamp + payload.size_bytes() / bytes_per_frame_;
@@ -99,12 +99,12 @@ class rtp_receive_buffer {
             return false;
         }
 
-        position_.update(at_timestamp * bytes_per_frame_, buffer_.size(), buffer_size);
+        const fifo::position position(at_timestamp * bytes_per_frame_, buffer_.size(), buffer_size);
 
-        std::memcpy(buffer, buffer_.data() + position_.index1, position_.size1);
+        std::memcpy(buffer, buffer_.data() + position.index1, position.size1);
 
-        if (position_.size2 > 0) {
-            std::memcpy(buffer + position_.size1, buffer_.data(), position_.size2);
+        if (position.size2 > 0) {
+            std::memcpy(buffer + position.size1, buffer_.data(), position.size2);
         }
 
         return true;
@@ -121,12 +121,15 @@ class rtp_receive_buffer {
         }
 
         const auto number_of_elements = (at_timestamp - next_ts_) * bytes_per_frame_;
-        position_.update(next_ts_ * bytes_per_frame_, buffer_.size(), std::min(number_of_elements, buffer_.size()));
 
-        std::memset(buffer_.data() + position_.index1, clear_value_, position_.size1);
+        const fifo::position position(
+            next_ts_ * bytes_per_frame_, buffer_.size(), std::min(number_of_elements, buffer_.size())
+        );
 
-        if (position_.size2 > 0) {
-            std::memset(buffer_.data(), clear_value_, position_.size2);
+        std::memset(buffer_.data() + position.index1, clear_value_, position.size1);
+
+        if (position.size2 > 0) {
+            std::memset(buffer_.data(), clear_value_, position.size2);
         }
 
         next_ts_ = at_timestamp;
@@ -143,10 +146,10 @@ class rtp_receive_buffer {
     /**
      * Sets the value to clear the buffer with. For example, 0x0 for signed audio samples, 0x80 for unsigned 8-bit
      * samples.
-     * @param clear_value The value to clear the buffer with.
+     * @param ground_value The value to clear the buffer with.
      */
-    void set_clear_value(const uint8_t clear_value) {
-        clear_value_ = clear_value;
+    void set_ground_value(const uint8_t ground_value) {
+        clear_value_ = ground_value;
     }
 
     /**
@@ -175,7 +178,6 @@ class rtp_receive_buffer {
 
     size_t bytes_per_frame_ = 0;   // Number of bytes (octets) per frame
     size_t next_ts_ = 0;           // Producer ts
-    fifo::position position_;      // Used for read and write operations
     std::vector<uint8_t> buffer_;  // Stored the actual data
     uint8_t clear_value_ = 0;      // Value to clear the buffer with
 };

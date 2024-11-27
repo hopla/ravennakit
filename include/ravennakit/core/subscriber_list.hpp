@@ -235,6 +235,9 @@ class subscriber_list<T, void> {
      * @return true if the subscriber was added, or false if it was already in the list.
      */
     bool add(T* subscriber) {
+        if (subscriber == nullptr) {
+            return false;
+        }
         if (contains(subscriber)) {
             return false;
         }

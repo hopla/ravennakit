@@ -18,7 +18,7 @@
 
 namespace rav {
 
-class ravenna_sink: ravenna_rtsp_client::subscriber, rtp_stream_receiver {
+class ravenna_sink: public rtp_stream_receiver, ravenna_rtsp_client::subscriber {
   public:
     explicit ravenna_sink(ravenna_rtsp_client& rtsp_client, rtp_receiver& rtp_receiver, std::string session_name);
     ~ravenna_sink() override;
@@ -32,10 +32,6 @@ class ravenna_sink: ravenna_rtsp_client::subscriber, rtp_stream_receiver {
     void start();
     void stop();
     void set_session_name(std::string session_name);
-
-protected:
-    void on_audio_format_changed(const audio_format& new_format) override;
-    void on_stream_started() override;
 
   private:
     ravenna_rtsp_client& rtsp_client_;

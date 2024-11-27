@@ -54,6 +54,8 @@ static constexpr bool big_endian = false;
 
 namespace rav::byte_order {
 
+enum class endianness { little_endian = 0, big_endian };
+
 /**
  * Swaps given amount of bytes in the given data, in place.
  * @param data The data to swap.
@@ -78,7 +80,7 @@ inline void swap_bytes(uint8_t* data, const size_t size) {
  */
 inline void swap_bytes(uint8_t* data, const size_t size, const size_t stride) {
     // Check for null data pointer or zero size
-    if (data == nullptr || size == 0) {
+    if (data == nullptr || size == 0 || stride <= 1) {
         return;
     }
 

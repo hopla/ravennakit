@@ -11,6 +11,10 @@
 #include "ravennakit/core/assert.hpp"
 #include "ravennakit/core/containers/detail/fifo.hpp"
 
+rav::fifo::position::position(const size_t timestamp, const size_t capacity, const size_t number_of_elements) {
+    update(timestamp, capacity, number_of_elements);
+}
+
 void rav::fifo::position::update(const size_t timestamp, const size_t capacity, const size_t number_of_elements) {
     RAV_ASSERT(number_of_elements <= capacity, "Number of elements must be less than or equal to capacity.");
     index1 = timestamp % capacity;

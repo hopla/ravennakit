@@ -13,8 +13,6 @@
 #include "ravennakit/ravenna/ravenna_constants.hpp"
 #include "ravennakit/rtp/detail/rtp_filter.hpp"
 
-
-
 rav::ravenna_sink::ravenna_sink(
     ravenna_rtsp_client& rtsp_client, rtp_receiver& rtp_receiver, std::string session_name
 ) :
@@ -55,10 +53,4 @@ void rav::ravenna_sink::stop() {
 void rav::ravenna_sink::set_session_name(std::string session_name) {
     session_name_ = std::move(session_name);
     subscribe_to_ravenna_rtsp_client(rtsp_client_, session_name_);
-}
-
-void rav::ravenna_sink::on_audio_format_changed(const audio_format& new_format) {
-}
-
-void rav::ravenna_sink::on_stream_started() {
 }

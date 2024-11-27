@@ -95,10 +95,8 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
                     RAV_ERROR("RTSP request has unexpected Content-Type: {}", content_type->value);
                     return;
                 }
-            } else {
-                RAV_ERROR("RTSP request missing Content-Type header");
-                return;
             }
+            // Note: the content-type header is not always present, at least for some devices.
             handle_incoming_sdp(event.request.data);
             return;
         }

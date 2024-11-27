@@ -90,7 +90,7 @@ TEST_CASE("rtp_receive_buffer") {
         buffer.read(4, output.data(), output.size());
         REQUIRE(output == std::array<uint8_t, 8> {0x5, 0x6, 0x7, 0x8, 0x0, 0x0, 0x0, 0x0});
 
-        buffer.set_clear_value(0xFF);
+        buffer.set_ground_value(0xFF);
         REQUIRE(buffer.clear_until(10));
 
         buffer.read(4, output.data(), output.size());

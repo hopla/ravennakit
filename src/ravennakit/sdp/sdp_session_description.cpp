@@ -248,15 +248,3 @@ rav::sdp::session_description::parse_attribute(const std::string_view line) {
     return parse_result<void>::ok();
 }
 
-std::string rav::sdp::to_string(const filter_mode& filter_mode) {
-    switch (filter_mode) {
-        case filter_mode::exclude:
-            return "excl";
-        case filter_mode::include:
-            return "incl";
-        case filter_mode::undefined:
-            return "undefined";
-        default:
-            return "undef";
-    }
-}

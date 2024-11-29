@@ -11,6 +11,7 @@
 #include "ravennakit/sdp/detail/sdp_source_filter.hpp"
 
 #include "ravennakit/core/string_parser.hpp"
+#include "ravennakit/sdp/detail/sdp_constants.hpp"
 
 rav::sdp::source_filter::parse_result<rav::sdp::source_filter>
 rav::sdp::source_filter::parse_new(const std::string_view line) {

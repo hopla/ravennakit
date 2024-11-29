@@ -10,6 +10,7 @@
 
 #include "ravennakit/sdp/detail/sdp_origin.hpp"
 #include "ravennakit/core/string_parser.hpp"
+#include "ravennakit/sdp/detail/sdp_constants.hpp"
 
 rav::sdp::origin_field::parse_result<rav::sdp::origin_field> rav::sdp::origin_field::parse_new(std::string_view line) {
     string_parser parser(line);

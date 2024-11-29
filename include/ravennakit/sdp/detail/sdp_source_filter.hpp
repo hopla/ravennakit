@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "sdp_constants.hpp"
+#include "sdp_types.hpp"
 #include "ravennakit/core/result.hpp"
 
 #include <string>

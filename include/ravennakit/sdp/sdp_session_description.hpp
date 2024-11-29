@@ -127,6 +127,4 @@ class session_description {
     parse_result<void> parse_attribute(std::string_view line);
 };
 
-std::string to_string(const filter_mode& filter_mode);
-
 }  // namespace rav::sdp

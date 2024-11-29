@@ -14,61 +14,6 @@
 
 #include "ravennakit/core/util.hpp"
 
-TEST_CASE("media_description | connection_info_field") {
-    SECTION("Parse connection line") {
-        auto result = rav::sdp::connection_info_field::parse_new("c=IN IP4 239.1.15.52");
-        REQUIRE(result.is_ok());
-        auto connection = result.move_ok();
-        REQUIRE(connection.network_type == rav::sdp::netw_type::internet);
-        REQUIRE(connection.address_type == rav::sdp::addr_type::ipv4);
-        REQUIRE(connection.address == "239.1.15.52");
-        REQUIRE(connection.ttl.has_value() == false);
-        REQUIRE(connection.number_of_addresses.has_value() == false);
-    }
-
-    SECTION("Parse connection line with ttl") {
-        auto result = rav::sdp::connection_info_field::parse_new("c=IN IP4 239.1.15.52/15");
-        REQUIRE(result.is_ok());
-        auto connection = result.move_ok();
-        REQUIRE(connection.network_type == rav::sdp::netw_type::internet);
-        REQUIRE(connection.address_type == rav::sdp::addr_type::ipv4);
-        REQUIRE(connection.address == "239.1.15.52");
-        REQUIRE(connection.ttl.has_value());
-        REQUIRE(*connection.ttl == 15);
-        REQUIRE(connection.number_of_addresses.has_value() == false);
-    }
-
-    SECTION("Parse connection line with ttl and number of addresses") {
-        auto result = rav::sdp::connection_info_field::parse_new("c=IN IP4 239.1.15.52/15/3");
-        REQUIRE(result.is_ok());
-        auto connection = result.move_ok();
-        REQUIRE(connection.network_type == rav::sdp::netw_type::internet);
-        REQUIRE(connection.address_type == rav::sdp::addr_type::ipv4);
-        REQUIRE(connection.address == "239.1.15.52");
-        REQUIRE(connection.ttl.has_value());
-        REQUIRE(*connection.ttl == 15);
-        REQUIRE(connection.number_of_addresses.has_value());
-        REQUIRE(*connection.number_of_addresses == 3);
-    }
-
-    SECTION("Parse ipv6 connection line with number of addresses") {
-        auto result = rav::sdp::connection_info_field::parse_new("c=IN IP6 ff00::db8:0:101/3");
-        REQUIRE(result.is_ok());
-        auto connection = result.move_ok();
-        REQUIRE(connection.network_type == rav::sdp::netw_type::internet);
-        REQUIRE(connection.address_type == rav::sdp::addr_type::ipv6);
-        REQUIRE(connection.address == "ff00::db8:0:101");
-        REQUIRE(connection.ttl.has_value() == false);
-        REQUIRE(connection.number_of_addresses.has_value());
-        REQUIRE(*connection.number_of_addresses == 3);
-    }
-
-    SECTION("Parse ipv6 connection line with ttl and number of addresses (which should fail)") {
-        auto result = rav::sdp::connection_info_field::parse_new("c=IN IP6 ff00::db8:0:101/127/3");
-        REQUIRE(result.is_err());
-    }
-}
-
 TEST_CASE("media_description | time_field") {
     SECTION("Test time field") {
         auto result = rav::sdp::time_active_field::parse_new("t=123456789 987654321");

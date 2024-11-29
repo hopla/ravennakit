@@ -12,6 +12,9 @@
 
 #include "audio_encoding.hpp"
 
+#include <string>
+#include <fmt/format.h>
+
 namespace rav {
 
 struct audio_format {

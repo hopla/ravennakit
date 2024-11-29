@@ -109,7 +109,7 @@ class ravenna_recorder_example {
     ~ravenna_recorder_example() = default;
 
     void add_stream(const std::string& stream_name) {
-        const auto& it = recorders_.emplace_back(
+        recorders_.emplace_back(
             std::make_unique<stream_recorder>(
                 std::make_unique<rav::ravenna_sink>(*rtsp_client_, *rtp_receiver_, stream_name)
             )

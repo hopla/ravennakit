@@ -64,6 +64,7 @@ class output_stream {
      * Writes a value to the stream in native byte order (not to be confused with network-endian).
      * @tparam Type The type of the value to write.
      * @param value The value to write.
+     * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
     size_t write_ne(const Type value) {
@@ -74,16 +75,18 @@ class output_stream {
      * Writes a big-endian value to the stream.
      * @tparam Type The type of the value to write.
      * @param value The value to write.
+     * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
     size_t write_be(const Type value) {
-        return write_ne(swap_if_le(value));
+        return write_ne(byte_order::swap_if_le(value));
     }
 
     /**
      * Writes a little-endian value to the stream.
      * @tparam Type The type of the value to write.
      * @param value The value to write.
+     * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
     size_t write_le(const Type value) {

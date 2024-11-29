@@ -25,6 +25,11 @@ class byte_stream final: public input_stream, public output_stream {
     byte_stream() = default;
     explicit byte_stream(std::vector<uint8_t> data);
 
+    /**
+     * Resets the stream to its initial state by clearing the data and setting the read and write positions to 0.
+     */
+    void reset();
+
     // input_stream overrides
     size_t read(uint8_t* buffer, size_t size) override;
     bool set_read_position(size_t position) override;

@@ -98,7 +98,10 @@ inline void swap_bytes(uint8_t* data, const size_t size, const size_t stride) {
  */
 template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
 Type swap_bytes(Type value) {
-    if constexpr (sizeof(Type) == 2) {
+    // Note: this function hasn't been benchmarked.
+    if constexpr (sizeof(Type) == 1) {
+        return value;
+    } else if constexpr (sizeof(Type) == 2) {
         return static_cast<Type>(RAV_BYTE_SWAP_16(static_cast<uint16_t>(value)));
     } else if constexpr (sizeof(Type) == 4) {
         return static_cast<Type>(RAV_BYTE_SWAP_32(static_cast<uint32_t>(value)));

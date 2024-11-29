@@ -12,6 +12,12 @@
 
 rav::byte_stream::byte_stream(std::vector<uint8_t> data) : data_(std::move(data)), write_position_(data_.size()) {}
 
+void rav::byte_stream::reset() {
+    data_.clear();
+    read_position_ = 0;
+    write_position_ = 0;
+}
+
 size_t rav::byte_stream::read(uint8_t* buffer, const size_t size) {
     if (exhausted()) {
         return 0;

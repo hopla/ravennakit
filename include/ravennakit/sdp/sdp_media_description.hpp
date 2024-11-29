@@ -11,40 +11,21 @@
 #pragma once
 
 #include "detail/sdp_connection_info.hpp"
-#include "detail/sdp_constants.hpp"
 #include "detail/sdp_format.hpp"
 
 #include <cstdint>
 #include <string>
 
 #include "detail/sdp_media_clock_source.hpp"
+#include "detail/sdp_ravenna_clock_domain.hpp"
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/core/string_parser.hpp"
 #include "detail/sdp_reference_clock.hpp"
 #include "detail/sdp_source_filter.hpp"
-#include "ravennakit/core/audio/audio_format.hpp"
 
 #include <map>
 
 namespace rav::sdp {
-
-
-/**
- * Defines a clock source and domain. This is a RAVENNA-specific attribute extension to the SDP specification.
- */
-struct ravenna_clock_domain {
-    static constexpr auto k_attribute_name = "clock-domain";
-    enum class sync_source { undefined, ptp_v2 };
-
-    /// A type alias for a parse result.
-    template<class T>
-    using parse_result = result<T, std::string>;
-
-    sync_source source {sync_source::undefined};
-    int32_t domain {};
-
-    static parse_result<ravenna_clock_domain> parse_new(std::string_view line);
-};
 
 /**
  * A type representing a media description (m=*) as part of an SDP session description.

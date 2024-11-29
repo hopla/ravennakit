@@ -16,6 +16,7 @@
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/core/todo.hpp"
 #include "ravennakit/sdp/sdp_media_description.hpp"
+#include "ravennakit/sdp/detail/sdp_constants.hpp"
 #include "ravennakit/sdp/detail/sdp_reference_clock.hpp"
 
 rav::sdp::session_description::parse_result<rav::sdp::session_description>

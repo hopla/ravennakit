@@ -13,30 +13,8 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
+#include "ravennakit/sdp/detail/sdp_constants.hpp"
 #include "ravennakit/sdp/detail/sdp_source_filter.hpp"
-
-rav::sdp::ravenna_clock_domain::parse_result<rav::sdp::ravenna_clock_domain>
-rav::sdp::ravenna_clock_domain::parse_new(const std::string_view line) {
-    string_parser parser(line);
-
-    ravenna_clock_domain clock_domain;
-
-    if (const auto sync_source = parser.split(' ')) {
-        if (sync_source == "PTPv2") {
-            if (const auto domain = parser.read_int<int32_t>()) {
-                clock_domain = ravenna_clock_domain {sync_source::ptp_v2, *domain};
-            } else {
-                return parse_result<ravenna_clock_domain>::err("clock_domain: invalid domain");
-            }
-        } else {
-            return parse_result<ravenna_clock_domain>::err("clock_domain: unsupported sync source");
-        }
-    } else {
-        return parse_result<ravenna_clock_domain>::err("clock_domain: failed to parse sync source");
-    }
-
-    return parse_result<ravenna_clock_domain>::ok(clock_domain);
-}
 
 rav::sdp::media_description::parse_result<rav::sdp::media_description>
 rav::sdp::media_description::parse_new(const std::string_view line) {

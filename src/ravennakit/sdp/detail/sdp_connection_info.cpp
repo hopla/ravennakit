@@ -13,6 +13,40 @@
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/sdp/detail/sdp_constants.hpp"
 
+tl::expected<void, std::string> rav::sdp::connection_info_field::validate() const {
+    if (network_type == netw_type::undefined) {
+        return tl::unexpected("connection: network type is undefined");
+    }
+    if (address_type == addr_type::undefined) {
+        return tl::unexpected("connection: address type is undefined");
+    }
+    if (address.empty()) {
+        return tl::unexpected("connection: address is empty");
+    }
+    if (address_type == addr_type::ipv4) {
+        if (!ttl.has_value()) {
+            return tl::unexpected("connection: ttl is required for ipv4 address");
+        }
+    } else if (address_type == addr_type::ipv6) {
+        if (ttl.has_value()) {
+            return tl::unexpected("connection: ttl is not allowed for ipv6 address");
+        }
+    }
+    return {};
+}
+
+tl::expected<std::string, std::string> rav::sdp::connection_info_field::to_string() const {
+    auto result = validate();
+    if (!validate()) {
+        return tl::unexpected(result.error());
+    }
+    return fmt::format(
+        "c={} {} {}{}{}", sdp::to_string(network_type), sdp::to_string(address_type), address,
+        ttl.has_value() ? "/" + std::to_string(ttl.value()) : "",
+        number_of_addresses.has_value() ? "/" + std::to_string(number_of_addresses.value()) : ""
+    );
+}
+
 rav::sdp::connection_info_field::parse_result<rav::sdp::connection_info_field>
 rav::sdp::connection_info_field::parse_new(const std::string_view line) {
     string_parser parser(line);

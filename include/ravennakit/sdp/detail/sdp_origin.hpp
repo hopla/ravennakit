@@ -14,6 +14,7 @@
 #include "ravennakit/core/result.hpp"
 
 #include <string>
+#include <tl/expected.hpp>
 
 namespace rav::sdp {
 
@@ -42,6 +43,16 @@ struct origin_field {
 
     /// The address of the machine from which the session was created.
     std::string unicast_address;
+
+    /**
+     * Validates the members of this struct.
+     * @return A result indicating success or failure. When validation fails, the error message will contain a
+     * description of the error.
+     */
+    [[nodiscard]] tl::expected<void, std::string> validate() const;
+
+    /// Converts the origin field to a string.
+    [[nodiscard]] tl::expected<std::string, std::string> to_string() const;
 
     /// A type alias for a parse result.
     template<class T>

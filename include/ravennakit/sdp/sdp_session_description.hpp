@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "sdp_media_description.hpp"
+#include "detail/sdp_constants.hpp"
 #include "ravennakit/core/result.hpp"
 #include "detail/sdp_reference_clock.hpp"
 #include "detail/sdp_origin.hpp"
@@ -50,9 +51,21 @@ class session_description {
     [[nodiscard]] const origin_field& origin() const;
 
     /**
+     * Sets the origin of the SDP session description.
+     * @param origin The origin to set.
+     */
+    void set_origin(origin_field origin);
+
+    /**
      * @return The connection information of the SDP session description.
      */
     [[nodiscard]] const std::optional<connection_info_field>& connection_info() const;
+
+    /**
+     * Sets the connection information of the SDP session description.
+     * @param connection_info The connection information to set.
+     */
+    void set_connection_info(connection_info_field connection_info);
 
     /**
      * @returns The session name of the SDP session description.
@@ -60,9 +73,21 @@ class session_description {
     [[nodiscard]] const std::string& session_name() const;
 
     /**
+     * Sets the session name of the SDP session description.
+     * @param session_name The session name to set.
+     */
+    void set_session_name(std::string session_name);
+
+    /**
      * @return The time field of the SDP session description.
      */
     [[nodiscard]] time_active_field time_active() const;
+
+    /**
+     * Sets the time field of the SDP session description.
+     * @param time_active The time field to set.
+     */
+    void set_time_active(time_active_field time_active);
 
     /**
      * @returns The media descriptions of the SDP session description.
@@ -104,7 +129,7 @@ class session_description {
      * Converts the session description to a string.
      * @return The session description as a string.
      */
-    [[nodiscard]] std::string to_string() const;
+    [[nodiscard]] tl::expected<std::string, std::string> to_string(const char* newline = k_sdp_crlf) const;
 
   private:
     /// Type to specify which section of the SDP we are parsing

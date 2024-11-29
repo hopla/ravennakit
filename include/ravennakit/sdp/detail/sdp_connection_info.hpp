@@ -13,6 +13,8 @@
 #include "sdp_types.hpp"
 #include "ravennakit/core/result.hpp"
 
+#include <tl/expected.hpp>
+
 namespace rav::sdp {
 
 /**
@@ -29,6 +31,18 @@ struct connection_info_field {
     std::optional<int32_t> ttl;
     /// Optional number of addresses
     std::optional<int32_t> number_of_addresses;
+
+    /**
+     * Validates the connection info.
+     * @return An error message if the connection info is invalid.
+     */
+    [[nodiscard]] tl::expected<void, std::string> validate() const;
+
+    /**
+     * Converts the connection info to a string.
+     * @return The connection info as a string.
+     */
+    [[nodiscard]] tl::expected<std::string, std::string> to_string() const;
 
     /// A type alias for a parse result.
     template<class T>

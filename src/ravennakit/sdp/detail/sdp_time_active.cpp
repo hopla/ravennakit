@@ -12,6 +12,24 @@
 
 #include "ravennakit/core/string_parser.hpp"
 
+tl::expected<void, std::string> rav::sdp::time_active_field::validate() const {
+    if (start_time < 0) {
+        return tl::unexpected("time: start time must be greater than or equal to 0");
+    }
+    if (stop_time < 0) {
+        return tl::unexpected("time: stop time must be greater than or equal to 0");
+    }
+    return {};
+}
+
+tl::expected<std::string, std::string> rav::sdp::time_active_field::to_string() const {
+    auto validated = validate();
+    if (!validate()) {
+        return tl::unexpected(validated.error());
+    }
+    return fmt::format("t={} {}", start_time, stop_time);
+}
+
 rav::sdp::time_active_field::parse_result<rav::sdp::time_active_field>
 rav::sdp::time_active_field::parse_new(const std::string_view line) {
     string_parser parser(line);

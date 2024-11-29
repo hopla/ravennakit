@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <string_view>
+#include <tl/expected.hpp>
 
 namespace rav::sdp {
 
@@ -22,9 +23,22 @@ namespace rav::sdp {
  */
 struct time_active_field {
     /// The start time of the session.
-    int64_t start_time {-1};
+    int64_t start_time {0};
     /// The stop time of the session.
-    int64_t stop_time {-1};
+    int64_t stop_time {0};
+
+    /**
+     * Validates the values of this structure.
+     * @return A result indicating success or failure. When validation fails, the error message will contain a
+     * description.
+     */
+    [[nodiscard]] tl::expected<void, std::string> validate() const;
+
+    /**
+     * Converts the time field to a string.
+     * @return The time field as a string, or an error message if the conversion fails.
+     */
+    [[nodiscard]] tl::expected<std::string, std::string> to_string() const;
 
     /// A type alias for a parse result.
     template<class T>
@@ -38,4 +52,4 @@ struct time_active_field {
     static parse_result<time_active_field> parse_new(std::string_view line);
 };
 
-}
+}  // namespace rav::sdp

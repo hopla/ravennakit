@@ -12,6 +12,38 @@
 #include "ravennakit/core/string_parser.hpp"
 #include "ravennakit/sdp/detail/sdp_constants.hpp"
 
+tl::expected<void, std::string> rav::sdp::origin_field::validate() const {
+    if (session_id.empty()) {
+        return tl::unexpected("origin: session id is empty");
+    }
+
+    if (unicast_address.empty()) {
+        return tl::unexpected("origin: unicast address is empty");
+    }
+
+    if (network_type == netw_type::undefined) {
+        return tl::unexpected("origin: network type is undefined");
+    }
+
+    if (address_type == addr_type::undefined) {
+        return tl::unexpected("origin: address type is undefined");
+    }
+
+    return {};
+}
+
+tl::expected<std::string, std::string> rav::sdp::origin_field::to_string() const {
+    auto result = validate();
+    if (!result) {
+        return tl::unexpected(result.error());
+    }
+
+    return fmt::format(
+        "o={} {} {} {} {} {}", username.empty() ? "-" : username, session_id, session_version,
+        sdp::to_string(network_type), sdp::to_string(address_type), unicast_address
+    );
+}
+
 rav::sdp::origin_field::parse_result<rav::sdp::origin_field> rav::sdp::origin_field::parse_new(std::string_view line) {
     string_parser parser(line);
 

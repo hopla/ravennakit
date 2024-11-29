@@ -116,16 +116,32 @@ const rav::sdp::origin_field& rav::sdp::session_description::origin() const {
     return origin_;
 }
 
+void rav::sdp::session_description::set_origin(origin_field origin) {
+    origin_ = std::move(origin);
+}
+
 const std::optional<rav::sdp::connection_info_field>& rav::sdp::session_description::connection_info() const {
     return connection_info_;
+}
+
+void rav::sdp::session_description::set_connection_info(connection_info_field connection_info) {
+    connection_info_ = std::move(connection_info);
 }
 
 const std::string& rav::sdp::session_description::session_name() const {
     return session_name_;
 }
 
+void rav::sdp::session_description::set_session_name(std::string session_name) {
+    session_name_ = std::move(session_name);
+}
+
 rav::sdp::time_active_field rav::sdp::session_description::time_active() const {
     return time_active_;
+}
+
+void rav::sdp::session_description::set_time_active(const time_active_field time_active) {
+    time_active_ = time_active;
 }
 
 const std::vector<rav::sdp::media_description>& rav::sdp::session_description::media_descriptions() const {
@@ -159,9 +175,39 @@ const std::map<std::string, std::string>& rav::sdp::session_description::attribu
     return attributes_;
 }
 
-std::string rav::sdp::session_description::to_string() const {
+tl::expected<std::string, std::string> rav::sdp::session_description::to_string(const char* newline) const {
+    RAV_ASSERT(newline != nullptr, "newline must not be nullptr");
     std::string sdp;
-    sdp += fmt::format("v={}\n", version_);
+
+    // Version
+    fmt::format_to(std::back_inserter(sdp), "v={}{}", version_, newline);
+
+    // Origin
+    auto origin = origin_.to_string();
+    if (!origin) {
+        return origin;
+    }
+    fmt::format_to(std::back_inserter(sdp), "{}{}", origin.value(), newline);
+
+    // Session name
+    fmt::format_to(std::back_inserter(sdp), "s={}{}", session_name_.empty() ? "-" : session_name(), newline);
+
+    // Time active
+    auto time = time_active_.to_string();
+    if (!time) {
+        return time;
+    }
+    fmt::format_to(std::back_inserter(sdp), "{}{}", time.value(), newline);
+
+    // Connection info
+    if (connection_info_.has_value()) {
+        auto connection = connection_info_->to_string();
+        if (!connection) {
+            return connection;
+        }
+        fmt::format_to(std::back_inserter(sdp), "{}{}", connection.value(), newline);
+    }
+
     return sdp;
 }
 
@@ -248,4 +294,3 @@ rav::sdp::session_description::parse_attribute(const std::string_view line) {
 
     return parse_result<void>::ok();
 }
-

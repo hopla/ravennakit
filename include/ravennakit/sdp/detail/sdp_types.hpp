@@ -18,6 +18,9 @@ enum class addr_type { undefined, ipv4, ipv6, both };
 enum class media_direction { sendrecv, sendonly, recvonly, inactive };
 enum class filter_mode { undefined, exclude, include };
 
+std::string to_string(const netw_type& type);
+std::string to_string(const addr_type& type);
+std::string to_string(const media_direction& direction);
 std::string to_string(const filter_mode& filter_mode);
 
 }

@@ -24,4 +24,17 @@ TEST_CASE("media_description | origin_field") {
         REQUIRE(origin.address_type == rav::sdp::addr_type::ipv4);
         REQUIRE(origin.unicast_address == "192.168.15.52");
     }
+
+    SECTION("To string") {
+        rav::sdp::origin_field origin;
+        REQUIRE(origin.to_string().error() == "origin: session id is empty");
+        origin.session_id = "13";
+        REQUIRE(origin.to_string().error() == "origin: unicast address is empty");
+        origin.unicast_address = "192.168.15.52";
+        REQUIRE(origin.to_string().error() == "origin: network type is undefined");
+        origin.network_type = rav::sdp::netw_type::internet;
+        REQUIRE(origin.to_string().error() == "origin: address type is undefined");
+        origin.address_type = rav::sdp::addr_type::ipv4;
+        REQUIRE(origin.to_string().value() == "o=- 13 0 IN IP4 192.168.15.52");
+    }
 }

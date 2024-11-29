@@ -65,4 +65,17 @@ TEST_CASE("media_description | connection_info_field") {
         auto result = rav::sdp::connection_info_field::parse_new("c=IN IP6 ff00::db8:0:101/127/3");
         REQUIRE(result.is_err());
     }
+
+    SECTION("To string") {
+        rav::sdp::connection_info_field connection;
+        REQUIRE(connection.to_string().error() == "connection: network type is undefined");
+        connection.network_type = rav::sdp::netw_type::internet;
+        REQUIRE(connection.to_string().error() == "connection: address type is undefined");
+        connection.address_type = rav::sdp::addr_type::ipv4;
+        REQUIRE(connection.to_string().error() == "connection: address is empty");
+        connection.address = "239.1.16.51";
+        REQUIRE(connection.to_string().error() == "connection: ttl is required for ipv4 address");
+        connection.ttl = 15;
+        REQUIRE(connection.to_string().value() == "c=IN IP4 239.1.16.51/15");
+    }
 }

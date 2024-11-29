@@ -438,12 +438,36 @@ TEST_CASE("session_description | Unknown attributes") {
 }
 
 TEST_CASE("session_description | To string") {
-    auto expected =
-        "v=0\r\n";
-        // "o=- 13 0 IN IP4 192.168.15.52\r\n";
+    std::string expected =
+        "v=0\r\n"
+        "o=- 13 0 IN IP4 192.168.15.52\r\n"
+        "s=Anubis Combo LR\r\n"
+        "t=0 0\r\n";
+
+    rav::sdp::origin_field origin;
+    origin.session_id = "13";
+    origin.session_version = 0;
+    origin.network_type = rav::sdp::netw_type::internet;
+    origin.address_type = rav::sdp::addr_type::ipv4;
+    origin.unicast_address = "192.168.15.52";
 
     rav::sdp::session_description sdp;
-    auto output = sdp.to_string();
+    sdp.set_origin(origin);
+    sdp.set_session_name("Anubis Combo LR");
+    sdp.set_time_active({0, 0});
 
+    REQUIRE(sdp.to_string().value() == expected);
 
+    SECTION("Connection info (optional if media descriptions all have their own connection info)") {
+        rav::sdp::connection_info_field connection_info;
+        connection_info.network_type = rav::sdp::netw_type::internet;
+        connection_info.address_type = rav::sdp::addr_type::ipv4;
+        connection_info.address = "239.1.16.51";
+        connection_info.ttl = 15;
+        sdp.set_connection_info(connection_info);
+        expected += "c=IN IP4 239.1.16.51/15\r\n";
+        REQUIRE(sdp.to_string().value() == expected);
+    }
+
+    REQUIRE(sdp.to_string().value() == expected);
 }

@@ -94,6 +94,12 @@ class network_interface {
     void set_type(type type);
 
     /**
+     * @returns The index of the network interface, or nullopt if the index could not be found.
+     * Note: this is the index as defined by the operating system.
+     */
+    [[nodiscard]] std::optional<uint32_t> interface_index() const;
+
+    /**
      * @returns A description of the network interface as string.
      */
     std::string to_string();

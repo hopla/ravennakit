@@ -101,8 +101,16 @@ const std::string& rav::network_interface::bsd_name() const {
     return bsd_name_;
 }
 
-void rav::network_interface::set_type(type type) {
+void rav::network_interface::set_type(const type type) {
     type_ = type;
+}
+
+std::optional<uint32_t> rav::network_interface::interface_index() const {
+    auto index = if_nametoindex(bsd_name_.c_str());
+    if (index == 0) {
+        return std::nullopt;
+    }
+    return index;
 }
 
 std::string rav::network_interface::to_string() {
@@ -115,6 +123,8 @@ std::string rav::network_interface::to_string() {
     fmt::format_to(std::back_inserter(output), "  mac:\n    {}\n", mac_address_.to_string());
 
     fmt::format_to(std::back_inserter(output), "  type:\n    {}\n", type_to_string(type_));
+
+    fmt::format_to(std::back_inserter(output), "  index:\n    {}\n", interface_index().value_or(0));
 
     if (!addresses_.empty()) {
         fmt::format_to(std::back_inserter(output), "  addrs:\n");

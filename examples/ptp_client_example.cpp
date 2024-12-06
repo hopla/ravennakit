@@ -29,14 +29,15 @@ int main(int const argc, char* argv[]) {
     std::vector<rav::subscription> subscriptions;
     asio::io_context io_context;
 
-    const rav::udp_sender_receiver ptp_event_socket(io_context, asio::ip::make_address(interface_address), 319);
-    const rav::udp_sender_receiver ptp_general_socket(io_context, asio::ip::make_address(interface_address), 320);
+    const auto ptp_multicast_address = asio::ip::make_address("224.0.1.129");
+    const rav::udp_sender_receiver ptp_event_socket(io_context, asio::ip::address_v4(), 319);
+    const rav::udp_sender_receiver ptp_general_socket(io_context, asio::ip::address_v4(), 320);
 
     subscriptions.push_back(ptp_event_socket.join_multicast_group(
-        asio::ip::make_address("224.0.1.129"), asio::ip::make_address(interface_address)
+        ptp_multicast_address, asio::ip::make_address(interface_address)
     ));
     subscriptions.push_back(ptp_general_socket.join_multicast_group(
-        asio::ip::make_address("224.0.1.129"), asio::ip::make_address(interface_address)
+        ptp_multicast_address, asio::ip::make_address(interface_address)
     ));
 
     ptp_event_socket.start([](const rav::udp_sender_receiver::recv_event& event) {

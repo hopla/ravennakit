@@ -14,7 +14,7 @@
 
 #include <string>
 #include <tuple>
-#include <fmt/format.h>
+#include "ravennakit/core/format.hpp"
 
 namespace rav {
 

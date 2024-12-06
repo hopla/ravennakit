@@ -9,9 +9,6 @@
  */
 
 #include "ravennakit/rtp/rtcp_packet_view.hpp"
-
-#include <fmt/core.h>
-
 #include "ravennakit/core/byte_order.hpp"
 
 namespace {

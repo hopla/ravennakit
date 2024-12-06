@@ -59,7 +59,7 @@
 
 #else
 
-    #include <fmt/format.h>
+    #include "ravennakit/core/format.hpp"
 
     #ifndef RAV_TRACE
         #define RAV_TRACE(...) fmt::println(__VA_ARGS__)

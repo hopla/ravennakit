@@ -11,7 +11,7 @@
 #pragma once
 
 #include <asio.hpp>
-#include <fmt/format.h>
+#include "ravennakit/core/format.hpp"
 
 namespace rav {
 

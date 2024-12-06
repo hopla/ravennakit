@@ -11,7 +11,7 @@
 #include "ravennakit/sdp/detail/sdp_format.hpp"
 #include "ravennakit/core/string_parser.hpp"
 
-#include <fmt/format.h>
+#include "ravennakit/core/format.hpp"
 
 std::string rav::sdp::format::to_string() const {
     return fmt::format("{} {}/{}/{}", payload_type, encoding_name, clock_rate, num_channels);

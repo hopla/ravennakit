@@ -8,8 +8,6 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
-#include <fmt/core.h>
-
 #include "ravennakit/core/byte_order.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 

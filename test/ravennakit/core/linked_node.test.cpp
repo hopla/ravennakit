@@ -9,10 +9,10 @@
  */
 
 #include "ravennakit/core/linked_node.hpp"
+#include "ravennakit/core/format.hpp"
 
 #include <iostream>
 #include <catch2/catch_all.hpp>
-#include <fmt/format.h>
 
 namespace {
 

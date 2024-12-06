@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <fmt/format.h>
+#include "ravennakit/core/format.hpp"
 
 namespace rav {
 

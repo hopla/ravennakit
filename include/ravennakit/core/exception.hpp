@@ -12,7 +12,7 @@
 
 #include "platform.hpp"
 
-#include <fmt/format.h>
+#include "ravennakit/core/format.hpp"
 #include <exception>
 #include <string>
 

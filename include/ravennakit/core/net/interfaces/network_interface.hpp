@@ -114,7 +114,7 @@ class network_interface {
   private:
     std::string bsd_name_;
     std::string display_name_;
-    mac_address mac_address_;
+    std::optional<mac_address> mac_address_;
     std::vector<asio::ip::address> addresses_;
     flags flags_{};
     type type_{type::undefined};

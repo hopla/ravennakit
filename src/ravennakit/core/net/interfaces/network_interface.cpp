@@ -120,7 +120,9 @@ std::string rav::network_interface::to_string() {
         fmt::format_to(std::back_inserter(output), "  display_name:\n    {}\n", display_name_);
     }
 
-    fmt::format_to(std::back_inserter(output), "  mac:\n    {}\n", mac_address_.to_string());
+    if (mac_address_.has_value()) {
+        fmt::format_to(std::back_inserter(output), "  mac:\n    {}\n", mac_address_->to_string());
+    }
 
     fmt::format_to(std::back_inserter(output), "  type:\n    {}\n", type_to_string(type_));
 

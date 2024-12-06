@@ -12,12 +12,6 @@
 #include "ravennakit/core/platform.hpp"
 #include "ravennakit/core/subscription.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
-#include "ravennakit/core/platform/apple/core_foundation/cf_array.hpp"
-#include "ravennakit/core/platform/apple/core_foundation/cf_string.hpp"
-#include "ravennakit/core/platform/apple/core_foundation/cf_type.hpp"
-#include "ravennakit/core/platform/apple/system_configuration/sc_network_interface.hpp"
-#include "ravennakit/core/platform/apple/system_configuration/sc_network_service.hpp"
-#include "ravennakit/core/platform/apple/system_configuration/sc_preferences.hpp"
 
 #if RAV_POSIX
     #include <ifaddrs.h>
@@ -28,9 +22,18 @@
     #include <sys/socket.h>
     #if RAV_APPLE
         #include <net/if_dl.h>
+        #include "ravennakit/core/platform/apple/core_foundation/cf_array.hpp"
+        #include "ravennakit/core/platform/apple/core_foundation/cf_string.hpp"
+        #include "ravennakit/core/platform/apple/core_foundation/cf_type.hpp"
+        #include "ravennakit/core/platform/apple/system_configuration/sc_network_interface.hpp"
+        #include "ravennakit/core/platform/apple/system_configuration/sc_network_service.hpp"
+        #include "ravennakit/core/platform/apple/system_configuration/sc_preferences.hpp"
     #elif RAV_LINUX
         #include <linux/if_packet.h>
     #endif
+#elif RAV_WINDOWS
+    #include <Iphlpapi.h>             // if_nametoindex
+    #pragma comment(lib, "Iphlpapi")  // if_nametoindex
 #endif
 
 #if RAV_APPLE

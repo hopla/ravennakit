@@ -58,7 +58,7 @@ class mac_address {
      * @returns True if the MAC address is valid, false otherwise. A MAC address is considered valid if it is not all
      * zeros.
      */
-    bool is_valid() const {
+    [[nodiscard]] bool is_valid() const {
         return std::any_of(address_.begin(), address_.end(), [](const uint8_t byte) {
             return byte != 0;
         });

@@ -12,7 +12,7 @@
 #include "ravennakit/core/system.hpp"
 #include "ravennakit/core/net/interfaces/network_interface.hpp"
 
-int main(int const argc, char* argv[]) {
+int main() {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
 
@@ -20,4 +20,6 @@ int main(int const argc, char* argv[]) {
     for (auto& iface : ifaces.value()) {
         fmt::println("{}", iface.to_string());
     }
+
+    return 0;
 }

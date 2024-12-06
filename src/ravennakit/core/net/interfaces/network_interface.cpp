@@ -13,6 +13,7 @@
 #include "ravennakit/core/subscription.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
 
+#if RAV_POSIX
 #include <ifaddrs.h>
 #include <iomanip>
 #include <arpa/inet.h>
@@ -20,6 +21,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <net/if_dl.h>
+#endif
 
 #if RAV_LINUX
     #define MAC_ADDRESS_FAMILY AF_PACKET

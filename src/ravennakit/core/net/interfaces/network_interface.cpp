@@ -12,6 +12,12 @@
 #include "ravennakit/core/platform.hpp"
 #include "ravennakit/core/subscription.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
+#include "ravennakit/core/platform/apple/core_foundation/cf_array.hpp"
+#include "ravennakit/core/platform/apple/core_foundation/cf_string.hpp"
+#include "ravennakit/core/platform/apple/core_foundation/cf_type.hpp"
+#include "ravennakit/core/platform/apple/system_configuration/sc_network_interface.hpp"
+#include "ravennakit/core/platform/apple/system_configuration/sc_network_service.hpp"
+#include "ravennakit/core/platform/apple/system_configuration/sc_preferences.hpp"
 
 #if RAV_POSIX
     #include <ifaddrs.h>
@@ -48,13 +54,30 @@ const std::string& rav::network_interface::bsd_name() const {
     return bsd_name_;
 }
 
+void rav::network_interface::add_service_name(const std::string& service_name) {
+    for (auto& name : service_names_) {
+        if (name == service_name) {
+            return;
+        }
+    }
+    service_names_.push_back(service_name);
+}
+
 std::string rav::network_interface::to_string() {
     std::string output = fmt::format("{}\n", bsd_name_);
     fmt::format_to(std::back_inserter(output), "  mac:\n    {}\n", mac_address_.to_string());
+
     if (!addresses_.empty()) {
         fmt::format_to(std::back_inserter(output), "  addrs:\n");
         for (const auto& address : addresses_) {
             fmt::format_to(std::back_inserter(output), "    {}\n", address.to_string());
+        }
+    }
+
+    if (!service_names_.empty()) {
+        fmt::format_to(std::back_inserter(output), "  services:\n");
+        for (const auto& service_name : service_names_) {
+            fmt::format_to(std::back_inserter(output), "    {}\n", service_name);
         }
     }
 
@@ -161,6 +184,53 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
         }
         it->set_flags(flags);
     }
+#endif
+
+#if RAV_APPLE
+    // Fill in the network services and type
+
+    const sc_preferences preferences;
+    if (!preferences) {
+        RAV_ERROR("Failed to create SCPreferences");
+        return tl::unexpected(-1);
+    }
+
+    const auto services = preferences.get_network_services();
+    if (!services) {
+        RAV_ERROR("Failed to get network services");
+        return tl::unexpected(-1);
+    }
+
+    for (CFIndex i = 0; i < services.count(); ++i) {
+        const auto service = sc_network_service(services[i], true);
+        if (!service) {
+            continue;
+        }
+
+        const auto interface = sc_network_interface(SCNetworkServiceGetInterface(service.get()), true);
+        if (!interface) {
+            continue;
+        }
+
+        auto bsd_name = interface.get_bsd_name();
+        if (bsd_name.empty()) {
+            continue;
+        }
+
+        auto it = std::find_if(
+            network_interfaces.begin(), network_interfaces.end(),
+            [&bsd_name](const network_interface& network_interface) {
+                return network_interface.bsd_name() == bsd_name;
+            }
+        );
+
+        if (it == network_interfaces.end()) {
+            continue; // We're only filling in the existing interfaces (found with getifaddrs)
+        }
+
+        it->add_service_name(service.get_name());
+    }
+
 #endif
 
     return network_interfaces;

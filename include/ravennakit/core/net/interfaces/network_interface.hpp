@@ -72,17 +72,29 @@ class network_interface {
     [[nodiscard]] const std::string& bsd_name() const;
 
     /**
+     * Adds given service name to the list of service names, if the name is not already in the list.
+     * @param service_name The service name to add.
+     */
+    void add_service_name(const std::string& service_name);
+
+    /**
      * @returns A description of the network interface as string.
      */
     std::string to_string();
 
   private:
     std::string bsd_name_;
+    std::vector<std::string> service_names_;
     mac_address mac_address_;
     std::vector<asio::ip::address> addresses_;
-    flags flags_;
+    flags flags_{};
 };
 
+/**
+ *
+ * @returns A list of all network interfaces on the system. Only several operating systems are supported: macOS, Windows
+ * and Linux. Not Android.
+ */
 tl::expected<std::vector<network_interface>, int> get_all_network_interfaces();
 
 }  // namespace rav

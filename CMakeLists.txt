@@ -100,7 +100,7 @@ if (TRACY_ENABLE)
     if (WIN32)
         target_include_directories(tracy INTERFACE "${TRACY_PATH}/public")
         target_sources(tracy INTERFACE "${TRACY_PATH}/public/TracyClient.cpp")
-    endif()
+    endif ()
 else ()
     message(STATUS "Tracy disabled")
 endif ()
@@ -141,6 +141,10 @@ target_link_libraries(ravennakit
         $<$<BOOL:${RAV_ENABLE_SPDLOG}>:spdlog::spdlog>
 )
 
+if (APPLE)
+    target_link_libraries(ravennakit PUBLIC "-framework SystemConfiguration")
+endif ()
+
 target_compile_definitions(ravennakit
         PUBLIC
         NOMINMAX=1
@@ -176,7 +180,7 @@ if (${BUILD_EXAMPLES})
     file(GLOB RAVENNAKIT_EXAMPLES "examples/*.cpp")
 
     # Build example targets based on the .cpp files in the examples subfolder
-    foreach(FILE ${RAVENNAKIT_EXAMPLES})
+    foreach (FILE ${RAVENNAKIT_EXAMPLES})
         get_filename_component(FILE_NAME ${FILE} NAME_WE)
         add_executable(${FILE_NAME} ${FILE})
         target_link_libraries(${FILE_NAME}
@@ -191,7 +195,7 @@ if (${BUILD_EXAMPLES})
         if (TRACY_ENABLE)
             target_link_libraries(${FILE_NAME} PUBLIC tracy)
         endif ()
-    endforeach()
+    endforeach ()
 endif ()
 
 ##############

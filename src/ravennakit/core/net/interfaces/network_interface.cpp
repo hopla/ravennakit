@@ -32,7 +32,7 @@
         #include <linux/if_packet.h>
     #endif
 #elif RAV_WINDOWS
-    #include <Iphlpapi.h>             // if_nametoindex
+    #include <Iphlpapi.h>  // if_nametoindex
     #include <ws2tcpip.h>
 
     #pragma comment(lib, "Iphlpapi")  // if_nametoindex
@@ -184,6 +184,12 @@ const char* rav::network_interface::type_to_string(const type type) {
     }
 }
 
+#if RAV_WINDOWS
+[[maybe_unused]] IF_LUID rav::network_interface::get_interface_luid() {
+    return interface_luid_;
+}
+#endif
+
 tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_interfaces() {
     std::vector<network_interface> network_interfaces;
 
@@ -302,7 +308,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
     #endif
 
 #elif RAV_WINDOWS
-    ULONG bufferSize = 15000; // As per recommendation from Microsoft
+    ULONG bufferSize = 15000;  // As per recommendation from Microsoft
     std::vector<uint8_t> buffer(bufferSize);
     auto* addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
 
@@ -348,8 +354,9 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
 
             std::locale loc("C");
 
-            std::use_facet<std::ctype<wchar_t> >(loc).narrow(
-                adapter->Description, adapter->Description + length, '?',  &*result_str.begin());
+            std::use_facet<std::ctype<wchar_t>>(loc).narrow(
+                adapter->Description, adapter->Description + length, '?', &*result_str.begin()
+            );
 
             it->set_display_name(result_str);
         }

@@ -11,7 +11,7 @@
 #pragma once
 
 #include "mac_address.hpp"
-
+#include "ravennakit/core/platform.hpp"
 #include <vector>
 #include <asio/ip/address.hpp>
 #include <tl/expected.hpp>
@@ -104,6 +104,13 @@ class network_interface {
      */
     [[nodiscard]] std::optional<uint32_t> interface_index() const;
 
+#if RAV_WINDOWS
+    /**
+     * @return The LUID of the interface.
+     */
+    [[maybe_unused]] IF_LUID get_interface_luid();
+#endif
+
     /**
      * @returns A description of the network interface as string.
      */
@@ -124,7 +131,7 @@ class network_interface {
     flags flags_ {};
     type type_ {type::undefined};
 #if RAV_WINDOWS
-    IF_LUID interface_luid_;
+    IF_LUID interface_luid_ {};
 #endif
 };
 

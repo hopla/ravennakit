@@ -106,8 +106,7 @@ class network_interface {
 
 #if RAV_WINDOWS || GENERATING_DOCUMENTATION
     /**
-     * Returns the IF_LUID of the interface.
-     * @return The IF_LUID whidh is a typedef to some union.
+     * @return The LUID of the interface.
      */
     [[maybe_unused]] IF_LUID get_interface_luid();
 #endif

@@ -104,9 +104,10 @@ class network_interface {
      */
     [[nodiscard]] std::optional<uint32_t> interface_index() const;
 
-#if RAV_WINDOWS
+#if RAV_WINDOWS || GENERATING_DOCUMENTATION
     /**
-     * @return The LUID of the interface.
+     * Returns the IF_LUID of the interface.
+     * @return The IF_LUID whidh is a typedef to some union.
      */
     [[maybe_unused]] IF_LUID get_interface_luid();
 #endif

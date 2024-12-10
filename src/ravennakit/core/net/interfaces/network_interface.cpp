@@ -80,45 +80,28 @@ rav::network_interface::type functional_type_for_interface(const char* name) {
 }  // namespace
 #endif
 
-void rav::network_interface::add_address(const asio::ip::address& address) {
-    for (auto& addr : addresses_) {
-        if (addr == address) {
-            return;
-        }
-    }
-    addresses_.push_back(address);
-}
-
-void rav::network_interface::set_mac_address(const mac_address& mac_address) {
-    mac_address_ = mac_address;
-}
-
-void rav::network_interface::set_flags(const flags& flags) {
-    flags_ = flags;
-}
-
-void rav::network_interface::set_display_name(const std::string& display_name) {
-    display_name_ = display_name;
-}
-
-const std::string& rav::network_interface::bsd_name() const {
-    return bsd_name_;
-}
-
-void rav::network_interface::set_type(const type type) {
-    type_ = type;
-}
-
 std::optional<uint32_t> rav::network_interface::interface_index() const {
+#if HAS_BSD_SOCKETS
     auto index = if_nametoindex(bsd_name_.c_str());
     if (index == 0) {
         return std::nullopt;
     }
     return index;
+#elif HAS_WIN32
+    NET_IFINDEX index{};
+    auto result = ConvertInterfaceLuidToIndex(&if_luid_, &index);
+    if (result != NO_ERROR) {
+        RAV_ERROR("Failed to get interface index");
+        return std::nullopt;
+    }
+    return index;
+#else
+    return std::nullopt;
+#endif
 }
 
 std::string rav::network_interface::to_string() {
-    std::string output = fmt::format("{}\n", bsd_name_);
+    std::string output = fmt::format("{}\n", identifier_);
 
     if (!display_name_.empty()) {
         fmt::format_to(std::back_inserter(output), "  display_name:\n    {}\n", display_name_);
@@ -139,29 +122,41 @@ std::string rav::network_interface::to_string() {
         }
     }
 
-    fmt::format_to(std::back_inserter(output), "  flags:\n   ");
+    std::string flags;
+    bool has_flags = false;
+    fmt::format_to(std::back_inserter(flags), "  flags:\n   ");
     if (flags_.up) {
-        fmt::format_to(std::back_inserter(output), " UP");
+        fmt::format_to(std::back_inserter(flags), " UP");
+        has_flags = true;
     }
     if (flags_.broadcast) {
-        fmt::format_to(std::back_inserter(output), " BROADCAST");
+        fmt::format_to(std::back_inserter(flags), " BROADCAST");
+        has_flags = true;
     }
     if (flags_.loopback) {
-        fmt::format_to(std::back_inserter(output), " LOOPBACK");
+        fmt::format_to(std::back_inserter(flags), " LOOPBACK");
+        has_flags = true;
     }
     if (flags_.point_to_point) {
-        fmt::format_to(std::back_inserter(output), " POINTTOPOINT");
+        fmt::format_to(std::back_inserter(flags), " POINTTOPOINT");
+        has_flags = true;
     }
     if (flags_.promiscuous) {
-        fmt::format_to(std::back_inserter(output), " PROMISC");
+        fmt::format_to(std::back_inserter(flags), " PROMISC");
+        has_flags = true;
     }
     if (flags_.allmulti) {
-        fmt::format_to(std::back_inserter(output), " ALLMULTI");
+        fmt::format_to(std::back_inserter(flags), " ALLMULTI");
+        has_flags = true;
     }
     if (flags_.multicast) {
-        fmt::format_to(std::back_inserter(output), " MULTICAST");
+        fmt::format_to(std::back_inserter(flags), " MULTICAST");
+        has_flags = true;
     }
-    fmt::format_to(std::back_inserter(output), "\n");
+
+    if (has_flags) {
+        fmt::format_to(std::back_inserter(flags), "{}\n", flags);
+    }
 
     return output;
 }
@@ -184,16 +179,16 @@ const char* rav::network_interface::type_to_string(const type type) {
     }
 }
 
-#if RAV_WINDOWS
+#if HAS_WIN32
 [[maybe_unused]] IF_LUID rav::network_interface::get_interface_luid() {
-    return interface_luid_;
+    return if_luid_;
 }
 #endif
 
-tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_interfaces() {
+tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::get_all() {
     std::vector<network_interface> network_interfaces;
 
-#if RAV_POSIX && !RAV_ANDROID
+#if HAS_BSD_SOCKETS
     ifaddrs* ifap = nullptr;
 
     // Get the list of network interfaces
@@ -307,7 +302,8 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
     }
     #endif
 
-#elif RAV_WINDOWS
+#elif HAS_WIN32
+
     ULONG bufferSize = 15000;  // As per recommendation from Microsoft
     std::vector<uint8_t> buffer(bufferSize);
     auto* addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
@@ -331,20 +327,20 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
     }
 
     for (IP_ADAPTER_ADDRESSES* adapter = addresses; adapter != nullptr; adapter = adapter->Next) {
-        auto* bsd_name = adapter->AdapterName;
-        if (bsd_name == nullptr) {
+        auto* adapter_name = adapter->AdapterName;
+        if (adapter_name == nullptr) {
             continue;
         }
 
         auto it = std::find_if(
             network_interfaces.begin(), network_interfaces.end(),
-            [&bsd_name](const network_interface& network_interface) {
-                return network_interface.bsd_name() == bsd_name;
+            [&adapter_name](const network_interface& network_interface) {
+                return network_interface.identifier_ == adapter_name;
             }
         );
 
         if (it == network_interfaces.end()) {
-            it = network_interfaces.emplace(it, bsd_name);
+            it = network_interfaces.emplace(it, adapter_name);
         }
 
         if (adapter->Description != nullptr) {
@@ -358,10 +354,51 @@ tl::expected<std::vector<rav::network_interface>, int> rav::get_all_network_inte
                 adapter->Description, adapter->Description + length, '?', &*result_str.begin()
             );
 
-            it->set_display_name(result_str);
+            it->display_name_ = result_str;
         }
+
+        it->if_luid_ = adapter->Luid;
+
+        if (adapter->PhysicalAddressLength == 6) {
+            it->mac_address_ = mac_address(adapter->PhysicalAddress);
+        } else if (adapter->PhysicalAddressLength > 0) {
+            RAV_WARNING("Unknown physical address length ({})", adapter->PhysicalAddressLength);
+        }
+
+        for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != nullptr; unicast = unicast->Next) {
+            if (unicast->Address.lpSockaddr->sa_family == AF_INET) {
+                const sockaddr_in* sa = reinterpret_cast<struct sockaddr_in*>(unicast->Address.lpSockaddr);
+                asio::ip::address_v4 addr_v4(ntohl(sa->sin_addr.s_addr));
+                it->addresses_.push_back(addr_v4);
+            } else if (unicast->Address.lpSockaddr->sa_family == AF_INET6) {
+                const sockaddr_in6* ipv6 = reinterpret_cast<const sockaddr_in6*>(unicast->Address.lpSockaddr);
+                asio::ip::address_v6::bytes_type bytes;
+                std::memcpy(bytes.data(), &ipv6->sin6_addr, bytes.size());
+                it->addresses_.push_back(asio::ip::address_v6(bytes, adapter->Ipv6IfIndex));
+            }
+        }
+
+        switch (adapter->IfType) {
+            case IF_TYPE_ETHERNET_CSMACD:
+                it->type_ = type::wired;
+                break;
+            case IF_TYPE_SOFTWARE_LOOPBACK:
+                it->type_ = type::loopback;
+                break;
+            case IF_TYPE_IEEE80211:
+                it->type_ = type::wifi;
+                break;
+            default:
+                it->type_ = type::other;
+        }
+
+
     }
 #endif
 
     return network_interfaces;
+}
+
+const std::string& rav::network_interface::identifier() const {
+    return identifier_;
 }

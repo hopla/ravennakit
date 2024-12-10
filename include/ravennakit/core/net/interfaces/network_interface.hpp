@@ -21,6 +21,20 @@
     #include <ifdef.h>
 #endif
 
+#if RAV_WINDOWS
+    #define HAS_WIN32 1
+#else
+    #define HAS_WIN32 0
+#endif
+
+#if RAV_ANDROID
+    #define HAS_BSD_SOCKETS 0
+#elif RAV_POSIX
+    #define HAS_BSD_SOCKETS 1
+#else
+    #define HAS_BSD_SOCKETS 0
+#endif
+
 namespace rav {
 
 /**
@@ -56,60 +70,30 @@ class network_interface {
     };
 
     /**
-     * Constructs a network interface with the given bsd name. The name is used to uniquely identify the interface.
+     * Constructs a network interface with the given identifier. The identifier is used to uniquely identify the
+     * interface, and should be the BSD name on BSD-style platforms and the AdapterName on Windows platforms.
      * @param bsd_name The unique BSD name of the interface.
      */
-    explicit network_interface(std::string bsd_name) : bsd_name_(std::move(bsd_name)) {}
-
-    /**
-     * Adds given address to the list of addresses. If the address is already in the list then this function has no
-     * effect.
-     * @param address The address to add.
-     */
-    void add_address(const asio::ip::address& address);
-
-    /**
-     * The mac address to set.
-     * @param mac_address The mac address to set.
-     */
-    void set_mac_address(const mac_address& mac_address);
-
-    /**
-     * Sets the flags of this interface.
-     * @param flags The flags to set.
-     */
-    void set_flags(const flags& flags);
-
-    /**
-     * Sets the display name of the network interface.
-     * @param display_name The display name to set.
-     */
-    void set_display_name(const std::string& display_name);
+    explicit network_interface(std::string identifier) : identifier_(std::move(identifier)) {}
 
     /**
      *
      * @return The name of the network interface.
      */
-    [[nodiscard]] const std::string& bsd_name() const;
+    [[nodiscard]] const std::string& identifier() const;
 
+#if HAS_WIN32 || defined(GENERATING_DOCUMENTATION)
     /**
-     * Sets the type of the network interface.
-     * @param type The type to set.
+     * @return The LUID of the interface.
      */
-    void set_type(type type);
+    [[maybe_unused]] IF_LUID get_interface_luid();
+#endif
 
     /**
      * @returns The index of the network interface, or nullopt if the index could not be found.
      * Note: this is the index as defined by the operating system.
      */
     [[nodiscard]] std::optional<uint32_t> interface_index() const;
-
-#if RAV_WINDOWS || GENERATING_DOCUMENTATION
-    /**
-     * @return The LUID of the interface.
-     */
-    [[maybe_unused]] IF_LUID get_interface_luid();
-#endif
 
     /**
      * @returns A description of the network interface as string.
@@ -123,23 +107,23 @@ class network_interface {
      */
     static const char* type_to_string(type type);
 
+    /**
+     *
+     * @returns A list of all network interfaces on the system. Only several operating systems are supported: macOS,
+     * Windows and Linux. Not Android.
+     */
+    static tl::expected<std::vector<network_interface>, int> get_all();
+
   private:
-    std::string bsd_name_;
+    std::string identifier_;
     std::string display_name_;
     std::optional<mac_address> mac_address_;
     std::vector<asio::ip::address> addresses_;
     flags flags_ {};
     type type_ {type::undefined};
 #if RAV_WINDOWS
-    IF_LUID interface_luid_ {};
+    IF_LUID if_luid_ {};
 #endif
 };
-
-/**
- *
- * @returns A list of all network interfaces on the system. Only several operating systems are supported: macOS, Windows
- * and Linux. Not Android.
- */
-tl::expected<std::vector<network_interface>, int> get_all_network_interfaces();
 
 }  // namespace rav

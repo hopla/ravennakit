@@ -16,7 +16,7 @@ int main() {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
 
-    auto ifaces = rav::get_all_network_interfaces();
+    auto ifaces = rav::network_interface::get_all();
     for (auto& iface : ifaces.value()) {
         fmt::println("{}", iface.to_string());
     }

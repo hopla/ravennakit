@@ -72,7 +72,7 @@ class network_interface {
     /**
      * Constructs a network interface with the given identifier. The identifier is used to uniquely identify the
      * interface, and should be the BSD name on BSD-style platforms and the AdapterName on Windows platforms.
-     * @param bsd_name The unique BSD name of the interface.
+     * @param identifier The unique identifier of the network interface.
      */
     explicit network_interface(std::string identifier) : identifier_(std::move(identifier)) {}
 

@@ -12,6 +12,9 @@
 #include "ravennakit/core/platform.hpp"
 #include "ravennakit/core/subscription.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
+#include "ravennakit/core/platform/windows/wide_string.hpp"
+
+#include <fmt/xchar.h>
 
 #if RAV_POSIX
     #include <ifaddrs.h>
@@ -32,10 +35,10 @@
         #include <linux/if_packet.h>
     #endif
 #elif RAV_WINDOWS
-    #include <Iphlpapi.h>  // if_nametoindex
+    #include <Iphlpapi.h>
     #include <ws2tcpip.h>
 
-    #pragma comment(lib, "Iphlpapi")  // if_nametoindex
+    #pragma comment(lib, "Iphlpapi")
     #pragma comment(lib, "Ws2_32")
 #endif
 
@@ -65,7 +68,7 @@ rav::network_interface::type functional_type_for_interface(const char* name) {
         case IFRTYPE_FUNCTIONAL_LOOPBACK:
             return rav::network_interface::type::loopback;
         case IFRTYPE_FUNCTIONAL_WIRED:
-            return rav::network_interface::type::wired;
+            return rav::network_interface::type::wired_ethernet;
         case IFRTYPE_FUNCTIONAL_WIFI_INFRA:
         case IFRTYPE_FUNCTIONAL_WIFI_AWDL:
             return rav::network_interface::type::wifi;
@@ -107,6 +110,10 @@ std::string rav::network_interface::to_string() {
         fmt::format_to(std::back_inserter(output), "  display_name:\n    {}\n", display_name_);
     }
 
+    if (!description_.empty()) {
+        fmt::format_to(std::back_inserter(output), "  description:\n    {}\n", description_);
+    }
+
     if (mac_address_.has_value()) {
         fmt::format_to(std::back_inserter(output), "  mac:\n    {}\n", mac_address_->to_string());
     }
@@ -122,49 +129,13 @@ std::string rav::network_interface::to_string() {
         }
     }
 
-    std::string flags;
-    bool has_flags = false;
-    fmt::format_to(std::back_inserter(flags), "  flags:\n   ");
-    if (flags_.up) {
-        fmt::format_to(std::back_inserter(flags), " UP");
-        has_flags = true;
-    }
-    if (flags_.broadcast) {
-        fmt::format_to(std::back_inserter(flags), " BROADCAST");
-        has_flags = true;
-    }
-    if (flags_.loopback) {
-        fmt::format_to(std::back_inserter(flags), " LOOPBACK");
-        has_flags = true;
-    }
-    if (flags_.point_to_point) {
-        fmt::format_to(std::back_inserter(flags), " POINTTOPOINT");
-        has_flags = true;
-    }
-    if (flags_.promiscuous) {
-        fmt::format_to(std::back_inserter(flags), " PROMISC");
-        has_flags = true;
-    }
-    if (flags_.allmulti) {
-        fmt::format_to(std::back_inserter(flags), " ALLMULTI");
-        has_flags = true;
-    }
-    if (flags_.multicast) {
-        fmt::format_to(std::back_inserter(flags), " MULTICAST");
-        has_flags = true;
-    }
-
-    if (has_flags) {
-        fmt::format_to(std::back_inserter(flags), "{}\n", flags);
-    }
-
     return output;
 }
 
 const char* rav::network_interface::type_to_string(const type type) {
     switch (type) {
-        case type::wired:
-            return "wired";
+        case type::wired_ethernet:
+            return "wired_ethernet";
         case type::wifi:
             return "wifi";
         case type::cellular:
@@ -246,24 +217,6 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
     #if RAV_APPLE
         it->type_ = functional_type_for_interface(ifa->ifa_name);
     #endif
-
-        flags flags {};
-        if (ifa->ifa_flags & IFF_UP) {
-            flags.up = true;
-        } else if (ifa->ifa_flags & IFF_BROADCAST) {
-            flags.broadcast = true;
-        } else if (ifa->ifa_flags & IFF_LOOPBACK) {
-            flags.loopback = true;
-        } else if (ifa->ifa_flags & IFF_POINTOPOINT) {
-            flags.point_to_point = true;
-        } else if (ifa->ifa_flags & IFF_PROMISC) {
-            flags.promiscuous = true;
-        } else if (ifa->ifa_flags & IFF_ALLMULTI) {
-            flags.allmulti = true;
-        } else if (ifa->ifa_flags & IFF_MULTICAST) {
-            flags.multicast = true;
-        }
-        it->flags_ = flags;
     }
 
     #if RAV_APPLE
@@ -327,7 +280,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
     }
 
     for (IP_ADAPTER_ADDRESSES* adapter = addresses; adapter != nullptr; adapter = adapter->Next) {
-        auto* adapter_name = adapter->AdapterName;
+        const auto* adapter_name = adapter->AdapterName;
         if (adapter_name == nullptr) {
             continue;
         }
@@ -343,20 +296,8 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             it = network_interfaces.emplace(it, adapter_name);
         }
 
-        if (adapter->Description != nullptr) {
-            auto length = wcslen(adapter->Description);
-            std::string result_str;
-            result_str.resize(length * sizeof(wchar_t));
-
-            std::locale loc("C");
-
-            std::use_facet<std::ctype<wchar_t>>(loc).narrow(
-                adapter->Description, adapter->Description + length, '?', &*result_str.begin()
-            );
-
-            it->display_name_ = result_str;
-        }
-
+        it->display_name_ = wide_string_to_string(adapter->FriendlyName);
+        it->description_ = wide_string_to_string(adapter->Description);
         it->if_luid_ = adapter->Luid;
 
         if (adapter->PhysicalAddressLength == 6) {
@@ -370,18 +311,18 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             if (unicast->Address.lpSockaddr->sa_family == AF_INET) {
                 const sockaddr_in* sa = reinterpret_cast<struct sockaddr_in*>(unicast->Address.lpSockaddr);
                 asio::ip::address_v4 addr_v4(ntohl(sa->sin_addr.s_addr));
-                it->addresses_.push_back(addr_v4);
+                it->addresses_.emplace_back(addr_v4);
             } else if (unicast->Address.lpSockaddr->sa_family == AF_INET6) {
-                const sockaddr_in6* ipv6 = reinterpret_cast<const sockaddr_in6*>(unicast->Address.lpSockaddr);
+                const auto* ipv6 = reinterpret_cast<const sockaddr_in6*>(unicast->Address.lpSockaddr);
                 asio::ip::address_v6::bytes_type bytes;
                 std::memcpy(bytes.data(), &ipv6->sin6_addr, bytes.size());
-                it->addresses_.push_back(asio::ip::address_v6(bytes, adapter->Ipv6IfIndex));
+                it->addresses_.emplace_back(asio::ip::address_v6(bytes, adapter->Ipv6IfIndex));
             }
         }
 
         switch (adapter->IfType) {
             case IF_TYPE_ETHERNET_CSMACD:
-                it->type_ = type::wired;
+                it->type_ = type::wired_ethernet;
                 break;
             case IF_TYPE_SOFTWARE_LOOPBACK:
                 it->type_ = type::loopback;

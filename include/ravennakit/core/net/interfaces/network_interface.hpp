@@ -42,27 +42,10 @@ namespace rav {
  */
 class network_interface {
   public:
-    struct flags {
-        /// Whether the interface is up.
-        bool up;
-        /// Whether the broadcast address is valid.
-        bool broadcast;
-        /// Whether the interface is a loopback interface.
-        bool loopback;
-        /// Whether the interface is a point-to-point link.
-        bool point_to_point;
-        /// Whether the interface is receiving all packets.
-        bool promiscuous;
-        /// Whether the interface is receiving all multicast packets.
-        bool allmulti;
-        /// Whether the interface supports multicast.
-        bool multicast;
-    };
-
     /// The type of the network interface.
     enum class type {
         undefined,
-        wired,
+        wired_ethernet,
         wifi,
         cellular,
         loopback,
@@ -117,9 +100,9 @@ class network_interface {
   private:
     std::string identifier_;
     std::string display_name_;
+    std::string description_;
     std::optional<mac_address> mac_address_;
     std::vector<asio::ip::address> addresses_;
-    flags flags_ {};
     type type_ {type::undefined};
 #if RAV_WINDOWS
     IF_LUID if_luid_ {};

@@ -80,6 +80,44 @@ rav::network_interface::type functional_type_for_interface(const char* name) {
     }
 }
 
+rav::network_interface::capabilities capabilities_for_interface(const char* name) {
+    ifreq ifr {};
+
+    const auto fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        RAV_ERROR("Failed to open socket");
+        return {};
+    }
+
+    rav::defer close_socket([&] {
+        close(fd);
+    });
+
+    std::strncpy(ifr.ifr_name, name, strlen(name));
+
+    // Query the interface capabilities
+    if (ioctl(fd, SIOCGIFCAP, &ifr) < 0) {
+        RAV_ERROR("Failed to query interface capabilities");
+        return {};
+    }
+
+    rav::network_interface::capabilities caps;
+    caps.hw_timestamp = ifr.ifr_curcap & IFCAP_HW_TIMESTAMP;
+    caps.sw_timestamp = ifr.ifr_curcap & IFCAP_SW_TIMESTAMP;
+
+    // Query the interface flags
+    if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
+        RAV_ERROR("Failed to query interface flags");
+        return {};
+    }
+
+    if (ifr.ifr_flags & IFF_MULTICAST) {
+        caps.multicast = true;
+    }
+
+    return caps;
+}
+
 }  // namespace
 #endif
 
@@ -219,10 +257,9 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             }
         }
 
-        it->determine_capabilities();
-
     #if RAV_APPLE
         it->type_ = functional_type_for_interface(ifa->ifa_name);
+        it->capabilities_ = capabilities_for_interface(ifa->ifa_name);
     #endif
     }
 
@@ -346,46 +383,6 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
 #endif
 
     return network_interfaces;
-}
-
-void rav::network_interface::determine_capabilities() {
-#if HAS_BSD_SOCKETS
-    ifreq ifr {};
-
-    const auto fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) {
-        RAV_ERROR("Failed to open socket");
-        return;
-    }
-
-    defer close_socket([&] {
-        close(fd);
-    });
-
-    std::strncpy(ifr.ifr_name, identifier_.c_str(), identifier_.size());
-
-    // Query the interface capabilities
-    if (ioctl(fd, SIOCGIFCAP, &ifr) < 0) {
-        RAV_ERROR("Failed to query interface capabilities");
-        return;
-    }
-
-    capabilities caps;
-    caps.hw_timestamp = ifr.ifr_curcap & IFCAP_HW_TIMESTAMP;
-    caps.sw_timestamp = ifr.ifr_curcap & IFCAP_SW_TIMESTAMP;
-
-    // Query the interface flags
-    if (ioctl(fd, SIOCGIFFLAGS, &ifr) < 0) {
-        RAV_ERROR("Failed to query interface flags");
-        return;
-    }
-
-    if (ifr.ifr_flags & IFF_MULTICAST) {
-        caps.multicast = true;
-    }
-
-    capabilities_ = caps;
-#endif
 }
 
 std::string rav::network_interface::capabilities::to_string() const {

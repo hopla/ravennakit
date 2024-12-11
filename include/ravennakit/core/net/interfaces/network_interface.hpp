@@ -117,8 +117,6 @@ class network_interface {
 #if RAV_WINDOWS
     IF_LUID if_luid_ {};
 #endif
-
-    void determine_capabilities();
 };
 
 }  // namespace rav

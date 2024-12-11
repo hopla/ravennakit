@@ -343,6 +343,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
         it->display_name_ = wide_string_to_string(adapter->FriendlyName);
         it->description_ = wide_string_to_string(adapter->Description);
         it->if_luid_ = adapter->Luid;
+        it->capabilities_.multicast = !(adapter->Flags & IP_ADAPTER_NO_MULTICAST);
 
         if (adapter->PhysicalAddressLength == 6) {
             it->mac_address_ = mac_address(adapter->PhysicalAddress);
@@ -377,8 +378,6 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             default:
                 it->type_ = type::other;
         }
-
-        it->capabilities_.multicast = !(adapter->Flags & IP_ADAPTER_NO_MULTICAST);
     }
 #endif
 

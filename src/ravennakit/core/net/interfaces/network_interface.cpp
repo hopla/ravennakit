@@ -340,6 +340,8 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             default:
                 it->type_ = type::other;
         }
+
+        it->capabilities_.multicast = !(adapter->Flags & IP_ADAPTER_NO_MULTICAST);
     }
 #endif
 

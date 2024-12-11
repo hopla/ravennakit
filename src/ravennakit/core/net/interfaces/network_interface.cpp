@@ -82,13 +82,13 @@ rav::network_interface::type functional_type_for_interface(const char* name) {
 
 std::optional<uint32_t> rav::network_interface::interface_index() const {
 #if HAS_BSD_SOCKETS
-    auto index = if_nametoindex(bsd_name_.c_str());
+    auto index = if_nametoindex(identifier_.c_str());
     if (index == 0) {
         return std::nullopt;
     }
     return index;
 #elif HAS_WIN32
-    NET_IFINDEX index{};
+    NET_IFINDEX index {};
     auto result = ConvertInterfaceLuidToIndex(&if_luid_, &index);
     if (result != NO_ERROR) {
         RAV_ERROR("Failed to get interface index");
@@ -209,7 +209,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
         auto it = std::find_if(
             network_interfaces.begin(), network_interfaces.end(),
             [&ifa](const network_interface& network_interface) {
-                return network_interface.bsd_name() == ifa->ifa_name;
+                return network_interface.identifier_ == ifa->ifa_name;
             }
         );
 
@@ -222,18 +222,18 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             if (ifa->ifa_addr->sa_family == AF_INET) {
                 const sockaddr_in* sa = reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr);
                 asio::ip::address_v4 addr_v4(ntohl(sa->sin_addr.s_addr));
-                it->add_address(addr_v4);
+                it->addresses_.emplace_back(addr_v4);
             } else if (ifa->ifa_addr->sa_family == AF_INET6) {
                 const sockaddr_in6* sa = reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr);
                 asio::ip::address_v6::bytes_type bytes;
                 std::memcpy(bytes.data(), &sa->sin6_addr, sizeof(bytes));
                 asio::ip::address_v6 addr_v6(bytes, sa->sin6_scope_id);
-                it->add_address(addr_v6);
+                it->addresses_.emplace_back(addr_v6);
     #if RAV_APPLE
             } else if (ifa->ifa_addr->sa_family == AF_LINK) {
                 const sockaddr_dl* sdl = reinterpret_cast<struct sockaddr_dl*>(ifa->ifa_addr);
                 if (sdl->sdl_alen == 6) {  // MAC addresses are 6 bytes
-                    it->set_mac_address(mac_address(reinterpret_cast<uint8_t*>(LLADDR(sdl))));
+                    it->mac_address_ = mac_address(reinterpret_cast<uint8_t*>(LLADDR(sdl)));
                 }
     #elif RAV_LINUX
             } else if (ifa->ifa_addr->sa_family == AF_PACKET) {
@@ -244,10 +244,10 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
         }
 
     #if RAV_APPLE
-        it->set_type(functional_type_for_interface(ifa->ifa_name));
+        it->type_ = functional_type_for_interface(ifa->ifa_name);
     #endif
 
-        network_interface::flags flags {};
+        flags flags {};
         if (ifa->ifa_flags & IFF_UP) {
             flags.up = true;
         } else if (ifa->ifa_flags & IFF_BROADCAST) {
@@ -263,7 +263,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
         } else if (ifa->ifa_flags & IFF_MULTICAST) {
             flags.multicast = true;
         }
-        it->set_flags(flags);
+        it->flags_ = flags;
     }
 
     #if RAV_APPLE
@@ -290,7 +290,7 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
         auto it = std::find_if(
             network_interfaces.begin(), network_interfaces.end(),
             [&bsd_name](const network_interface& network_interface) {
-                return network_interface.bsd_name() == bsd_name;
+                return network_interface.identifier_ == bsd_name;
             }
         );
 
@@ -298,13 +298,13 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             continue;  // We're only filling in the existing interfaces, skipping interfaces not gotten from getifaddrs.
         }
 
-        it->set_display_name(interface.get_localized_display_name());
+        it->display_name_ = interface.get_localized_display_name();
     }
     #endif
 
 #elif HAS_WIN32
 
-    ULONG bufferSize = 15000;  // As per recommendation from Microsoft
+    ULONG bufferSize = 15'000;  // As per recommendation from Microsoft
     std::vector<uint8_t> buffer(bufferSize);
     auto* addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
 
@@ -365,7 +365,8 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             RAV_WARNING("Unknown physical address length ({})", adapter->PhysicalAddressLength);
         }
 
-        for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != nullptr; unicast = unicast->Next) {
+        for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != nullptr;
+             unicast = unicast->Next) {
             if (unicast->Address.lpSockaddr->sa_family == AF_INET) {
                 const sockaddr_in* sa = reinterpret_cast<struct sockaddr_in*>(unicast->Address.lpSockaddr);
                 asio::ip::address_v4 addr_v4(ntohl(sa->sin_addr.s_addr));
@@ -391,8 +392,6 @@ tl::expected<std::vector<rav::network_interface>, int> rav::network_interface::g
             default:
                 it->type_ = type::other;
         }
-
-
     }
 #endif
 

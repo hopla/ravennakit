@@ -13,7 +13,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <__algorithm/clamp.h>
+#include <algorithm>
 
 namespace rav {
 

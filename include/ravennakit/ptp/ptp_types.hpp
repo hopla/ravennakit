@@ -29,6 +29,7 @@ struct ptp_clock_identity {
     uint8_t data[8] {};
 
     static ptp_clock_identity from_mac_address(const mac_address& mac_address) {
+        std::ignore = mac_address;
         TODO("Implement");
     }
 

@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <array>
+#include <vector>
 
 namespace rav {
 
@@ -53,6 +54,7 @@ class buffer_view {
      * Construct a view from a std::vector.
      * @param vector The vector to refer to.
      */
+    template <typename T = Type, std::enable_if_t<!std::is_const_v<T>, int> = 0> // Type must be non-const for vector.
     explicit buffer_view(const std::vector<Type>& vector) : buffer_view(vector.data(), vector.size()) {}
 
     /**

@@ -13,6 +13,8 @@
 #include "ptp_announce_message.hpp"
 #include "ptp_delay_req_message.hpp"
 
+#include <variant>
+
 namespace rav {
 
 using ptp_message_variant = std::variant<ptp_announce_message, ptp_sync_message, ptp_delay_req_message>;

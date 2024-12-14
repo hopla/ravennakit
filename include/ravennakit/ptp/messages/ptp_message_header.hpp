@@ -14,6 +14,7 @@
 #include "ravennakit/ptp/ptp_definitions.hpp"
 #include "ravennakit/ptp/ptp_error.hpp"
 #include "ravennakit/ptp/ptp_types.hpp"
+#include "ravennakit/ptp/types/ptp_port_identity.hpp"
 
 #include <cstdint>
 #include <tl/expected.hpp>

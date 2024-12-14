@@ -37,6 +37,11 @@ class ptp_instance {
     ptp_default_ds default_ds_;
     std::vector<std::unique_ptr<ptp_port>> ports_;
     network_interface_list network_interfaces_;
+
+    // Local PTP clock
+    // Local clock
+
+    [[nodiscard]] uint16_t get_next_available_port_number() const;
 };
 
 }  // namespace rav

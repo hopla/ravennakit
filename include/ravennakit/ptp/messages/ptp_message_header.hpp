@@ -13,7 +13,6 @@
 #include "ravennakit/core/containers/buffer_view.hpp"
 #include "ravennakit/ptp/ptp_definitions.hpp"
 #include "ravennakit/ptp/ptp_error.hpp"
-#include "ravennakit/ptp/ptp_types.hpp"
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 
 #include <cstdint>
@@ -63,7 +62,7 @@ struct ptp_message_header {
     int64_t correction_field {};
     ptp_port_identity source_port_identity;
     uint16_t sequence_id {};
-    int8_t logMessageInterval {};
+    int8_t log_message_interval {};
 
     static tl::expected<ptp_message_header, ptp_error> from_data(buffer_view<const uint8_t> data);
 

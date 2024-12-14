@@ -41,7 +41,7 @@ bool is_within(T a, T b, T tolerance) {
 }
 
 /**
- * Tests if a value is between two other values.
+ * Tests if a value is between two other values, inclusive.
  * @tparam T The type of the values to compare.
  * @param a The value to test.
  * @param min The minimum value.

@@ -63,7 +63,7 @@ TEST_CASE("ptp_message_header") {
     REQUIRE(header->source_port_identity.clock_identity.data[7] == 0x00);
     REQUIRE(header->source_port_identity.port_number == 0xabcd);
     REQUIRE(header->sequence_id == 0x1122);
-    REQUIRE(header->logMessageInterval == -127);
+    REQUIRE(header->log_message_interval == -127);
 
     SECTION("Test flags") {}
 }

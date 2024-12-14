@@ -14,7 +14,7 @@
 #include "ravennakit/core/net/interfaces/network_interface_list.hpp"
 
 rav::ptp_instance::ptp_instance(asio::io_context& io_context) : io_context_(io_context) {
-    default_ds_.slave_only = true; // Only slave supported at the moment.
+    default_ds_.slave_only = true;  // Only slave supported at the moment.
 }
 
 tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::address& interface_address) {
@@ -45,8 +45,22 @@ tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::a
 
     ptp_port_identity port_identity;
     port_identity.clock_identity = default_ds_.clock_identity;
-    port_identity.port_number = ports_.size();
+    port_identity.port_number = get_next_available_port_number();
 
-    ports_.emplace_back(std::make_unique<ptp_port>(io_context_, interface_address, port_identity));
+    ports_.emplace_back(std::make_unique<ptp_port>(io_context_, interface_address, port_identity))
+        ->assert_valid_state(ptp_default_profile_1);
+
     return {};
+}
+
+uint16_t rav::ptp_instance::get_next_available_port_number() const {
+    for (uint16_t i = ptp_port_identity::k_port_number_min; i <= ptp_port_identity::k_port_number_max; ++i) {
+        if (std::none_of(ports_.begin(), ports_.end(), [i](const auto& port) {
+                return port->get_port_number() == i;
+            })) {
+            return i;
+        }
+    }
+    RAV_ASSERT_FALSE("Failed to find the next available port number");
+    return 0;
 }

@@ -79,14 +79,14 @@ rav::ptp_message_header::from_data(buffer_view<const uint8_t> data) {
     header.source_port_identity.port_number = rav::byte_order::read_be<uint16_t>(data.data() + 28);
     header.sequence_id = rav::byte_order::read_be<uint16_t>(data.data() + 30);
     // Control field is ignored (1 byte)
-    header.logMessageInterval = static_cast<int8_t>(data[33]);
+    header.log_message_interval = static_cast<int8_t>(data[33]);
 
     return header;
 }
 
 std::string rav::ptp_message_header::to_string() const {
     return fmt::format(
-        "PTP {}: sdo_id={} version={}.{} domain={} sequence={} source={}:{}", ptp_message_type_to_string(message_type),
+        "PTP {}: sdo_id={} version={}.{} domain_number={} sequence_id={} source_port_identity={}.{}", rav::to_string(message_type),
         sdo_id, version.major, version.minor, domain_number, sequence_id,
         source_port_identity.clock_identity.to_string(), source_port_identity.port_number
     );
@@ -95,7 +95,7 @@ std::string rav::ptp_message_header::to_string() const {
 auto rav::ptp_message_header::tie_members() const {
     return std::tie(
         sdo_id, message_type, version, message_length, domain_number, flags, correction_field, source_port_identity,
-        sequence_id, logMessageInterval
+        sequence_id, log_message_interval
     );
 }
 

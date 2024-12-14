@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ravennakit/core/log.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
 #include "ravennakit/core/util/todo.hpp"
 
@@ -34,6 +35,16 @@ struct ptp_clock_identity {
     }
 
     /**
+     * Construct a PTP clock identity from a byte array.
+     * @param data The data to construct the clock identity from. Must be at least 8 bytes long.
+     */
+    static ptp_clock_identity from_data(const uint8_t* data) {
+        ptp_clock_identity clock_identity;
+        std::memcpy(clock_identity.data, data, 8);
+        return clock_identity;
+    }
+
+    /**
      * @return A string representation of the clock identity.
      */
     [[nodiscard]] std::string to_string() const {
@@ -44,7 +55,9 @@ struct ptp_clock_identity {
     }
 
     /**
-     * Check if the clock identity appears to be valid. This is not a formal validation, just a simple check.
+     * Check if the clock identity appears to be valid. This is not a formal validation, just a simple check. Logs
+     * detailed messages if invalid.
+     * Note: this is a partial implementation.
      * @return True if the clock identity appears to be valid, false otherwise.
      */
     [[nodiscard]] bool is_valid() const {
@@ -59,6 +72,16 @@ struct ptp_clock_identity {
         }
         // Not sure what valid values for bytes 3 and 4 are at the moment.
         return true;
+    }
+
+    /**
+     * Checks the internal state of the identity according to IEEE1588-2019. Asserts when something is wrong.
+     */
+    void assert_valid_state() const {
+        RAV_ASSERT(!empty(), "All bytes are zero");
+        RAV_ASSERT(data[0] != 0 || data[1] != 0 || data[2] != 0, "Bytes 0-2 are zero");
+        RAV_ASSERT(data[3] == 0xff && data[4] == 0xfe, "Bytes 3-4 are not 0xfffe");
+        RAV_ASSERT(data[5] != 0 || data[6] != 0 || data[7] != 0, "Bytes 5-7 are zero");
     }
 
     /**

@@ -11,6 +11,8 @@
 #pragma once
 
 #include "datasets/ptp_port_ds.hpp"
+#include "messages/ptp_announce_message.hpp"
+#include "messages/ptp_message_header.hpp"
 #include "ravennakit/rtp/detail/udp_sender_receiver.hpp"
 #include "types/ptp_port_identity.hpp"
 
@@ -22,6 +24,13 @@ namespace rav {
 class ptp_port {
   public:
     ptp_port(asio::io_context& io_context, const asio::ip::address& interface_address, ptp_port_identity port_identity);
+
+    [[nodiscard]] uint16_t get_port_number() const;
+
+    /**
+     * Checks the internal state of the identity according to IEEE1588-2019. Asserts when something is wrong.
+     */
+    void assert_valid_state(const ptp_profile& profile) const;
 
   private:
     ptp_port_ds port_ds_;
@@ -36,7 +45,11 @@ class ptp_port {
     };
 
     std::vector<foreign_master_entry> foreign_master_list_;  // Min capacity: 5
-    // Foreign
+
+    void handle_recv_event(const udp_sender_receiver::recv_event& event);
+    void handle_announce_message(
+        const ptp_message_header& header, const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs
+    );
 };
 
 }  // namespace rav

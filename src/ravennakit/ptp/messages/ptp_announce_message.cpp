@@ -12,31 +12,31 @@
 #include "ravennakit/core/byte_order.hpp"
 
 tl::expected<rav::ptp_announce_message, rav::ptp_error>
-rav::ptp_announce_message::from_data(const buffer_view<const uint8_t> data) {
-    auto header = ptp_message_header::from_data(data);
-    if (!header) {
-        return tl::unexpected(header.error());
-    }
-
-    ptp_announce_message announce;
-    announce.header = header.value();
-
-    const auto announce_data = data.subview(ptp_message_header::k_header_size);
-
-    if (announce_data.size() < k_message_size) {
+rav::ptp_announce_message::from_data(buffer_view<const uint8_t> data) {
+    if (data.size() < k_message_size) {
         return tl::unexpected(ptp_error::invalid_message_length);
     }
 
-    announce.origin_timestamp.seconds = rav::byte_order::read_be<uint48_t>(data.data());
-    announce.origin_timestamp.nanoseconds = rav::byte_order::read_be<uint32_t>(data.data() + 6);
-
-    return announce;
+    ptp_announce_message msg;
+    msg.origin_timestamp.seconds = rav::byte_order::read_be<uint48_t>(data.data());
+    msg.origin_timestamp.nanoseconds = rav::byte_order::read_be<uint32_t>(data.data() + 6);
+    msg.current_utc_offset = rav::byte_order::read_be<int16_t>(data.data() + 10);
+    // Byte 12 is reserved
+    msg.grandmaster_priority1 = data[13];
+    msg.grandmaster_clock_quality.clock_class = data[14];
+    msg.grandmaster_clock_quality.clock_accuracy = static_cast<ptp_clock_accuracy>(data[15]);
+    msg.grandmaster_clock_quality.offset_scaled_log_variance = rav::byte_order::read_be<uint16_t>(data.data() + 16);
+    msg.grandmaster_priority2 = data[18];
+    msg.grandmaster_identity = ptp_clock_identity::from_data(data.data() + 19);
+    msg.steps_removed = rav::byte_order::read_be<uint16_t>(data.data() + 27);
+    msg.gm_time_base_indicator = static_cast<ptp_time_source>(data[29]);
+    return msg;
 }
 
 std::string rav::ptp_announce_message::to_string() const {
-    const auto txt = header.to_string();
-    return txt
-        + fmt::format(
-               " origin_timestamp={}.{:09d}", origin_timestamp.seconds.to_uint64(), origin_timestamp.nanoseconds
-        );
+    return fmt::format(
+        "origin_timestamp={}.{:09d} current_utc_offset={} gm_priority1={} gm_clock_quality=({})",
+        origin_timestamp.seconds.to_uint64(), origin_timestamp.nanoseconds, current_utc_offset, grandmaster_priority1,
+        grandmaster_clock_quality.to_string()
+    );
 }

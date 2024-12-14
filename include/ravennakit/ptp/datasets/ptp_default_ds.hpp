@@ -10,8 +10,6 @@
 
 #pragma once
 
-#include "../ptp_types.hpp"
-
 namespace rav {
 
 struct ptp_default_ds {
@@ -23,8 +21,15 @@ struct ptp_default_ds {
     // Configurable members
     uint8_t priority1 {128};  // Default for default profile
     uint8_t priority2 {128};  // Default for default profile
+
+    /// Domain number
+    /// Default profile: 0
     uint8_t domain_number {0};
+
+    /// Slave only
+    /// Default profile: false (if configurable)
     bool slave_only {false }; // Default for default profile
+
     uint16_t sdo_id { 0 };  // 12 bit on the wire (0-4095), default for default profile
 };
 

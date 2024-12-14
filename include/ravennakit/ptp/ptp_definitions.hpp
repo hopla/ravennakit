@@ -68,6 +68,70 @@ enum class ptp_clock_accuracy : uint8_t {
     reserved = 0xFF,  // Reserved
 };
 
+inline const char* to_string(const ptp_clock_accuracy accuracy) {
+    switch (accuracy) {
+        case ptp_clock_accuracy::lt_1_ps:
+            return "within 1 picosecond";
+        case ptp_clock_accuracy::lt_2_5_ps:
+            return "within 2.5 picoseconds";
+        case ptp_clock_accuracy::lt_10_ps:
+            return "within 10 picoseconds";
+        case ptp_clock_accuracy::lt_25_ps:
+            return "within 25 picoseconds";
+        case ptp_clock_accuracy::lt_100_ps:
+            return "within 100 picoseconds";
+        case ptp_clock_accuracy::lt_250_ps:
+            return "within 250 picoseconds";
+        case ptp_clock_accuracy::lt_1_ns:
+            return "within 1 nanosecond";
+        case ptp_clock_accuracy::lt_2_5_ns:
+            return "within 2.5 nanoseconds";
+        case ptp_clock_accuracy::lt_10_ns:
+            return "within 10 nanoseconds";
+        case ptp_clock_accuracy::lt_25_ns:
+            return "within 25 nanoseconds";
+        case ptp_clock_accuracy::lt_100_ns:
+            return "within 100 nanoseconds";
+        case ptp_clock_accuracy::lt_250_ns:
+            return "within 250 nanoseconds";
+        case ptp_clock_accuracy::lt_1_us:
+            return "within 1 microsecond";
+        case ptp_clock_accuracy::lt_2_5_us:
+            return "within 2.5 microseconds";
+        case ptp_clock_accuracy::lt_10_us:
+            return "within 10 microseconds";
+        case ptp_clock_accuracy::lt_25_us:
+            return "within 25 microseconds";
+        case ptp_clock_accuracy::lt_100_us:
+            return "within 100 microseconds";
+        case ptp_clock_accuracy::lt_250_us:
+            return "within 250 microseconds";
+        case ptp_clock_accuracy::lt_1_ms:
+            return "within 1 millisecond";
+        case ptp_clock_accuracy::lt_2_5_ms:
+            return "within 2.5 milliseconds";
+        case ptp_clock_accuracy::lt_10_ms:
+            return "within 10 milliseconds";
+        case ptp_clock_accuracy::lt_25_ms:
+            return "within 25 milliseconds";
+        case ptp_clock_accuracy::lt_100_ms:
+            return "within 100 milliseconds";
+        case ptp_clock_accuracy::lt_250_ms:
+            return "within 250 milliseconds";
+        case ptp_clock_accuracy::lt_1_s:
+            return "within 1 second";
+        case ptp_clock_accuracy::lt_10_s:
+            return "within 10 seconds";
+        case ptp_clock_accuracy::gt_10_s:
+            return "greater than 10 seconds";
+        case ptp_clock_accuracy::reserved:
+            return "reserved";
+        case ptp_clock_accuracy::unknown:
+        default:
+            return "unknown";
+    }
+}
+
 /**
  * PTP Time source
  * IEEE1588-2019: 7.6.2.8, Table 6
@@ -133,7 +197,7 @@ enum class ptp_message_type : uint8_t {
     reserved6 = 0xf,
 };
 
-inline const char* ptp_message_type_to_string(const ptp_message_type type) {
+inline const char* to_string(const ptp_message_type type) {
     switch (type) {
         case ptp_message_type::sync:
             return "Sync";

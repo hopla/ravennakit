@@ -10,23 +10,9 @@
 
 #pragma once
 
-#include "ptp_definitions.hpp"
-#include "ravennakit/core/types/uint48.hpp"
-#include "ravennakit/core/format.hpp"
-#include "ravennakit/core/net/interfaces/mac_address.hpp"
-#include "ravennakit/core/util/todo.hpp"
-#include "types/ptp_clock_identity.hpp"
-
-#include <string>
+#include "ravennakit/ptp/ptp_definitions.hpp"
 
 namespace rav {
-
-struct ptp_timestamp {
-    uint48_t seconds;
-    uint32_t nanoseconds {};
-};
-
-
 
 /**
  * PTP Clock Quality
@@ -37,8 +23,13 @@ struct ptp_clock_quality {
     uint8_t clock_class {};
     ptp_clock_accuracy clock_accuracy {ptp_clock_accuracy::unknown};
     uint16_t offset_scaled_log_variance {};
-};
 
-using ptp_time_interval = int64_t;
+    [[nodiscard]] std::string to_string() const {
+        return fmt::format(
+            "clock_class={} clock_accuracy={} offset_scaled_log_variance={}", clock_class,
+            rav::to_string(clock_accuracy), offset_scaled_log_variance
+        );
+    }
+};
 
 }  // namespace rav

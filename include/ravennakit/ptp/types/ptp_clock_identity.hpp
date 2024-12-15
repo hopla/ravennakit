@@ -13,6 +13,7 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/net/interfaces/mac_address.hpp"
 #include "ravennakit/core/util/todo.hpp"
+#include "ravennakit/core/containers/buffer_view.hpp"
 
 #include <cstdint>
 
@@ -38,9 +39,10 @@ struct ptp_clock_identity {
      * Construct a PTP clock identity from a byte array.
      * @param data The data to construct the clock identity from. Must be at least 8 bytes long.
      */
-    static ptp_clock_identity from_data(const uint8_t* data) {
+    static ptp_clock_identity from_data(buffer_view<const uint8_t> data) {
+        RAV_ASSERT(data.size() >= 8, "Data is too short to construct a PTP clock identity");
         ptp_clock_identity clock_identity;
-        std::memcpy(clock_identity.data, data, 8);
+        std::memcpy(clock_identity.data, data.data(), 8);
         return clock_identity;
     }
 
@@ -75,7 +77,7 @@ struct ptp_clock_identity {
     }
 
     /**
-     * Checks the internal state of the identity according to IEEE1588-2019. Asserts when something is wrong.
+     * Checks the internal state of this object according to IEEE1588-2019. Asserts when something is wrong.
      */
     void assert_valid_state() const {
         RAV_ASSERT(!empty(), "All bytes are zero");

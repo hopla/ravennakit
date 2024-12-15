@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include "ravennakit/core/assert.hpp"
+#include "ravennakit/core/byte_order.hpp"
+
 #include <cstddef>
 #include <array>
 #include <vector>
@@ -54,7 +57,7 @@ class buffer_view {
      * Construct a view from a std::vector.
      * @param vector The vector to refer to.
      */
-    template <typename T = Type, std::enable_if_t<!std::is_const_v<T>, int> = 0> // Type must be non-const for vector.
+    template<typename T = Type, std::enable_if_t<!std::is_const_v<T>, int> = 0>  // Type must be non-const for vector.
     explicit buffer_view(const std::vector<Type>& vector) : buffer_view(vector.data(), vector.size()) {}
 
     /**
@@ -98,6 +101,41 @@ class buffer_view {
      */
     [[nodiscard]] bool empty() const {
         return size_ == 0;
+    }
+
+    /**
+     * Reads a value from the data in native byte order (not to be confused with network-endian).
+     * Bounds are asserted, and behaviour depends on the RAV_ASSERT configuration.
+     * @tparam ValueType The type of the value to read.
+     * @param offset The offset to read from.
+     * @return The decoded value.
+     */
+    template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
+    ValueType read_ne(const size_t offset) {
+        RAV_ASSERT(offset + sizeof(ValueType) <= size_bytes(), "Buffer view out of bounds");
+        return byte_order::read_ne<ValueType>(data_ + offset);
+    }
+
+    /**
+     * Reads a big-endian value from the given data.
+     * @tparam ValueType The type of the value to read.
+     * @param offset The offset to read from.
+     * @return The decoded value.
+     */
+    template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
+    ValueType read_be(const size_t offset) {
+        return byte_order::swap_if_le(read_ne<ValueType>(offset));
+    }
+
+    /**
+     * Reads a little-endian value from the given data.
+     * @tparam ValueType The type of the value to read.
+     * @param offset The offset to read from.
+     * @return The decoded value.
+     */
+    template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
+    ValueType read_le(const size_t offset) {
+        return byte_order::swap_if_be(read_ne<ValueType>(offset));
     }
 
     /**

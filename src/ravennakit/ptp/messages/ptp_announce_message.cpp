@@ -18,17 +18,16 @@ rav::ptp_announce_message::from_data(buffer_view<const uint8_t> data) {
     }
 
     ptp_announce_message msg;
-    msg.origin_timestamp.seconds = rav::byte_order::read_be<uint48_t>(data.data());
-    msg.origin_timestamp.nanoseconds = rav::byte_order::read_be<uint32_t>(data.data() + 6);
-    msg.current_utc_offset = rav::byte_order::read_be<int16_t>(data.data() + 10);
+    msg.origin_timestamp = ptp_timestamp::from_data(data);
+    msg.current_utc_offset = data.read_be<int16_t>(10);
     // Byte 12 is reserved
     msg.grandmaster_priority1 = data[13];
     msg.grandmaster_clock_quality.clock_class = data[14];
     msg.grandmaster_clock_quality.clock_accuracy = static_cast<ptp_clock_accuracy>(data[15]);
-    msg.grandmaster_clock_quality.offset_scaled_log_variance = rav::byte_order::read_be<uint16_t>(data.data() + 16);
+    msg.grandmaster_clock_quality.offset_scaled_log_variance = data.read_be<uint16_t>(16);
     msg.grandmaster_priority2 = data[18];
-    msg.grandmaster_identity = ptp_clock_identity::from_data(data.data() + 19);
-    msg.steps_removed = rav::byte_order::read_be<uint16_t>(data.data() + 27);
+    msg.grandmaster_identity = ptp_clock_identity::from_data(data.subview(19));
+    msg.steps_removed = data.read_be<uint16_t>(27);
     msg.gm_time_base_indicator = static_cast<ptp_time_source>(data[29]);
     return msg;
 }

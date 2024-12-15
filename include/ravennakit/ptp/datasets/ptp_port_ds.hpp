@@ -46,7 +46,7 @@ struct ptp_port_ds {
     ptp_time_interval delay_asymmetry {0};
 
     /**
-     * Checks the internal state of the identity according to IEEE1588-2019. Asserts when something is wrong.
+     * Checks the internal state of this object according to IEEE1588-2019. Asserts when something is wrong.
      * @param profile The profile to check against.
      */
     void assert_valid_state(const ptp_profile& profile) const {

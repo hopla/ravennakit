@@ -11,7 +11,11 @@
 #pragma once
 
 #include "ptp_clock_identity.hpp"
+#include "ravennakit/core/byte_order.hpp"
 #include "ravennakit/core/log.hpp"
+#include "ravennakit/ptp/ptp_error.hpp"
+
+#include <tl/expected.hpp>
 
 namespace rav {
 
@@ -28,7 +32,28 @@ struct ptp_port_identity {
     uint16_t port_number {};  // Valid range: [k_port_number_min, k_port_number_max]
 
     /**
-     * Checks the internal state of the identity according to IEEE1588-2019. Asserts when something is wrong.
+     * Construct a PTP port identity from a byte array.
+     * @param data The data to construct the port identity from. Must be at least 10 bytes long.
+     */
+    static tl::expected<ptp_port_identity, ptp_error> from_data(const buffer_view<const uint8_t> data) {
+        if (data.size_bytes() < 10) {
+            return tl::unexpected(ptp_error::invalid_message_length);
+        }
+        ptp_port_identity port_identity;
+        port_identity.clock_identity = ptp_clock_identity::from_data(data);
+        port_identity.port_number = rav::byte_order::read_be<uint16_t>(data.data() + 8);
+        return port_identity;
+    }
+
+    /**
+     * @return A string representation of the port identity.
+     */
+    [[nodiscard]] std::string to_string() const {
+        return fmt::format("clock_identity={} port_number={}", clock_identity.to_string(), port_number);
+    }
+
+    /**
+     * Checks the internal state of this object according to IEEE1588-2019. Asserts when something is wrong.
      */
     void assert_valid_state() const {
         clock_identity.assert_valid_state();

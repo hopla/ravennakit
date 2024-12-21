@@ -73,10 +73,15 @@ void rav::ptp_instance::execute_state_decision_event() {
         return port->state() == ptp_state::initializing;
     });
 
+    // IEEE1588-2019: 9.2.6.9
     if (all_ports_initializing) {
-        RAV_TRACE("Not executing state decision event because all ports are in slave state");
+        RAV_TRACE("Not executing state decision event because all ports are in initializing state");
         return;
     }
+
+    // TODO: Compute and get Erbest from each port
+    // TODO: Compute Ebest from all Erbest messages
+    // TODO: Apply state decision algorithm with Ebest, Erbest and defaultDS
 
     std::vector<ptp_announce_message> best_announce_messages;
     for (const auto& port : ports_) {
@@ -85,8 +90,6 @@ void rav::ptp_instance::execute_state_decision_event() {
         }
     }
 
-    // TODO: Compute Ebest
-    // TODO: Apply state decision algorithm
     // TODO: Update data sets for all ports
     // TODO: Instantiate the recommended state event in the state machine and make required changes in all PTP ports
 }
@@ -104,7 +107,7 @@ bool rav::ptp_instance::should_process_ptp_messages(const ptp_message_header& he
         return false;
     }
 
-    // Not checking sdo_id minor, since this must only be done when "isolation option of 16.5" is used.
+    // Not checking sdo_id.minor, since this must only be done when "isolation option of 16.5" is used.
 
     // IEEE1588-2019: 9.5.2.1
     // Comparing the clock identity, because each port of this instance should have (has) the same clock identity.

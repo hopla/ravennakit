@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ptp_comparison_data_set.hpp"
 #include "ravennakit/core/util/sequence_number.hpp"
 #include "ravennakit/ptp/messages/ptp_announce_message.hpp"
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
@@ -32,57 +33,7 @@ class ptp_foreign_master_list {
         std::optional<ptp_announce_message> most_recent_announce_message;
     };
 
-    explicit ptp_foreign_master_list(const ptp_port_identity& port_identity) : port_identity_(port_identity) {}
-
-    /**
-     * Implementation of IEEE1588-2019: 9.3.2.5 Qualification of Announce messages
-     * TODO: This should probably become a method of entry.
-     * @param announce_message The announce message to test.
-     * @return True if the announce message is qualified, false otherwise.
-     */
-    [[nodiscard]] bool is_announce_message_qualified(const ptp_announce_message& announce_message) const {
-        const auto foreign_port_identity = announce_message.header.source_port_identity;
-
-        // IEEE 1588-2019: 9.3.2.5
-
-        // a) If a message comes from the same PTP instance, the message is not qualified. Since every port in the PTP
-        // instance has the same clock identity, we can just compare that.
-        if (foreign_port_identity.clock_identity == port_identity_.clock_identity) {
-            RAV_TRACE("Message is not qualified because it comes from the same PTP instance");
-            return false;
-        }
-
-        // b) If message is not the most recent one from the foreign master, it is not qualified.
-        if (auto* entry = find_entry(foreign_port_identity)) {
-            if (const auto previous = entry->most_recent_announce_message) {
-                if (sequence_number(announce_message.header.sequence_id)
-                    <= sequence_number(previous->header.sequence_id)) {
-                    RAV_TRACE("Message is not qualified because it is not the most recent one from the foreign master");
-                    return false;
-                }
-            }
-        }
-
-        // c) If fewer than k_foreign_master_threshold messages have been received from the foreign master within the
-        // most recent k_foreign_master_time_window, message is not qualified.
-        if (auto* entry = find_entry(foreign_port_identity)) {
-            if (entry->foreign_master_announce_messages < k_foreign_master_threshold) {
-                RAV_TRACE(
-                    "Message is not qualified because fewer than {} messages have been received from the foreign master",
-                    k_foreign_master_threshold
-                );
-                return false;
-            }
-        }
-
-        // d) Discard messages with steps removed of 255 or greater
-        if (announce_message.steps_removed >= 255) {
-            RAV_TRACE("Message is not qualified because steps removed is 255 or greater");
-            return false;
-        }
-
-        return true;
-    }
+    ptp_foreign_master_list() = default;
 
     /**
      * Adds or updates an entry in the foreign master list.
@@ -92,18 +43,87 @@ class ptp_foreign_master_list {
         const auto foreign_port_identity = announce_message.header.source_port_identity;
 
         if (auto* entry = find_entry(foreign_port_identity)) {
+            // IEEE 1588-2019: 9.3.2.5.b If message is not the most recent one, it is not qualified.
+            if (entry->most_recent_announce_message) {
+                if (sequence_number(announce_message.header.sequence_id)
+                    <= sequence_number(entry->most_recent_announce_message->header.sequence_id)) {
+                    RAV_WARNING("Discarding announce message because it is not the most recent one");
+                    return;
+                }
+            }
+
             entry->foreign_master_announce_messages++;
+
+            // TODO: Find a way to implement the time window.
+
+            // IEEE 1588-2019: 9.3.2.5.c If fewer than k_foreign_master_threshold messages have been received from the
+            // foreign master within the most recent k_foreign_master_time_window, message is not qualified.
+            if (entry->foreign_master_announce_messages < k_foreign_master_threshold) {
+                return;
+            }
+
+            // IEEE 1588-2019: 9.3.2.5.e Otherwise, the message is qualified.
             entry->most_recent_announce_message = announce_message;
-            // Note: I think we need to work out how many messages are received within the time window.
         } else {
-            // IEEE 1588-2019: 9.5.3 b) states that a new records start with 0 announce messages.
-            entries_.push_back({foreign_port_identity, 0, announce_message});
+            // IEEE 1588-2019: 9.5.3.b states that a new records start with 0 announce messages.
+            entries_.push_back({foreign_port_identity, 0, {}});
         }
+    }
+
+    /**
+     * Removes all entries except the one with the given foreign master port identity.
+     * @param foreign_master_port_identity The foreign master port identity to keep.
+     */
+    void remove_all_except_for(const ptp_port_identity& foreign_master_port_identity) {
+        entries_.erase(
+            std::remove_if(
+                entries_.begin(), entries_.end(),
+                [&foreign_master_port_identity](const entry& entry) {
+                    return entry.foreign_master_port_identity != foreign_master_port_identity;
+                }
+            ),
+            entries_.end()
+        );
+    }
+
+    /**
+     * Removes all entries except the one with the given foreign master port identity.
+     * @param except_for_announce_message The entry for which to keep the foreign master port identity.
+     */
+    void remove_all_except_for(const std::optional<ptp_announce_message>& except_for_announce_message) {
+        if (except_for_announce_message) {
+            entries_.erase(
+                std::remove_if(
+                    entries_.begin(), entries_.end(),
+                    [&except_for_announce_message](const entry& entry) {
+                        return entry.foreign_master_port_identity
+                            != except_for_announce_message->header.source_port_identity;
+                    }
+                ),
+                entries_.end()
+            );
+        } else {
+            clear();
+        }
+    }
+
+    /**
+     * Clears the foreign master list.
+     */
+    void clear() {
+        entries_.clear();
+    }
+
+    [[nodiscard]] std::vector<entry>::const_iterator begin() const {
+        return entries_.begin();
+    }
+
+    [[nodiscard]] std::vector<entry>::const_iterator end() const {
+        return entries_.end();
     }
 
   private:
     std::vector<entry> entries_;
-    ptp_port_identity port_identity_;
 
     [[nodiscard]] const entry* find_entry(const ptp_port_identity& foreign_master_port_identity) const {
         for (auto& entry : entries_) {

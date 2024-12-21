@@ -58,6 +58,13 @@ struct ptp_comparison_data_set {
     /**
      * Constructs a set from an announce message and a port data set.
      * @param announce_message The announce message.
+     * @param receiver_identity The identity of the receiver.
+     */
+    ptp_comparison_data_set(const ptp_announce_message& announce_message, const ptp_port_identity& receiver_identity);
+
+    /**
+     * Constructs a set from an announce message and a port data set.
+     * @param announce_message The announce message.
      * @param port_ds The port data set.
      */
     ptp_comparison_data_set(const ptp_announce_message& announce_message, const ptp_port_ds& port_ds);
@@ -74,6 +81,16 @@ struct ptp_comparison_data_set {
      * @return The result of the comparison. See the ordering enum for more information.
      */
     [[nodiscard]] ordering compare(const ptp_comparison_data_set& other) const;
+
+    /**
+     * Convenience method for comparing two announce messages.
+     * @param a The first announce message.
+     * @param b The second announce message.
+     * @param receiver_identity The identity of the receiver.
+     * @return The result of the comparison. See the ordering enum for more information.
+     */
+    static ordering
+    compare(const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity);
 };
 
 }  // namespace rav

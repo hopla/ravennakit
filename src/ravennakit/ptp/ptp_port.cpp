@@ -30,8 +30,7 @@ rav::ptp_port::ptp_port(
 ) :
     parent_(parent),
     event_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
-    general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port),
-    foreign_master_list_(port_identity) {
+    general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
     // Initialize the port data set
     port_ds_.port_identity = port_identity;
     port_ds_.port_state = ptp_state::initializing;
@@ -71,6 +70,23 @@ std::optional<rav::ptp_announce_message> rav::ptp_port::execute_state_decision_e
     // then this should be used.
 
     return std::nullopt;
+}
+
+std::optional<rav::ptp_announce_message> rav::ptp_port::get_best_announce_message() {
+    // IEEE 1588-2019: 9.3.2.3.c If the port state is Slave, Uncalibrated, or Passive, the previous Erbest is used,
+    // possibly updated with newer messages from this port.
+    if (port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated
+        || port_ds_.port_state == ptp_state::passive) {
+        return erbest_;
+    }
+
+    if (const auto better_announce_message = find_better_announce_message()) {
+        erbest_ = better_announce_message;
+    }
+
+    foreign_master_list_.remove_all_except_for(erbest_);
+
+    return erbest_;
 }
 
 rav::ptp_state rav::ptp_port::state() const {
@@ -205,18 +221,38 @@ void rav::ptp_port::handle_announce_message(
         return;
     }
 
+    // IEEE 1588-2019: 9.3.2.5.a If a message comes from the same PTP instance, the message is not qualified.
     if (announce_message.header.source_port_identity.clock_identity == port_ds_.port_identity.clock_identity) {
-        RAV_TRACE("Discarding announce message from the same PTP instance");
-        // Note: this is a shortcut for one of the checks whether a message is qualified.
+        RAV_WARNING("Message is not qualified because it comes from the same PTP instance");
         return;
     }
 
-    if ((port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)
-        && announce_message.header.source_port_identity == parent_.get_parent_ds().parent_port_identity) {
-        // Message is from current parent ptp instance (master)
-        parent_.update_data_sets(ptp_state_decision_code::s1, announce_message);
+    // IEEE 1588-2019: 9.3.2.5.d If steps removed of 255 or greater, message is not qualified.
+    if (announce_message.steps_removed >= 255) {
+        RAV_WARNING("Message is not qualified because steps removed is 255 or greater");
+        return;
+    }
+
+    // IEEE 1588-2019: 9.5.3
+    if (port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated) {
+        if (announce_message.header.source_port_identity == parent_.get_parent_ds().parent_port_identity) {
+            parent_.update_data_sets(ptp_state_decision_code::s1, announce_message);
+            // TODO: Reset the announce receipt timeout timer
+        } else {
+            foreign_master_list_.add_or_update_entry(announce_message);
+        }
     } else {
         foreign_master_list_.add_or_update_entry(announce_message);
+    }
+
+    // IEEE 1588-2019: 9.3.2.3.c If the port state is Slave, Uncalibrated, or Passive, the previous Erbest is used, and
+    // updated with newer messages from this port.
+    if (port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated
+        || port_ds_.port_state == ptp_state::passive) {
+        if (erbest_ && erbest_->header.source_port_identity == announce_message.header.source_port_identity) {
+            // TODO: Test whether the announce message is newer than the previous Erbest
+            erbest_ = announce_message;
+        }
     }
 
     // TODO: Trigger STATE_DECISION_EVENT? Can also happen on a regular interval.
@@ -267,4 +303,28 @@ void rav::ptp_port::handle_pdelay_resp_follow_up_message(
 ) {
     std::ignore = delay_req_message;
     std::ignore = tlvs;
+}
+
+std::optional<rav::ptp_announce_message> rav::ptp_port::find_better_announce_message() const {
+    std::optional<ptp_announce_message> erbest;
+
+    for (const auto& entry : foreign_master_list_) {
+        if (const auto& announce_message = entry.most_recent_announce_message) {
+            if (erbest) {
+                if (ptp_comparison_data_set::compare(*announce_message, *erbest, port_ds_.port_identity)
+                    >= ptp_comparison_data_set::ordering::better_by_topology) {
+                    erbest = announce_message;
+                }
+            } else if (erbest_) {
+                if (ptp_comparison_data_set::compare(*announce_message, *erbest_, port_ds_.port_identity)
+                    >= ptp_comparison_data_set::ordering::better_by_topology) {
+                    erbest = announce_message;
+                }
+            } else {
+                erbest = announce_message;
+            }
+        }
+    }
+
+    return erbest;
 }

@@ -55,6 +55,13 @@ class ptp_port {
     std::optional<ptp_announce_message> execute_state_decision_event();
 
     /**
+     * Calculates the best announce message of this port.
+     * Removes any entries which didn't become the best announce message.
+     * @return The best announce message of this port (Erbest) if there is one, otherwise std::nullopt.
+     */
+    [[nodiscard]] std::optional<ptp_announce_message> get_best_announce_message();
+
+    /**
      * @return The current state of this port.
      */
     [[nodiscard]] ptp_state state() const;
@@ -66,6 +73,7 @@ class ptp_port {
     udp_sender_receiver general_socket_;
     std::vector<subscription> subscriptions_;
     ptp_foreign_master_list foreign_master_list_;
+    std::optional<ptp_announce_message> erbest_;
 
     void handle_recv_event(const udp_sender_receiver::recv_event& event);
     void handle_announce_message(const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs);
@@ -78,6 +86,12 @@ class ptp_port {
     void handle_pdelay_resp_follow_up_message(
         const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
     );
+
+    /**
+     * If there is a better announce message than the current erbest, this function will return it.
+     * @return The better announce message, or nullopt if there is no better announce message.
+     */
+    [[nodiscard]] std::optional<ptp_announce_message> find_better_announce_message() const;
 };
 
 }  // namespace rav

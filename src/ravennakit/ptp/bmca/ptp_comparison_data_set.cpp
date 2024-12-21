@@ -11,6 +11,18 @@
 #include "ravennakit/ptp/bmca/ptp_comparison_data_set.hpp"
 
 rav::ptp_comparison_data_set::ptp_comparison_data_set(
+    const ptp_announce_message& announce_message, const ptp_port_identity& receiver_identity
+) {
+    grandmaster_priority1 = announce_message.grandmaster_priority1;
+    grandmaster_identity = announce_message.grandmaster_identity;
+    grandmaster_clock_quality = announce_message.grandmaster_clock_quality;
+    grandmaster_priority2 = announce_message.grandmaster_priority2;
+    steps_removed = announce_message.steps_removed;
+    identity_of_senders = announce_message.header.source_port_identity.clock_identity;
+    identity_of_receiver = receiver_identity;
+}
+
+rav::ptp_comparison_data_set::ptp_comparison_data_set(
     const ptp_announce_message& announce_message, const ptp_port_ds& port_ds
 ) {
     grandmaster_priority1 = announce_message.grandmaster_priority1;
@@ -145,4 +157,12 @@ rav::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) cons
     );
 
     return ordering::error1;
+}
+
+rav::ptp_comparison_data_set::ordering rav::ptp_comparison_data_set::compare(
+    const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity
+) {
+    const ptp_comparison_data_set set_a(a, receiver_identity);
+    const ptp_comparison_data_set set_b(b, receiver_identity);
+    return set_a.compare(set_b);
 }

@@ -23,15 +23,23 @@
 
 namespace rav {
 
+/**
+ * Represents a PTP instance as defined in IEEE 1588-2019.
+ */
 class ptp_instance {
   public:
+    /**
+     * Constructs a PTP instance.
+     * @param io_context The asio io context to use for networking and timers. Should be a single-threaded context,
+     * multithreaded contexts are not supported and will lead to race conditions.
+     */
     explicit ptp_instance(asio::io_context& io_context);
 
     /**
      * Adds a port to the PTP instance. The port will be used to send and receive PTP messages. The clock identity of
      * the PTP instance will be determined by the first port added, based on its MAC address.
-     * @param interface_address The address of the interface to bind the port to. The network interface must have a MAC address
-     * and support multicast.
+     * @param interface_address The address of the interface to bind the port to. The network interface must have a MAC
+     * address and support multicast.
      */
     tl::expected<void, ptp_error> add_port(const asio::ip::address& interface_address);
 

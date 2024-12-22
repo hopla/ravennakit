@@ -52,19 +52,25 @@ class ptp_port {
      * Executes a state decision event for this port.
      * @return The best announce message of this port (Ebest) if there is one, otherwise std::nullopt.
      */
-    std::optional<ptp_announce_message> execute_state_decision_event();
-
-    /**
-     * Calculates the best announce message of this port.
-     * Removes any entries which didn't become the best announce message.
-     * @return The best announce message of this port (Erbest) if there is one, otherwise std::nullopt.
-     */
-    [[nodiscard]] std::optional<ptp_announce_message> get_best_announce_message();
+    void execute_state_decision_event();
 
     /**
      * @return The current state of this port.
      */
     [[nodiscard]] ptp_state state() const;
+
+    /**
+     * Calculates erbest of this port, if necessary. Removes entries from the foreign master list which didn't
+     * become the best announce message.
+     */
+    void calculate_erbest();
+
+    /**
+     * Finds the best announce message of the given ports.
+     * @param ports The ports to find the best announce message from.
+     * @return The best announce message, or nullopt if there is no best announce message.
+     */
+    static std::optional<ptp_announce_message> find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports);
 
   private:
     ptp_instance& parent_;
@@ -86,12 +92,6 @@ class ptp_port {
     void handle_pdelay_resp_follow_up_message(
         const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
     );
-
-    /**
-     * If there is a better announce message than the current erbest, this function will return it.
-     * @return The better announce message, or nullopt if there is no better announce message.
-     */
-    [[nodiscard]] std::optional<ptp_announce_message> find_better_announce_message() const;
 };
 
 }  // namespace rav

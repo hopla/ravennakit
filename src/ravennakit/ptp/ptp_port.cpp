@@ -56,10 +56,10 @@ void rav::ptp_port::assert_valid_state(const ptp_profile& profile) const {
     port_ds_.assert_valid_state(profile);
 }
 
-std::optional<rav::ptp_announce_message> rav::ptp_port::execute_state_decision_event() {
+void rav::ptp_port::execute_state_decision_event() {
     if (port_ds_.port_state == ptp_state::disabled || port_ds_.port_state == ptp_state::faulty
         || port_ds_.port_state == ptp_state::initializing) {
-        return std::nullopt;
+        return;
     }
 
     // TODO: compute Erbest using data set comparison algorithm
@@ -68,29 +68,59 @@ std::optional<rav::ptp_announce_message> rav::ptp_port::execute_state_decision_e
 
     // If SLAVE, UNCALIBRATED, or PASSIVE include previous Erbest, but if a newer message from this port is available
     // then this should be used.
-
-    return std::nullopt;
-}
-
-std::optional<rav::ptp_announce_message> rav::ptp_port::get_best_announce_message() {
-    // IEEE 1588-2019: 9.3.2.3.c If the port state is Slave, Uncalibrated, or Passive, the previous Erbest is used,
-    // possibly updated with newer messages from this port.
-    if (port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated
-        || port_ds_.port_state == ptp_state::passive) {
-        return erbest_;
-    }
-
-    if (const auto better_announce_message = find_better_announce_message()) {
-        erbest_ = better_announce_message;
-    }
-
-    foreign_master_list_.remove_all_except_for(erbest_);
-
-    return erbest_;
 }
 
 rav::ptp_state rav::ptp_port::state() const {
     return port_ds_.port_state;
+}
+
+std::optional<rav::ptp_announce_message> rav::ptp_port::find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports) {
+    const ptp_port* best_port = nullptr;
+
+    for (auto& port : ports) {
+        if (port == nullptr) {
+            RAV_ASSERT_FALSE("Found a nullptr in the port list");
+            continue;
+        }
+
+        port->calculate_erbest();
+
+        if (best_port == nullptr) {
+            best_port = port.get();
+            continue;
+        }
+
+        auto lhs = best_port->erbest_;
+        auto rhs = port->erbest_;
+
+        if (lhs && !rhs) {
+            return lhs;
+        }
+
+        if (!lhs && rhs) {
+            return rhs;
+        }
+
+        ptp_comparison_data_set best_port_set(lhs.value(), best_port->port_ds_.port_identity);
+        ptp_comparison_data_set port_set(rhs.value(), port->port_ds_.port_identity);
+
+        auto cmp = port_set.compare(best_port_set);
+
+        if (cmp >= ptp_comparison_data_set::result::error1 && cmp <= ptp_comparison_data_set::result::error2) {
+            RAV_ERROR("PTP data set comparison failed");
+            return std::nullopt;
+        }
+
+        if (cmp >= ptp_comparison_data_set::result::better_by_topology) {
+            best_port = port.get();
+        }
+    }
+
+    if (best_port == nullptr) {
+        return std::nullopt;
+    }
+
+    return best_port->erbest_;
 }
 
 void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& event) {
@@ -239,9 +269,11 @@ void rav::ptp_port::handle_announce_message(
             parent_.update_data_sets(ptp_state_decision_code::s1, announce_message);
             // TODO: Reset the announce receipt timeout timer
         } else {
+            // Message is considered foreign
             foreign_master_list_.add_or_update_entry(announce_message);
         }
     } else {
+        // Message is considered foreign
         foreign_master_list_.add_or_update_entry(announce_message);
     }
 
@@ -252,13 +284,15 @@ void rav::ptp_port::handle_announce_message(
         if (erbest_ && erbest_->header.source_port_identity == announce_message.header.source_port_identity) {
             if (announce_message.header.sequence_id > erbest_->header.sequence_id) {
                 erbest_ = announce_message;
+                RAV_TRACE("Updated Erbest with newer announce message from the same port: {}", erbest_->to_string());
             } else {
                 RAV_WARNING("Received an older announce message from the same port");
             }
         }
     }
 
-    // TODO: Trigger STATE_DECISION_EVENT? Can also happen on a regular interval.
+    // IEEE 1588-2019: 9.5.3 NOTE 2 Trigger state decision event right away
+    parent_.execute_state_decision_event();
 }
 
 void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs) {
@@ -308,19 +342,42 @@ void rav::ptp_port::handle_pdelay_resp_follow_up_message(
     std::ignore = tlvs;
 }
 
-std::optional<rav::ptp_announce_message> rav::ptp_port::find_better_announce_message() const {
+void rav::ptp_port::calculate_erbest() {
+    if (erbest_) {
+        RAV_ASSERT(
+            foreign_master_list_.size() > 0,
+            "Erbest is set, but there are no entries in the foreign master list. Only the entries which didn't become the best announce message should have been removed."
+        );
+
+        if (foreign_master_list_.size() == 1) {
+            RAV_ASSERT(
+                foreign_master_list_.begin()->foreign_master_port_identity == erbest_->header.source_port_identity,
+                "Erbest is set, but the foreign master list contains an entry from a different source."
+            );
+
+            // Since no new entries were added, erbest is still the best.
+            return;
+        }
+    }
+
+    // IEEE 1588-2019: 9.3.2.3 Calculate Erbest
     std::optional<ptp_announce_message> erbest;
+
+    bool should_include_previous_erbest = erbest_
+        && (port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated
+            || port_ds_.port_state == ptp_state::passive);
 
     for (const auto& entry : foreign_master_list_) {
         if (const auto& announce_message = entry.most_recent_announce_message) {
+            if (should_include_previous_erbest
+                && announce_message->header.source_port_identity == erbest_->header.source_port_identity) {
+                // Don't include this entry, because it is the previous Erbest, which might have been updated outside
+                // the foreign master list.
+                continue;
+            }
             if (erbest) {
                 if (ptp_comparison_data_set::compare(*announce_message, *erbest, port_ds_.port_identity)
-                    >= ptp_comparison_data_set::ordering::better_by_topology) {
-                    erbest = announce_message;
-                }
-            } else if (erbest_) {
-                if (ptp_comparison_data_set::compare(*announce_message, *erbest_, port_ds_.port_identity)
-                    >= ptp_comparison_data_set::ordering::better_by_topology) {
+                    >= ptp_comparison_data_set::result::better_by_topology) {
                     erbest = announce_message;
                 }
             } else {
@@ -329,5 +386,19 @@ std::optional<rav::ptp_announce_message> rav::ptp_port::find_better_announce_mes
         }
     }
 
-    return erbest;
+    if (erbest) {
+        if (should_include_previous_erbest) {
+            if (ptp_comparison_data_set::compare(*erbest, *erbest_, port_ds_.port_identity)
+                >= ptp_comparison_data_set::result::better_by_topology) {
+                erbest_ = erbest;
+                RAV_TRACE("New Erbest: {}", erbest_->to_string());
+            }
+        } else {
+            erbest_ = erbest;  // The non-empty set is considered better than the empty set.
+            RAV_TRACE("New Erbest: {}", erbest_->to_string());
+        }
+    }
+
+    // IEEE 1588-2019: 9.3.2.3.b Remove entries from the foreign master list which didn't become Erbest.
+    foreign_master_list_.remove_all_except_for(erbest_);
 }

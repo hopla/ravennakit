@@ -35,7 +35,7 @@ struct ptp_comparison_data_set {
      * The result of comparing two PTP data sets.
      * Note: the order of the enum values is important for the comparison logic.
      */
-    enum class ordering {
+    enum class result {
         worse,
         /// The set is worse than the one being compared to.
         /// The set is of equal quality as the one being compared to, but is worse by the topology.
@@ -78,18 +78,18 @@ struct ptp_comparison_data_set {
     /**
      * Compares this data set to another. The comparison is done according to the rules in IEEE 1588-2019 9.3.4.
      * @param other The other data set to compare to.
-     * @return The result of the comparison. See the ordering enum for more information.
+     * @return The result of the comparison. See the result enum for more information.
      */
-    [[nodiscard]] ordering compare(const ptp_comparison_data_set& other) const;
+    [[nodiscard]] result compare(const ptp_comparison_data_set& other) const;
 
     /**
      * Convenience method for comparing two announce messages.
      * @param a The first announce message.
      * @param b The second announce message.
      * @param receiver_identity The identity of the receiver.
-     * @return The result of the comparison. See the ordering enum for more information.
+     * @return The result of the comparison. See the result enum for more information.
      */
-    static ordering
+    static result
     compare(const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity);
 };
 

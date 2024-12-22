@@ -44,122 +44,122 @@ rav::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds& defa
     identity_of_receiver = {default_ds.clock_identity, 0};
 }
 
-rav::ptp_comparison_data_set::ordering
+rav::ptp_comparison_data_set::result
 rav::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) const {
     if (grandmaster_identity == other.grandmaster_identity) {
         // Compare Steps Removed of A and B:
 
         if (steps_removed > other.steps_removed + 1) {
-            return ordering::worse;
+            return result::worse;
         }
 
         if (steps_removed + 1 < other.steps_removed) {
-            return ordering::better;
+            return result::better;
         }
 
         // Compare Steps Removed of A and B:
 
         if (steps_removed > other.steps_removed) {
             if (identity_of_receiver.clock_identity < identity_of_senders) {
-                return ordering::worse;
+                return result::worse;
             }
             if (identity_of_receiver.clock_identity > identity_of_senders) {
-                return ordering::worse_by_topology;
+                return result::worse_by_topology;
             }
-            return ordering::error1;
+            return result::error1;
         }
 
         if (steps_removed < other.steps_removed) {
             if (other.identity_of_receiver.clock_identity < other.identity_of_senders) {
-                return ordering::better;
+                return result::better;
             }
             if (other.identity_of_receiver.clock_identity > other.identity_of_senders) {
-                return ordering::better_by_topology;
+                return result::better_by_topology;
             }
-            return ordering::error1;
+            return result::error1;
         }
 
         // Compare Identities of Senders of A and B:
 
         if (identity_of_senders > other.identity_of_senders) {
-            return ordering::worse_by_topology;
+            return result::worse_by_topology;
         }
 
         if (identity_of_senders < other.identity_of_senders) {
-            return ordering::better_by_topology;
+            return result::better_by_topology;
         }
 
         // Compare Port Numbers of Receivers of A and B:
 
         if (identity_of_receiver.port_number > other.identity_of_receiver.port_number) {
-            return ordering::worse_by_topology;
+            return result::worse_by_topology;
         }
 
         if (identity_of_receiver.port_number < other.identity_of_receiver.port_number) {
-            return ordering::better_by_topology;
+            return result::better_by_topology;
         }
 
-        return ordering::error2;
+        return result::error2;
     }
 
     // GM Priority1
     if (grandmaster_priority1 < other.grandmaster_priority1) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_priority1 > other.grandmaster_priority1) {
-        return ordering::worse;
+        return result::worse;
     }
 
     // GM Clock class
     if (grandmaster_clock_quality.clock_class < other.grandmaster_clock_quality.clock_class) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_clock_quality.clock_class > other.grandmaster_clock_quality.clock_class) {
-        return ordering::worse;
+        return result::worse;
     }
 
     // GM Accuracy
     if (grandmaster_clock_quality.clock_accuracy < other.grandmaster_clock_quality.clock_accuracy) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_clock_quality.clock_accuracy > other.grandmaster_clock_quality.clock_accuracy) {
-        return ordering::worse;
+        return result::worse;
     }
 
     // GM Offset scaled log variance
     if (grandmaster_clock_quality.offset_scaled_log_variance
         < other.grandmaster_clock_quality.offset_scaled_log_variance) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_clock_quality.offset_scaled_log_variance
         > other.grandmaster_clock_quality.offset_scaled_log_variance) {
-        return ordering::worse;
+        return result::worse;
     }
 
     // GM Priority 2
     if (grandmaster_priority2 < other.grandmaster_priority2) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_priority2 > other.grandmaster_priority2) {
-        return ordering::worse;
+        return result::worse;
     }
 
     // IEEE1588-2019: 7.5.2.4 Ordering of clockIdentity and portIdentity values
     if (grandmaster_identity.data > other.grandmaster_identity.data) {
-        return ordering::better;
+        return result::better;
     }
     if (grandmaster_identity.data < other.grandmaster_identity.data) {
-        return ordering::worse;
+        return result::worse;
     }
 
     RAV_ASSERT(
         identity_of_senders != other.identity_of_senders, "Clock identity senders must not be equal at this point"
     );
 
-    return ordering::error1;
+    return result::error1;
 }
 
-rav::ptp_comparison_data_set::ordering rav::ptp_comparison_data_set::compare(
+rav::ptp_comparison_data_set::result rav::ptp_comparison_data_set::compare(
     const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity
 ) {
     const ptp_comparison_data_set set_a(a, receiver_identity);

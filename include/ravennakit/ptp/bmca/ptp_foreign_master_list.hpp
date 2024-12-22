@@ -113,6 +113,13 @@ class ptp_foreign_master_list {
         entries_.clear();
     }
 
+    /**
+     * @return The number of entries in the foreign master list.
+     */
+    [[nodiscard]] size_t size() const {
+        return entries_.size();
+    }
+
     [[nodiscard]] std::vector<entry>::const_iterator begin() const {
         return entries_.begin();
     }

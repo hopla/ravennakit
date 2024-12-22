@@ -73,23 +73,22 @@ void rav::ptp_instance::execute_state_decision_event() {
         return port->state() == ptp_state::initializing;
     });
 
-    // IEEE1588-2019: 9.2.6.9
     if (all_ports_initializing) {
         RAV_TRACE("Not executing state decision event because all ports are in initializing state");
+        // IEEE1588-2019: 9.2.6.9
         return;
     }
 
-    // TODO: Compute and get Erbest from each port
-    // TODO: Compute Ebest from all Erbest messages
-    // TODO: Apply state decision algorithm with Ebest, Erbest and defaultDS
+    const auto ebest = ptp_port::find_ebest(ports_);
 
-    std::vector<ptp_announce_message> best_announce_messages;
-    for (const auto& port : ports_) {
-        if (auto ebest = port->execute_state_decision_event()) {
-            best_announce_messages.push_back(ebest.value());
-        }
+    if (!ebest) {
+        RAV_TRACE("No Ebest found, not making any changes to the state.");
+        return;
     }
 
+
+
+    // TODO: Apply state decision algorithm with Ebest, Erbest and defaultDS
     // TODO: Update data sets for all ports
     // TODO: Instantiate the recommended state event in the state machine and make required changes in all PTP ports
 }

@@ -31,6 +31,8 @@ class ptp_foreign_master_list {
         size_t foreign_master_announce_messages {};
         /// The most recent announce message received from the foreign master.
         std::optional<ptp_announce_message> most_recent_announce_message;
+        /// The age of the most recent announce message.
+        size_t age {};
     };
 
     ptp_foreign_master_list() = default;
@@ -45,65 +47,54 @@ class ptp_foreign_master_list {
         if (auto* entry = find_entry(foreign_port_identity)) {
             // IEEE 1588-2019: 9.3.2.5.b If message is not the most recent one, it is not qualified.
             if (entry->most_recent_announce_message) {
-                if (announce_message.header.sequence_id <= entry->most_recent_announce_message->header.sequence_id) {
+                if (announce_message.header.sequence_id < entry->most_recent_announce_message->header.sequence_id) {
                     RAV_WARNING("Discarding announce message because it is not the most recent one");
                     return;
                 }
             }
 
-            entry->foreign_master_announce_messages++;
-
-            // TODO: Find a way to implement the time window.
-
-            // IEEE 1588-2019: 9.3.2.5.c If fewer than k_foreign_master_threshold messages have been received from the
-            // foreign master within the most recent k_foreign_master_time_window, message is not qualified.
-            if (entry->foreign_master_announce_messages < k_foreign_master_threshold) {
-                return;
-            }
-
             // IEEE 1588-2019: 9.3.2.5.e Otherwise, the message is qualified.
+
+            entry->foreign_master_announce_messages++;
             entry->most_recent_announce_message = announce_message;
+            entry->age = 0;
         } else {
             // IEEE 1588-2019: 9.5.3.b states that a new records start with 0 announce messages.
-            entries_.push_back({foreign_port_identity, 0, {}});
+            entries_.push_back({foreign_port_identity, 0, {}, 0});
         }
     }
 
     /**
      * Removes all entries except the one with the given foreign master port identity.
-     * @param foreign_master_port_identity The foreign master port identity to keep.
+     * @param erbest The entry for which to keep the foreign master port identity.
      */
-    void remove_all_except_for(const ptp_port_identity& foreign_master_port_identity) {
+    void purge_entries(const std::optional<ptp_announce_message>& erbest) {
         entries_.erase(
             std::remove_if(
                 entries_.begin(), entries_.end(),
-                [&foreign_master_port_identity](const entry& entry) {
-                    return entry.foreign_master_port_identity != foreign_master_port_identity;
+                [&erbest](const entry& entry) {
+                    if (erbest && erbest->header.source_port_identity == entry.foreign_master_port_identity) {
+                        RAV_TRACE("Keeping entry for Erbest: {}", entry.foreign_master_port_identity.to_string());
+                        return false;  // Keep the entry for the new Erbest.
+                    }
+                    if (entry.age > k_foreign_master_time_window) {
+                        RAV_TRACE(
+                            "Removing entry because it is too old: {}", entry.foreign_master_port_identity.to_string()
+                        );
+                        return true;  // Entry is too old, so we remove it.
+                    }
+                    if (entry.foreign_master_announce_messages < k_foreign_master_threshold) {
+                        RAV_TRACE(
+                            "Removing entry because it didn't receive enough messages: {}",
+                            entry.foreign_master_port_identity.to_string()
+                        );
+                        return false;  // Message is not qualified, so we don't remove it.
+                    }
+                    return true;
                 }
             ),
             entries_.end()
         );
-    }
-
-    /**
-     * Removes all entries except the one with the given foreign master port identity.
-     * @param except_for_announce_message The entry for which to keep the foreign master port identity.
-     */
-    void remove_all_except_for(const std::optional<ptp_announce_message>& except_for_announce_message) {
-        if (except_for_announce_message) {
-            entries_.erase(
-                std::remove_if(
-                    entries_.begin(), entries_.end(),
-                    [&except_for_announce_message](const entry& entry) {
-                        return entry.foreign_master_port_identity
-                            != except_for_announce_message->header.source_port_identity;
-                    }
-                ),
-                entries_.end()
-            );
-        } else {
-            clear();
-        }
     }
 
     /**
@@ -126,6 +117,23 @@ class ptp_foreign_master_list {
 
     [[nodiscard]] std::vector<entry>::const_iterator end() const {
         return entries_.end();
+    }
+
+    /**
+     * Increases the age of all entries in the foreign master list.
+     */
+    void increase_age() {
+        for (auto& entry : entries_) {
+            entry.age++;
+            const auto max_num_messages_in_window = k_foreign_master_time_window - entry.age;
+            if (entry.foreign_master_announce_messages > max_num_messages_in_window) {
+                entry.foreign_master_announce_messages = max_num_messages_in_window;
+            }
+            RAV_TRACE(
+                "Increased age of entry: {} to {}. Num valid messages is now: {}",
+                entry.foreign_master_port_identity.to_string(), entry.age, entry.foreign_master_announce_messages
+            );
+        }
     }
 
   private:

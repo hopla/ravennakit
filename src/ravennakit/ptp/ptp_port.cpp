@@ -12,6 +12,7 @@
 
 #include "ravennakit/core/util.hpp"
 #include "ravennakit/core/containers/buffer_view.hpp"
+#include "ravennakit/ptp/ptp_constants.hpp"
 #include "ravennakit/ptp/ptp_instance.hpp"
 #include "ravennakit/ptp/ptp_profiles.hpp"
 #include "ravennakit/ptp/messages/ptp_follow_up_message.hpp"
@@ -29,6 +30,7 @@ rav::ptp_port::ptp_port(
     const ptp_port_identity port_identity
 ) :
     parent_(parent),
+    announce_receipt_timeout_timer_(io_context),
     event_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
     general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
     // Initialize the port data set
@@ -73,8 +75,6 @@ void rav::ptp_port::apply_state_decision_algorithm(
     RAV_TRACE("Calculated recommended state: {}", to_string(recommended_state.value()));
 
     parent_.update_data_sets(recommended_state.value(), ebest ? std::optional(ebest->message) : std::nullopt);
-
-
 }
 
 std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended_state(
@@ -114,6 +114,19 @@ std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended
     }
 
     return ptp_state_decision_code::m3;  // BMC_MASTER (Ebest)
+}
+
+void rav::ptp_port::schedule_announce_receipt_timeout() {
+    announce_receipt_timeout_timer_.expires_after(std::chrono::seconds(1));
+    announce_receipt_timeout_timer_.async_wait([this](const std::error_code& error) {
+        if (error == asio::error::operation_aborted) {
+            return;
+        }
+        if (error) {
+            RAV_ERROR("State decision timer error: {}", error.message());
+        }
+        schedule_announce_receipt_timeout();
+    });
 }
 
 rav::ptp_state rav::ptp_port::state() const {
@@ -168,6 +181,14 @@ rav::ptp_port::determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& por
     RAV_ASSERT(best_port->erbest_, "Best port should have a valid Erbest");
 
     return ptp_best_announce_message {*best_port->erbest_, best_port->port_ds_.port_identity};
+}
+
+const rav::ptp_port_ds& rav::ptp_port::port_ds() const {
+    return port_ds_;
+}
+
+void rav::ptp_port::increase_age() {
+    foreign_master_list_.increase_age();
 }
 
 void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& event) {
@@ -401,9 +422,6 @@ void rav::ptp_port::calculate_erbest() {
                 foreign_master_list_.begin()->foreign_master_port_identity == erbest_->header.source_port_identity,
                 "Erbest is set, but the foreign master list contains an entry from a different source."
             );
-
-            // Since no new entries were added, erbest is still the best.
-            return;
         }
     }
 
@@ -419,10 +437,18 @@ void rav::ptp_port::calculate_erbest() {
             if (should_include_previous_erbest
                 && announce_message->header.source_port_identity == erbest_->header.source_port_identity) {
                 // Don't include this entry, because it is the previous Erbest, which might have been updated outside
-                // the foreign master list.
+                // the foreign master list and which is considered later.
                 continue;
             }
-            RAV_TRACE("Consider Erbest candidate: {}", announce_message->source_to_string());
+            // IEEE 1588-2019: 9.3.2.5.c If fewer than k_foreign_master_threshold messages have been received from the
+            // foreign master within the most recent k_foreign_master_time_window, message is not qualified.
+            if (entry.foreign_master_announce_messages < k_foreign_master_threshold) {
+                continue;
+            }
+            RAV_TRACE(
+                "Consider foreign master: {} with age {} and count {}", announce_message->source_to_string(), entry.age,
+                entry.foreign_master_announce_messages
+            );
             if (erbest) {
                 if (ptp_comparison_data_set::compare(*announce_message, *erbest, port_ds_.port_identity)
                     >= ptp_comparison_data_set::result::better_by_topology) {
@@ -445,9 +471,9 @@ void rav::ptp_port::calculate_erbest() {
             erbest_ = erbest;  // The non-empty set is considered better than the empty set.
             RAV_TRACE("New Erbest: {}", erbest_->source_to_string());
         }
-
-        // IEEE 1588-2019: 9.3.2.3.b Remove entries from the foreign master list which didn't become Erbest.
-        // Only when we found a new Erbest, we remove the other entries.
-        foreign_master_list_.remove_all_except_for(erbest_);
     }
+
+    // IEEE 1588-2019: 9.3.2.3.b Remove entries from the foreign master list which were considered but which didn't
+    // become Erbest.
+    foreign_master_list_.purge_entries(erbest_);
 }

@@ -74,8 +74,19 @@ class ptp_port {
     static std::optional<ptp_best_announce_message>
     determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports);
 
+    /**
+     * @return The port data set of this port.
+     */
+    [[nodiscard]] const ptp_port_ds& port_ds() const;
+
+    /**
+     * Increases the age by one.
+     */
+    void increase_age();
+
   private:
     ptp_instance& parent_;
+    asio::steady_timer announce_receipt_timeout_timer_;
     ptp_port_ds port_ds_;
     udp_sender_receiver event_socket_;
     udp_sender_receiver general_socket_;
@@ -104,6 +115,8 @@ class ptp_port {
     [[nodiscard]] std::optional<ptp_state_decision_code> calculate_recommended_state(
         const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
     ) const;
+
+    void schedule_announce_receipt_timeout();
 };
 
 }  // namespace rav

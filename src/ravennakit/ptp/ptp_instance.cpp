@@ -14,7 +14,11 @@
 #include "ravennakit/core/net/interfaces/network_interface_list.hpp"
 
 rav::ptp_instance::ptp_instance(asio::io_context& io_context) :
-    io_context_(io_context), default_ds_(true), parent_ds_(default_ds_) {}
+    io_context_(io_context), state_decision_timer_(io_context), default_ds_(true), parent_ds_(default_ds_) {}
+
+rav::ptp_instance::~ptp_instance() {
+    state_decision_timer_.cancel();
+}
 
 tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::address& interface_address) {
     if (!ports_.empty()) {
@@ -51,6 +55,11 @@ tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::a
 
     default_ds_.number_ports = static_cast<uint16_t>(ports_.size());
 
+    if (ports_.size() == 1) {
+        // Start the state decision timer
+        schedule_state_decision_timer();
+    }
+
     return {};
 }
 
@@ -62,7 +71,9 @@ bool rav::ptp_instance::update_data_sets(
     const ptp_state_decision_code state_decision_code, const std::optional<ptp_announce_message>& announce_message
 ) {
     if (state_decision_code == ptp_state_decision_code::m1 || state_decision_code == ptp_state_decision_code::m2) {
-        RAV_ASSERT(!default_ds_.slave_only, "State decision code is M1 or M2, but the default data set is slave only");
+        if (default_ds_.slave_only) {
+            RAV_WARNING("State decision code is M1 or M2, but the default data set is slave only");
+        }
         current_ds_.steps_removed = 0;
         current_ds_.offset_from_master = 0;
         current_ds_.mean_delay = 0;
@@ -174,4 +185,26 @@ uint16_t rav::ptp_instance::get_next_available_port_number() const {
     }
     RAV_ASSERT_FALSE("Failed to find the next available port number");
     return 0;
+}
+
+void rav::ptp_instance::schedule_state_decision_timer() {
+    if (ports_.empty()) {
+        return;  // Basically stopping the timer, which is fine when there are no ports
+    }
+    const auto announce_interval_seconds = std::pow(2, ports_.front()->port_ds().log_announce_interval);
+    state_decision_timer_.expires_after(std::chrono::seconds(static_cast<int>(announce_interval_seconds)));
+    state_decision_timer_.async_wait([this](const std::error_code& error) {
+        if (error == asio::error::operation_aborted) {
+            return;
+        }
+        if (error) {
+            RAV_ERROR("State decision timer error: {}", error.message());
+            return;
+        }
+        execute_state_decision_event();
+        for (const auto& port : ports_) {
+            port->increase_age();
+        }
+        schedule_state_decision_timer();
+    });
 }

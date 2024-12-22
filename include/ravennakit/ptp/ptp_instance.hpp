@@ -35,6 +35,8 @@ class ptp_instance {
      */
     explicit ptp_instance(asio::io_context& io_context);
 
+    ~ptp_instance();
+
     /**
      * Adds a port to the PTP instance. The port will be used to send and receive PTP messages. The clock identity of
      * the PTP instance will be determined by the first port added, based on its MAC address.
@@ -71,6 +73,7 @@ class ptp_instance {
 
   private:
     asio::io_context& io_context_;
+    asio::steady_timer state_decision_timer_;
     ptp_default_ds default_ds_;
     ptp_current_ds current_ds_;
     ptp_parent_ds parent_ds_;
@@ -82,6 +85,7 @@ class ptp_instance {
     // Local clock
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;
+    void schedule_state_decision_timer();
 };
 
 }  // namespace rav

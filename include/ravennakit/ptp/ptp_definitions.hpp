@@ -175,6 +175,30 @@ enum class ptp_state_decision_code {
 };
 
 /**
+ * Converts a ptp_state_decision_code to a string.
+ * @param code The code to convert.
+ * @return The string representation of the code.
+ */
+inline const char* to_string(const ptp_state_decision_code code) {
+    switch (code) {
+        case ptp_state_decision_code::m1:
+            return "M1";
+        case ptp_state_decision_code::m2:
+            return "M2";
+        case ptp_state_decision_code::m3:
+            return "M3";
+        case ptp_state_decision_code::s1:
+            return "S1";
+        case ptp_state_decision_code::p1:
+            return "P1";
+        case ptp_state_decision_code::p2:
+            return "P2";
+        default:
+            return "Unknown";
+    }
+}
+
+/**
  * PTP Message types.
  * IEEE1588-2019: Table 36
  */

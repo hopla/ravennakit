@@ -47,7 +47,7 @@ void rav::ptp_announce_message::write_to(output_stream& stream) const {
 
 std::string rav::ptp_announce_message::to_string() const {
     return fmt::format(
-        "origin_timestamp={}.{:09d} current_utc_offset={} gm_priority1={} gm_clock_quality=({})",
+        "{} origin_timestamp={}.{:09d} current_utc_offset={} gm_priority1={} gm_clock_quality=({})", header.to_string(),
         origin_timestamp.seconds.to_uint64(), origin_timestamp.nanoseconds, current_utc_offset, grandmaster_priority1,
         grandmaster_clock_quality.to_string()
     );

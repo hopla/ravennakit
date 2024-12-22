@@ -56,25 +56,68 @@ void rav::ptp_port::assert_valid_state(const ptp_profile& profile) const {
     port_ds_.assert_valid_state(profile);
 }
 
-void rav::ptp_port::execute_state_decision_event() {
-    if (port_ds_.port_state == ptp_state::disabled || port_ds_.port_state == ptp_state::faulty
-        || port_ds_.port_state == ptp_state::initializing) {
+void rav::ptp_port::apply_state_decision_algorithm(
+    const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
+) {
+    if (!ebest && port_ds_.port_state == ptp_state::listening) {
+        RAV_TRACE("Remaining in listening state because no Ebest is available");
         return;
     }
 
-    // TODO: compute Erbest using data set comparison algorithm
+    const auto recommended_state = calculate_recommended_state(default_ds, ebest);
+    if (!recommended_state) {
+        RAV_TRACE("Port is listening, and no ebest is available. No state change is recommended.");
+        return;
+    }
 
-    // Only consider qualified messages
+    RAV_TRACE("Calculated recommended state: {}", to_string(recommended_state.value()));
+}
 
-    // If SLAVE, UNCALIBRATED, or PASSIVE include previous Erbest, but if a newer message from this port is available
-    // then this should be used.
+std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended_state(
+    const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
+) const {
+    if (!ebest && port_ds_.port_state == ptp_state::listening) {
+        return std::nullopt;
+    }
+
+    const ptp_comparison_data_set d0(default_ds);
+
+    if (range(1, 127).contains(default_ds.clock_quality.clock_class)) {
+        // D0 better or better by topology than Erbest
+        if (!erbest_
+            || d0.compare(ptp_comparison_data_set(*erbest_, port_ds_.port_identity))
+                >= ptp_comparison_data_set::result::better_by_topology) {
+            return ptp_state_decision_code::m1;  // BMC_MASTER (D0)
+        }
+        return ptp_state_decision_code::p1;  // BMC_PASSIVE (Erbest)
+    }
+
+    // D0 better or better by topology than Ebest
+    if (!ebest || d0.compare(*ebest) >= ptp_comparison_data_set::result::better_by_topology) {
+        return ptp_state_decision_code::m2;  // BMC_MASTER (D0)
+    }
+
+    // Ebest received on port R
+    if (ebest->identity_of_receiver == port_ds_.port_identity) {
+        return ptp_state_decision_code::s1;  // BMC_SLAVE (Ebest = Erbest)
+    }
+
+    // Ebest better by topology than Erbest
+    if (!erbest_
+        || ebest->compare(ptp_comparison_data_set(*erbest_, port_ds_.port_identity))
+            == ptp_comparison_data_set::result::better_by_topology) {
+        return ptp_state_decision_code::p2;  // BMC_PASSIVE (Erbest)
+    }
+
+    return ptp_state_decision_code::m3;  // BMC_MASTER (Ebest)
 }
 
 rav::ptp_state rav::ptp_port::state() const {
     return port_ds_.port_state;
 }
 
-std::optional<rav::ptp_announce_message> rav::ptp_port::find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports) {
+std::optional<rav::ptp_comparison_data_set>
+rav::ptp_port::find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports) {
     const ptp_port* best_port = nullptr;
 
     for (auto& port : ports) {
@@ -85,33 +128,31 @@ std::optional<rav::ptp_announce_message> rav::ptp_port::find_ebest(const std::ve
 
         port->calculate_erbest();
 
+        if (!port->erbest_) {
+            continue;
+        }
+
         if (best_port == nullptr) {
             best_port = port.get();
             continue;
         }
 
-        auto lhs = best_port->erbest_;
-        auto rhs = port->erbest_;
-
-        if (lhs && !rhs) {
-            return lhs;
+        if (!best_port->erbest_) {
+            best_port = port.get();
+            continue;
         }
 
-        if (!lhs && rhs) {
-            return rhs;
-        }
+        ptp_comparison_data_set best_port_set(best_port->erbest_.value(), best_port->port_ds_.port_identity);
+        ptp_comparison_data_set port_set(port->erbest_.value(), port->port_ds_.port_identity);
 
-        ptp_comparison_data_set best_port_set(lhs.value(), best_port->port_ds_.port_identity);
-        ptp_comparison_data_set port_set(rhs.value(), port->port_ds_.port_identity);
+        const auto r = port_set.compare(best_port_set);
 
-        auto cmp = port_set.compare(best_port_set);
-
-        if (cmp >= ptp_comparison_data_set::result::error1 && cmp <= ptp_comparison_data_set::result::error2) {
+        if (r >= ptp_comparison_data_set::result::error1 && r <= ptp_comparison_data_set::result::error2) {
             RAV_ERROR("PTP data set comparison failed");
             return std::nullopt;
         }
 
-        if (cmp >= ptp_comparison_data_set::result::better_by_topology) {
+        if (r >= ptp_comparison_data_set::result::better_by_topology) {
             best_port = port.get();
         }
     }
@@ -120,7 +161,9 @@ std::optional<rav::ptp_announce_message> rav::ptp_port::find_ebest(const std::ve
         return std::nullopt;
     }
 
-    return best_port->erbest_;
+    RAV_ASSERT(best_port->erbest_, "Best port should have a valid Erbest");
+
+    return ptp_comparison_data_set(*best_port->erbest_, best_port->port_ds_.port_identity);
 }
 
 void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& event) {
@@ -142,7 +185,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!announce_message) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(announce_message.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), announce_message->to_string());
+            RAV_TRACE("{}", announce_message->to_string());
             handle_announce_message(announce_message.value(), {});
             break;
         }
@@ -151,7 +194,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!sync_message) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(sync_message.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), sync_message->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), sync_message->to_string());
             handle_sync_message(sync_message.value(), {});
             break;
         }
@@ -160,7 +203,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!delay_req) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(delay_req.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), delay_req->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), delay_req->to_string());
             handle_delay_req_message(delay_req.value(), {});
             break;
         }
@@ -169,7 +212,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!pdelay_req) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(pdelay_req.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), pdelay_req->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), pdelay_req->to_string());
             handle_pdelay_req_message(pdelay_req.value(), {});
             break;
         }
@@ -178,7 +221,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!pdelay_resp) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(pdelay_resp.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), pdelay_resp->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), pdelay_resp->to_string());
             handle_pdelay_resp_message(pdelay_resp.value(), {});
             break;
         }
@@ -187,7 +230,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!follow_up) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(follow_up.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), follow_up->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), follow_up->to_string());
             handle_follow_up_message(follow_up.value(), {});
             break;
         }
@@ -196,7 +239,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!delay_resp) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(delay_resp.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), delay_resp->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), delay_resp->to_string());
             handle_delay_resp_message(delay_resp.value(), {});
             break;
         }
@@ -206,7 +249,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
             if (!pdelay_resp_follow_up) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(pdelay_resp_follow_up.error()));
             }
-            RAV_TRACE("{} {}", header->to_string(), pdelay_resp_follow_up->to_string());
+            // RAV_TRACE("{} {}", header->to_string(), pdelay_resp_follow_up->to_string());
             handle_pdelay_resp_follow_up_message(pdelay_resp_follow_up.value(), {});
             break;
         }
@@ -397,8 +440,9 @@ void rav::ptp_port::calculate_erbest() {
             erbest_ = erbest;  // The non-empty set is considered better than the empty set.
             RAV_TRACE("New Erbest: {}", erbest_->to_string());
         }
-    }
 
-    // IEEE 1588-2019: 9.3.2.3.b Remove entries from the foreign master list which didn't become Erbest.
-    foreign_master_list_.remove_all_except_for(erbest_);
+        // IEEE 1588-2019: 9.3.2.3.b Remove entries from the foreign master list which didn't become Erbest.
+        // Only when we found a new Erbest, we remove the other entries.
+        foreign_master_list_.remove_all_except_for(erbest_);
+    }
 }

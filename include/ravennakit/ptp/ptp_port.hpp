@@ -49,10 +49,11 @@ class ptp_port {
     void assert_valid_state(const ptp_profile& profile) const;
 
     /**
-     * Executes a state decision event for this port.
-     * @return The best announce message of this port (Ebest) if there is one, otherwise std::nullopt.
+     * Applies the state decision algorithm to this port.
      */
-    void execute_state_decision_event();
+    void apply_state_decision_algorithm(
+        const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
+    );
 
     /**
      * @return The current state of this port.
@@ -70,7 +71,7 @@ class ptp_port {
      * @param ports The ports to find the best announce message from.
      * @return The best announce message, or nullopt if there is no best announce message.
      */
-    static std::optional<ptp_announce_message> find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports);
+    static std::optional<ptp_comparison_data_set> find_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports);
 
   private:
     ptp_instance& parent_;
@@ -92,6 +93,18 @@ class ptp_port {
     void handle_pdelay_resp_follow_up_message(
         const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
     );
+
+    /**
+     * Calculates the recommended state of this port.
+     * @param default_ds The default data set of the PTP instance.
+     * @param ebest The best announce message of all ports.
+     * @return The recommended state of this port.
+     */
+    [[nodiscard]] std::optional<ptp_state_decision_code> calculate_recommended_state(
+        const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
+    ) const;
+
+
 };
 
 }  // namespace rav

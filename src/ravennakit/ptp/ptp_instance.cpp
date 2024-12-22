@@ -82,11 +82,13 @@ void rav::ptp_instance::execute_state_decision_event() {
     const auto ebest = ptp_port::find_ebest(ports_);
 
     if (!ebest) {
-        RAV_TRACE("No Ebest found, not making any changes to the state.");
-        return;
+        RAV_TRACE("Not executing state decision event because no Ebest is available");
     }
 
-
+    for (const auto& port : ports_) {
+        RAV_ASSERT(port, "Found a nullptr in the port list");
+        port->apply_state_decision_algorithm(default_ds_, ebest);
+    }
 
     // TODO: Apply state decision algorithm with Ebest, Erbest and defaultDS
     // TODO: Update data sets for all ports

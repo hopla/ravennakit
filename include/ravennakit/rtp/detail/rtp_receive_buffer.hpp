@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "ravennakit/core/containers/circular_buffer.hpp"
+#include "ravennakit/core/containers/fifo_buffer.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 #include "ravennakit/core/log.hpp"
 

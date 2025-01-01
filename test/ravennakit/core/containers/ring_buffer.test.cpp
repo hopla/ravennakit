@@ -178,7 +178,7 @@ TEST_CASE("ring_buffer") {
     }
 
     SECTION("Const Iterator") {
-        const rav::ring_buffer<const uint8_t> buffer({1, 2, 3});
+        const rav::ring_buffer<uint8_t> buffer({1, 2, 3});
         std::vector<uint8_t> values;
 
         for (auto& value : buffer) {

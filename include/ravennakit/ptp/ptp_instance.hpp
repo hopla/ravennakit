@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ptp_error.hpp"
+#include "ptp_local_ptp_clock.hpp"
 #include "ptp_port.hpp"
 #include "datasets/ptp_current_ds.hpp"
 #include "datasets/ptp_default_ds.hpp"
@@ -84,6 +85,11 @@ class ptp_instance {
      */
     [[nodiscard]] ptp_state get_state_for_decision_code(ptp_state_decision_code code) const;
 
+    /**
+     * @returns The current PTP time from the local PTP clock in nanoseconds.
+     */
+    [[nodiscard]] uint64_t get_current_ptp_time() const;
+
   private:
     asio::io_context& io_context_;
     asio::steady_timer state_decision_timer_;
@@ -93,9 +99,7 @@ class ptp_instance {
     ptp_time_properties_ds time_properties_ds_;
     std::vector<std::unique_ptr<ptp_port>> ports_;
     network_interface_list network_interfaces_;
-
-    // Local PTP clock
-    // Local clock
+    ptp_local_ptp_clock local_ptp_clock_;
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;
     void schedule_state_decision_timer();

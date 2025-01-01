@@ -28,6 +28,17 @@ struct ptp_timestamp {
     /// Size on the wire in bytes.
     static constexpr size_t k_size = 10;
 
+    ptp_timestamp() = default;
+
+    /**
+     * Create a ptp_timestamp from a number of nanoseconds.
+     * @param nanos The number of nanoseconds.
+     */
+    explicit ptp_timestamp(const uint64_t nanos) {
+        seconds = nanos / 1'000'000'000;
+        nanoseconds = static_cast<uint32_t>(nanos % 1'000'000'000);
+    }
+
     /**
      * Create a ptp_timestamp from a buffer_view. Data is assumed to valid, and the buffer_view must be at least 10
      * bytes long. No bounds checking is performed.
@@ -56,6 +67,14 @@ struct ptp_timestamp {
      */
     [[nodiscard]] std::string to_string() const {
         return fmt::format("{}.{:09}", seconds.to_uint64(), nanoseconds);
+    }
+
+    /**
+     * @return The number of nanoseconds represented by this timestamp. If the resulting number of nanoseconds is too
+     * large to fit, the behaviour is undefined.
+     */
+    [[nodiscard]] std::optional<uint64_t> to_nanoseconds() const {
+        return seconds.to_uint64() * 1'000'000'000 + nanoseconds;
     }
 };
 

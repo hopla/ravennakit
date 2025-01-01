@@ -16,6 +16,8 @@
 namespace rav {
 
 struct ptp_sync_message {
+    constexpr static size_t k_message_size = 10; // Excluding header size
+
     ptp_message_header header;
     ptp_timestamp origin_timestamp;
 
@@ -37,9 +39,6 @@ struct ptp_sync_message {
      * @returns A string representation of the ptp_announce_message.
      */
     [[nodiscard]] std::string to_string() const;
-
-private:
-    constexpr static size_t k_message_size = 10; // Excluding header size
 };
 
 }

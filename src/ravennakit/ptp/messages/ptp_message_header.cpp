@@ -127,11 +127,15 @@ std::string rav::ptp_message_header::to_string() const {
     );
 }
 
-auto rav::ptp_message_header::tie_members() const {
+auto rav::ptp_message_header::tie() const {
     return std::tie(
         sdo_id, message_type, version, message_length, domain_number, flags, correction_field, source_port_identity,
         sequence_id, log_message_interval
     );
+}
+
+bool rav::ptp_message_header::matches(const ptp_message_header& other) const {
+    return source_port_identity == other.source_port_identity && sequence_id == other.sequence_id;
 }
 
 bool rav::operator==(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs) {
@@ -143,9 +147,9 @@ bool rav::operator!=(const ptp_message_header::flag_field& lhs, const ptp_messag
 }
 
 bool rav::operator==(const ptp_message_header& lhs, const ptp_message_header& rhs) {
-    return lhs.tie_members() == rhs.tie_members();
+    return lhs.tie() == rhs.tie();
 }
 
 bool rav::operator!=(const ptp_message_header& lhs, const ptp_message_header& rhs) {
-    return lhs.tie_members() != rhs.tie_members();
+    return lhs.tie() != rhs.tie();
 }

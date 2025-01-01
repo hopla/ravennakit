@@ -196,20 +196,24 @@ rav::ptp_state rav::ptp_instance::get_state_for_decision_code(const ptp_state_de
         case ptp_state_decision_code::m2:
         case ptp_state_decision_code::m3:
             if (default_ds_.slave_only) {
-                return ptp_state::listening; // IEEE 1588-2019: Figure 31
+                return ptp_state::listening;  // IEEE 1588-2019: Figure 31
             }
             return ptp_state::master;
         case ptp_state_decision_code::s1:
-            return ptp_state::slave;
+            return local_ptp_clock_.is_calibrated() ? ptp_state::slave : ptp_state::uncalibrated;
         case ptp_state_decision_code::p1:
         case ptp_state_decision_code::p2:
             if (default_ds_.slave_only) {
-                return ptp_state::listening; // IEEE 1588-2019: Figure 31
+                return ptp_state::listening;  // IEEE 1588-2019: Figure 31
             }
             return ptp_state::passive;
         default:
             return ptp_state::undefined;
     }
+}
+
+uint64_t rav::ptp_instance::get_current_ptp_time() const {
+    return local_ptp_clock_.now();
 }
 
 uint16_t rav::ptp_instance::get_next_available_port_number() const {

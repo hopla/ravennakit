@@ -56,7 +56,7 @@ class random {
      * @return The pseudo randomly generated interval.
      */
     template<typename T = int>
-    std::chrono::milliseconds get_random_interval(T min_ms, T max_ms) {
+    std::chrono::milliseconds get_random_interval_ms(T min_ms, T max_ms) {
         return std::chrono::milliseconds(get_random_int<T>(min_ms, max_ms));
     }
 

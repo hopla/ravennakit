@@ -14,6 +14,7 @@
 #include "bmca/ptp_foreign_master_list.hpp"
 #include "datasets/ptp_parent_ds.hpp"
 #include "datasets/ptp_port_ds.hpp"
+#include "detail/ptp_request_response_delay_sequence.hpp"
 #include "messages/ptp_announce_message.hpp"
 #include "messages/ptp_delay_req_message.hpp"
 #include "messages/ptp_follow_up_message.hpp"
@@ -21,9 +22,11 @@
 #include "messages/ptp_pdelay_resp_follow_up_message.hpp"
 #include "messages/ptp_pdelay_resp_message.hpp"
 #include "messages/ptp_sync_message.hpp"
+#include "ravennakit/core/containers/ring_buffer.hpp"
 #include "ravennakit/rtp/detail/udp_sender_receiver.hpp"
 #include "types/ptp_port_identity.hpp"
 
+#include <map>
 #include <optional>
 #include <vector>
 
@@ -37,6 +40,8 @@ class ptp_port {
         ptp_instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
         ptp_port_identity port_identity
     );
+
+    ~ptp_port();
 
     /**
      * @return The port identity of this port.
@@ -86,18 +91,23 @@ class ptp_port {
 
   private:
     ptp_instance& parent_;
-    asio::steady_timer announce_receipt_timeout_timer_;
     ptp_port_ds port_ds_;
+    asio::steady_timer announce_receipt_timeout_timer_;
+    asio::steady_timer delay_req_timer_;
     udp_sender_receiver event_socket_;
     udp_sender_receiver general_socket_;
     std::vector<subscription> subscriptions_;
     ptp_foreign_master_list foreign_master_list_;
     std::optional<ptp_announce_message> erbest_;
 
+    ring_buffer<ptp_request_response_delay_sequence> request_response_delay_sequences_ {8};
+    std::multimap<uint64_t, ptp_delay_req_message> outbound_delay_req_messages_;
+
     void handle_recv_event(const udp_sender_receiver::recv_event& event);
     void handle_announce_message(const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs);
     void handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs);
-    void handle_delay_req_message(const ptp_delay_req_message& delay_req_message, buffer_view<const uint8_t> tlvs);
+    static void
+    handle_delay_req_message(const ptp_delay_req_message& delay_req_message, buffer_view<const uint8_t> tlvs);
     void handle_follow_up_message(const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs);
     void handle_delay_resp_message(const ptp_delay_req_message& delay_resp_message, buffer_view<const uint8_t> tlvs);
     void handle_pdelay_req_message(const ptp_pdelay_req_message& delay_req_message, buffer_view<const uint8_t> tlvs);
@@ -117,6 +127,7 @@ class ptp_port {
     ) const;
 
     void schedule_announce_receipt_timeout();
+    void schedule_delay_req_message_send(const ptp_delay_req_message& delay_req_message, uint64_t t2);
     void set_state(ptp_state new_state);
     void trigger_announce_receipt_timeout_expires_event();
 };

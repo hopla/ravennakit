@@ -65,7 +65,7 @@ struct ptp_message_header {
     flag_field flags;
     int64_t correction_field {};
     ptp_port_identity source_port_identity;
-    sequence_number<uint16_t> sequence_id{};
+    sequence_number<uint16_t> sequence_id {};
     int8_t log_message_interval {};
 
     /**
@@ -89,7 +89,15 @@ struct ptp_message_header {
     /**
      * Returns a tuple of the members of the PTP message header.
      */
-    [[nodiscard]] auto tie_members() const;
+    [[nodiscard]] auto tie() const;
+
+    /**
+     * Tests if this header matches the other header. A header is said to be matching when the source port identity and
+     * sequence ID are equal (IEEE 1588-2019: 9.5.5).
+     * @param other The other header to compare to.
+     * @returns True if the two headers match, false otherwise.
+     */
+    [[nodiscard]] bool matches(const ptp_message_header& other) const;
 };
 
 bool operator==(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs);

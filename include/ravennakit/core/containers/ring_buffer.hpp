@@ -57,8 +57,10 @@ class ring_buffer {
     /**
      * Add an element to the buffer. If the buffer is full, the oldest element will be overwritten.
      * @param value The value to add to the buffer.
+     * @returns True if the buffer was full and the oldest element was overwritten, false otherwise.
      */
-    void push_back(const T& value) {
+    bool push_back(const T& value) {
+        const bool overwritten = full();
         data_[write_index_] = value;
         write_index_ = (write_index_ + 1) % data_.size();
         if (count_ < data_.size()) {
@@ -66,6 +68,7 @@ class ring_buffer {
         } else {
             read_index_ = (read_index_ + 1) % data_.size();
         }
+        return overwritten;
     }
 
     /**

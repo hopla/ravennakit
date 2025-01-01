@@ -10,6 +10,7 @@
 
 #include "ravennakit/ptp/ptp_port.hpp"
 
+#include "ravennakit/core/random.hpp"
 #include "ravennakit/core/util.hpp"
 #include "ravennakit/core/containers/buffer_view.hpp"
 #include "ravennakit/ptp/ptp_constants.hpp"
@@ -33,6 +34,7 @@ rav::ptp_port::ptp_port(
 ) :
     parent_(parent),
     announce_receipt_timeout_timer_(io_context),
+    delay_req_timer_(io_context),
     event_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
     general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
     // Initialize the port data set
@@ -52,6 +54,10 @@ rav::ptp_port::ptp_port(
     set_state(ptp_state::listening);
 
     schedule_announce_receipt_timeout();
+}
+
+rav::ptp_port::~ptp_port() {
+    delay_req_timer_.cancel();
 }
 
 const rav::ptp_port_identity& rav::ptp_port::get_port_identity() const {
@@ -128,13 +134,10 @@ std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended
 }
 
 void rav::ptp_port::schedule_announce_receipt_timeout() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution range(0, 1000);  // In milliseconds
-    const auto announce_interval_ms = static_cast<int>(std::pow(2, port_ds_.log_announce_interval)) * 1000;
-    const auto random = static_cast<double>(range(gen)) / 1000;
-    const auto announce_receipt_timeout =
-        port_ds_.announce_receipt_timeout * announce_interval_ms + static_cast<int>(random * announce_interval_ms);
+    const auto random_factor = random().get_random_int(0, 1000) / 1000.0;
+    const auto announce_interval_ms = static_cast<int>(std::pow(2, port_ds_.log_announce_interval) * 1000);
+    const auto announce_receipt_timeout = port_ds_.announce_receipt_timeout * announce_interval_ms
+        + static_cast<int>(random_factor * announce_interval_ms);
 
     announce_receipt_timeout_timer_.expires_after(std::chrono::milliseconds(announce_receipt_timeout));
     announce_receipt_timeout_timer_.async_wait([this](const std::error_code& error) {
@@ -146,6 +149,36 @@ void rav::ptp_port::schedule_announce_receipt_timeout() {
         }
         trigger_announce_receipt_timeout_expires_event();
         schedule_announce_receipt_timeout();
+    });
+}
+
+void rav::ptp_port::schedule_delay_req_message_send(const ptp_delay_req_message& delay_req_message, uint64_t t2) {
+    RAV_ASSERT(
+        port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated,
+        "Delay request message should only be scheduled in slave or uncalibrated state"
+    );
+    RAV_ASSERT(
+        port_ds_.delay_mechanism == ptp_delay_mechanism::e2e,
+        "Delay request message should only be scheduled when E2E delay mechanism is configured"
+    );
+
+    const auto max_interval_ms = std::pow(2, port_ds_.log_min_delay_req_interval + 1) * 1000;
+    const auto interval = random().get_random_interval_ms(0, static_cast<int>(max_interval_ms));
+
+
+
+
+    delay_req_timer_.expires_after(interval);
+    delay_req_timer_.async_wait([this](const std::error_code& error) {
+        if (error == asio::error::operation_aborted) {
+            return;
+        }
+        if (error) {
+            RAV_ERROR("Delay req timer error: {}", error.message());
+        }
+        // TODO: Send delay request message
+
+        // schedule_delay_req_message_send(TODO, TODO);  // Schedule another delay request message
     });
 }
 
@@ -424,8 +457,10 @@ void rav::ptp_port::handle_announce_message(
 }
 
 void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs) {
-    std::ignore = sync_message;
     std::ignore = tlvs;
+
+    // TODO: Should this timestamp be taken earlier? Or maybe even from the SO_TIMESTAMP value with added latency?
+    const auto t2 = parent_.get_current_ptp_time();
 
     if (!(port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)) {
         RAV_TRACE("Discarding sync message while not in slave or uncalibrated state");
@@ -437,13 +472,20 @@ void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, bu
         return;
     }
 
-    // TODO: Take <syncEventIngressTimestamp> (here or earlier?)
+    if (port_ds_.delay_mechanism == ptp_delay_mechanism::e2e) {
+        const ptp_request_response_delay_sequence seq(sync_message, t2);
+        request_response_delay_sequences_.push_back(seq);
 
-    if (!sync_message.header.flags.two_step_flag) {
-        // TODO: Execute clock adjustments
+        if (!sync_message.header.flags.two_step_flag) {
+            // TODO: Schedule delay request message because no follow-up message is expected
+            auto msg = seq.create_delay_req_message(port_ds_.port_identity);
+            // TODO: Schedule delay request message for sending
+        }
+    } else if (port_ds_.delay_mechanism == ptp_delay_mechanism::e2e) {
+        TODO("Implement P2P delay mechanism");
+    } else {
+        RAV_ASSERT_FALSE("Unknown delay mechanism");
     }
-
-    // TODO: Else what?
 }
 
 void rav::ptp_port::handle_delay_req_message(
@@ -451,6 +493,7 @@ void rav::ptp_port::handle_delay_req_message(
 ) {
     std::ignore = delay_req_message;
     std::ignore = tlvs;
+    // Ignoring since only slave operation is supported
 }
 
 void rav::ptp_port::handle_follow_up_message(
@@ -469,7 +512,16 @@ void rav::ptp_port::handle_follow_up_message(
         return;
     }
 
-    // TODO: Find associated sync message and execute clock adjustments
+    for (auto& seq : request_response_delay_sequences_) {
+        if (seq.matches(follow_up_message.header)) {
+            seq.set_follow_up_message(follow_up_message);
+            auto msg = seq.create_delay_req_message(port_ds_.port_identity);
+            // TODO: Schedule delay request message for sending
+            return;
+        }
+    }
+
+    RAV_WARNING("Received follow-up message without matching sync message");
 }
 
 void rav::ptp_port::handle_delay_resp_message(

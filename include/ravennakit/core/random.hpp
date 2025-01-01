@@ -56,8 +56,7 @@ class random {
      */
     template<typename T = int>
     std::chrono::milliseconds get_random_interval(T min_ms, T max_ms) {
-        std::uniform_int_distribution<T> dist(min_ms, max_ms);
-        return std::chrono::milliseconds(dist(generator_));
+        return std::chrono::milliseconds(get_random_int<T>(min_ms, max_ms));
     }
 
   private:

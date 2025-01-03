@@ -61,7 +61,7 @@ uint16_t rav::ptp_message_header::flag_field::to_octets() const {
     octets |= ptp_timescale << 3;
     octets |= current_utc_offset_valid << 2;
     octets |= leap59 << 1;
-    octets |= leap61;
+    octets |= leap61 << 0;
     return octets;
 }
 

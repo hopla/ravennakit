@@ -33,16 +33,18 @@ rav::ptp_announce_message::from_data(const ptp_message_header& header, buffer_vi
     return msg;
 }
 
-void rav::ptp_announce_message::write_to(output_stream& stream) const {
-    origin_timestamp.write_to(stream);
-    stream.write_be<int16_t>(current_utc_offset);
-    stream.write_be<uint8_t>(0);  // Reserved
-    stream.write_be<uint8_t>(grandmaster_priority1);
-    grandmaster_clock_quality.write_to(stream);
-    stream.write_be<uint8_t>(grandmaster_priority2);
-    grandmaster_identity.write_to(stream);
-    stream.write_be<uint16_t>(steps_removed);
-    stream.write_be<uint8_t>(static_cast<uint8_t>(time_source));
+tl::expected<size_t, rav::output_stream::error> rav::ptp_announce_message::write_to(output_stream& stream) const {
+    const auto pos = stream.get_write_position();
+    OK_OR_RETURN(origin_timestamp.write_to(stream));
+    OK_OR_RETURN(stream.write_be<int16_t>(current_utc_offset));
+    OK_OR_RETURN(stream.write_be<uint8_t>(0));  // Reserved
+    OK_OR_RETURN(stream.write_be<uint8_t>(grandmaster_priority1));
+    OK_OR_RETURN(grandmaster_clock_quality.write_to(stream));
+    OK_OR_RETURN(stream.write_be<uint8_t>(grandmaster_priority2));
+    OK_OR_RETURN(grandmaster_identity.write_to(stream));
+    OK_OR_RETURN(stream.write_be<uint16_t>(steps_removed));
+    OK_OR_RETURN(stream.write_be<uint8_t>(static_cast<uint8_t>(time_source)));
+    return stream.get_write_position() - pos;
 }
 
 std::string rav::ptp_announce_message::to_string() const {

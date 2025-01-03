@@ -26,9 +26,12 @@ rav::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_
     return msg;
 }
 
-void rav::ptp_pdelay_resp_follow_up_message::write_to(byte_stream& stream) const {
-    response_origin_timestamp.write_to(stream);
-    requesting_port_identity.write_to(stream);
+tl::expected<size_t, rav::output_stream::error>
+rav::ptp_pdelay_resp_follow_up_message::write_to(byte_stream& stream) const {
+    const auto pos = stream.get_write_position();
+    OK_OR_RETURN(response_origin_timestamp.write_to(stream));
+    OK_OR_RETURN(requesting_port_identity.write_to(stream));
+    return stream.get_write_position() - pos;
 }
 
 std::string rav::ptp_pdelay_resp_follow_up_message::to_string() const {

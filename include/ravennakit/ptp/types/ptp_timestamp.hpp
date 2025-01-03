@@ -57,9 +57,11 @@ struct ptp_timestamp {
      * Writes the ptp_timestamp to the given stream.
      * @param stream The stream to write the ptp_timestamp to.
      */
-    void write_to(output_stream& stream) const {
-        stream.write_be<uint48_t>(seconds);
-        stream.write_be<uint32_t>(nanoseconds);
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write_to(output_stream& stream) const {
+        const auto pos = stream.get_write_position();
+        OK_OR_RETURN(stream.write_be<uint48_t>(seconds));
+        OK_OR_RETURN(stream.write_be<uint32_t>(nanoseconds));
+        return stream.get_write_position() - pos;
     }
 
     /**

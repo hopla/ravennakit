@@ -93,7 +93,7 @@ TEST_CASE("ptp_message_header") {
         header.source_port_identity.port_number = 0xabcd;
         header.sequence_id = 0x1122;
         header.log_message_interval = -127;
-        header.write_to(stream);
+        REQUIRE(header.write_to(stream));
 
         REQUIRE(stream.read_be<uint8_t>().value() == 0xfd);                 // majorSdoId & messageType
         REQUIRE(stream.read_be<uint8_t>().value() == 0x12);                 // minorVersionPTP & versionPTP

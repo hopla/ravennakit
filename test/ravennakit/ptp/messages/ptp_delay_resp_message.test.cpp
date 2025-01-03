@@ -46,7 +46,7 @@ TEST_CASE("ptp_delay_resp_message") {
         msg.requesting_port_identity.clock_identity.data[6] = 0x70;
         msg.requesting_port_identity.clock_identity.data[7] = 0x80;
         rav::byte_stream stream;
-        msg.write_to(stream);
+        REQUIRE(msg.write_to(stream));
         REQUIRE(stream.size() == 20);
         REQUIRE(stream.read_be<rav::uint48_t>() == 0x102030405);
         REQUIRE(stream.read_be<uint32_t>() == 0x06070809);

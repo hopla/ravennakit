@@ -62,7 +62,7 @@ struct fmt_chunk {
      * @param ostream The output stream to write to.
      * @return The number of bytes written.
      */
-    size_t write(output_stream& ostream) const;
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write(output_stream& ostream) const;
 };
 
 /**
@@ -89,7 +89,7 @@ struct data_chunk {
      * @param data_written The number of bytes of audio data written into the stream so far.
      * @return The number of bytes written (excluding the size of the data).
      */
-    size_t write(output_stream& ostream, size_t data_written);
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write(output_stream& ostream, size_t data_written);
 };
 
 /**
@@ -139,14 +139,14 @@ class writer {
      * @param size The number of bytes to write.
      * @return The number of bytes written.
      */
-    size_t write_audio_data(const uint8_t* buffer, size_t size);
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write_audio_data(const uint8_t* buffer, size_t size);
 
     /**
      * Finalizes the WAVE file by writing the header and flushing the output stream.
      * This method can be called multiple times, interleaved with calls to write_audio_data. This can be useful in cases
      * where the computer might lose power, and you don't want to lose the entire file.
      */
-    void finalize();
+    [[nodiscard]] bool finalize();
 
   private:
     output_stream& ostream_;
@@ -155,7 +155,7 @@ class writer {
     size_t audio_data_written_ {};
     size_t chunks_total_size_ {};
 
-    void write_header();
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write_header();
 };
 
 }  // namespace rav::wav_audio_format

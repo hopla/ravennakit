@@ -28,7 +28,7 @@ TEST_CASE("ptp_pdelay_req_message") {
         msg.origin_timestamp.seconds = 0x123456789012;
         msg.origin_timestamp.nanoseconds = 0x34567890;
         rav::byte_stream stream;
-        msg.write_to(stream);
+        REQUIRE(msg.write_to(stream));
         REQUIRE(stream.size() == 10);
         REQUIRE(stream.read_be<rav::uint48_t>() == 0x123456789012);
         REQUIRE(stream.read_be<uint32_t>() == 0x34567890);

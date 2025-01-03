@@ -47,9 +47,14 @@ bool rav::byte_stream::exhausted() const {
     return read_position_ >= data_.size();
 }
 
-size_t rav::byte_stream::write(const uint8_t* buffer, const size_t size) {
-    if (write_position_ + size > data_.size()) {
-        data_.resize(write_position_ + size, 0);
+tl::expected<unsigned long, rav::output_stream::error>
+rav::byte_stream::write(const uint8_t* buffer, const size_t size) {
+    try {
+        if (write_position_ + size > data_.size()) {
+            data_.resize(write_position_ + size, 0);
+        }
+    } catch (...) {
+        return tl::unexpected(error::out_of_memory);
     }
 
     std::memcpy(data_.data() + write_position_, buffer, size);

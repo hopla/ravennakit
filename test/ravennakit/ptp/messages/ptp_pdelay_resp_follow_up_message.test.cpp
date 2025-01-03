@@ -48,7 +48,7 @@ TEST_CASE("ptp_pdelay_resp_follow_up_message") {
         msg.requesting_port_identity.clock_identity.data[7] = 0x88;
         msg.requesting_port_identity.port_number = 0x99aa;
         rav::byte_stream stream;
-        msg.write_to(stream);
+        REQUIRE(msg.write_to(stream));
         REQUIRE(stream.size() == 20);
         REQUIRE(stream.read_be<rav::uint48_t>() == 0x123456789012);  // seconds
         REQUIRE(stream.read_be<uint32_t>() == 0x34567890);           // nanoseconds

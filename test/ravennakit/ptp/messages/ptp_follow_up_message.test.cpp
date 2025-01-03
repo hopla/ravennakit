@@ -28,7 +28,7 @@ TEST_CASE("ptp_follow_up_message") {
         follow.precise_origin_timestamp.seconds = 0x123456789012;
         follow.precise_origin_timestamp.nanoseconds = 0x34567890;
         rav::byte_stream stream;
-        follow.write_to(stream);
+        REQUIRE(follow.write_to(stream));
         REQUIRE(stream.size() == 10);
         REQUIRE(stream.read_be<rav::uint48_t>() == 0x123456789012);
         REQUIRE(stream.read_be<uint32_t>() == 0x34567890);

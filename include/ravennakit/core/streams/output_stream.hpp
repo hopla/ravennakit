@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ravennakit/core/byte_order.hpp"
+#include "ravennakit/core/expected.hpp"
 
 #include <cstdint>
 
@@ -21,6 +22,11 @@ namespace rav {
  */
 class output_stream {
   public:
+    enum class error {
+        failed_to_write,
+        out_of_memory,
+    };
+
     output_stream() = default;
     virtual ~output_stream() = default;
 
@@ -30,7 +36,7 @@ class output_stream {
      * @param size The number of bytes to write.
      * @return The number of bytes written.
      */
-    virtual size_t write(const uint8_t* buffer, size_t size) = 0;
+    [[nodiscard]] virtual tl::expected<size_t, error> write(const uint8_t* buffer, size_t size) = 0;
 
     /**
      * Convenience function to write data from a char buffer to the stream.
@@ -38,7 +44,7 @@ class output_stream {
      * @param size The number of bytes to write.
      * @return The number of bytes written.
      */
-    size_t write(const char* buffer, const size_t size) {
+    [[nodiscard]] tl::expected<size_t, error> write(const char* buffer, const size_t size) {
         return write(reinterpret_cast<const uint8_t*>(buffer), size);
     }
 
@@ -47,7 +53,7 @@ class output_stream {
      * @param position The new write position.
      * @return True if the write position was successfully set.
      */
-    virtual bool set_write_position(size_t position) = 0;
+    [[nodiscard]] virtual bool set_write_position(size_t position) = 0;
 
     /**
      * @return The current write position in the stream.
@@ -67,7 +73,7 @@ class output_stream {
      * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
-    size_t write_ne(const Type value) {
+    [[nodiscard]] tl::expected<size_t, error> write_ne(const Type value) {
         return write(reinterpret_cast<const uint8_t*>(std::addressof(value)), sizeof(Type));
     }
 
@@ -78,7 +84,7 @@ class output_stream {
      * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
-    size_t write_be(const Type value) {
+    [[nodiscard]] tl::expected<size_t, error> write_be(const Type value) {
         return write_ne(byte_order::swap_if_le(value));
     }
 
@@ -89,7 +95,7 @@ class output_stream {
      * @return The number of bytes written.
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
-    size_t write_le(const Type value) {
+    [[nodiscard]] tl::expected<size_t, error> write_le(const Type value) {
         return write_ne(byte_order::swap_if_be(value));
     }
 
@@ -98,9 +104,11 @@ class output_stream {
      * @param str The string to write.
      * @return The number of bytes written.
      */
-    size_t write_string(const std::string& str) {
-        const auto written = write_le<uint64_t>(str.size());
-        return write(reinterpret_cast<const uint8_t*>(str.data()), str.size()) + written;
+    [[nodiscard]] tl::expected<size_t, error> write_string(const std::string& str) {
+        const auto pos = get_write_position();
+        OK_OR_RETURN(write_le<uint64_t>(str.size()));
+        OK_OR_RETURN(write(reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+        return get_write_position() - pos;
     }
 
     /**
@@ -109,7 +117,7 @@ class output_stream {
      * memory access).
      * @param str The string to write.
      */
-    size_t write_cstring(const char* str) {
+    [[nodiscard]] tl::expected<size_t, error> write_cstring(const char* str) {
         return write(reinterpret_cast<const uint8_t*>(str), std::strlen(str) + 1);
     }
 };

@@ -79,7 +79,7 @@ struct ptp_message_header {
      * Writes the PTP message header to the given stream.
      * @param stream The stream to write the PTP message header to.
      */
-    void write_to(output_stream& stream) const;
+    [[nodiscard]] tl::expected<size_t, output_stream::error> write_to(output_stream& stream) const;
 
     /**
      * Converts the PTP message header to a human-readable string.

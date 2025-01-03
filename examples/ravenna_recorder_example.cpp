@@ -40,7 +40,9 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
 
     void close() {
         if (wav_writer_) {
-            wav_writer_->finalize();
+            if (!wav_writer_->finalize()) {
+                RAV_ERROR("Failed to finalize wav file");
+            }
             wav_writer_.reset();
         }
         if (file_output_stream_) {
@@ -72,7 +74,9 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
         if (audio_format_.byte_order == rav::audio_format::byte_order::be) {
             rav::byte_order::swap_bytes(audio_data_.data(), audio_data_.size(), audio_format_.bytes_per_sample());
         }
-        wav_writer_->write_audio_data(audio_data_.data(), audio_data_.size());
+        if (!wav_writer_->write_audio_data(audio_data_.data(), audio_data_.size())) {
+            RAV_ERROR("Failed to write audio data");
+        }
     }
 
   private:

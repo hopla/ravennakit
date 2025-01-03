@@ -72,7 +72,7 @@ TEST_CASE("ptp_announce_message") {
         announce.time_source = rav::ptp_time_source::ptp;
 
         rav::byte_stream stream;
-        announce.write_to(stream);
+        REQUIRE(announce.write_to(stream));
 
         REQUIRE(stream.read_be<rav::uint48_t>().value() == 0x010203040506);  // origin_timestamp.seconds
         REQUIRE(stream.read_be<uint32_t>().value() == 0x0708090a);           // origin_timestamp.nanoseconds

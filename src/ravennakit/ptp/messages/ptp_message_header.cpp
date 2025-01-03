@@ -102,21 +102,23 @@ rav::ptp_message_header::from_data(buffer_view<const uint8_t> data) {
     return header;
 }
 
-void rav::ptp_message_header::write_to(output_stream& stream) const {
+tl::expected<size_t, rav::output_stream::error> rav::ptp_message_header::write_to(output_stream& stream) const {
+    const auto pos = stream.get_write_position();
     // major sdo id + message type (left shift by multiplication to avoid type promotion)
-    stream.write_be<uint8_t>(((sdo_id.major & 0b00001111) * 16) | (static_cast<uint8_t>(message_type) & 0b00001111));
+    OK_OR_RETURN(stream.write_be<uint8_t>(((sdo_id.major & 0b00001111) * 16) | (static_cast<uint8_t>(message_type) & 0b00001111)));
     // minor version ptp + version ptp (left shift by multiplication to avoid type promotion)
-    stream.write_be<uint8_t>((version.minor * 16) | (version.major & 0b00001111));
-    stream.write_be<uint16_t>(message_length);
-    stream.write_be<uint8_t>(domain_number);
-    stream.write_be<uint8_t>(sdo_id.minor);
-    stream.write_be<uint16_t>(flags.to_octets());
-    stream.write_be<int64_t>(correction_field);
-    stream.write_be<uint32_t>(0);  // Ignored
-    source_port_identity.write_to(stream);
-    stream.write_be<uint16_t>(sequence_id.value());
-    stream.write_be<uint8_t>(0);  // Ignored
-    stream.write_be<int8_t>(log_message_interval);
+    OK_OR_RETURN(stream.write_be<uint8_t>((version.minor * 16) | (version.major & 0b00001111)));
+    OK_OR_RETURN(stream.write_be<uint16_t>(message_length));
+    OK_OR_RETURN(stream.write_be<uint8_t>(domain_number));
+    OK_OR_RETURN(stream.write_be<uint8_t>(sdo_id.minor));
+    OK_OR_RETURN(stream.write_be<uint16_t>(flags.to_octets()));
+    OK_OR_RETURN(stream.write_be<int64_t>(correction_field));
+    OK_OR_RETURN(stream.write_be<uint32_t>(0));  // Ignored
+    OK_OR_RETURN(source_port_identity.write_to(stream));
+    OK_OR_RETURN(stream.write_be<uint16_t>(sequence_id.value()));
+    OK_OR_RETURN(stream.write_be<uint8_t>(0));  // Ignored
+    OK_OR_RETURN(stream.write_be<int8_t>(log_message_interval));
+    return stream.get_write_position() - pos;
 }
 
 std::string rav::ptp_message_header::to_string() const {

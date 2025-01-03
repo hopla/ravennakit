@@ -111,7 +111,7 @@ class buffer_view {
      * @return The decoded value.
      */
     template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
-    ValueType read_ne(const size_t offset) {
+    ValueType read_ne(const size_t offset) const {
         RAV_ASSERT(offset + sizeof(ValueType) <= size_bytes(), "Buffer view out of bounds");
         return byte_order::read_ne<ValueType>(data_ + offset);
     }
@@ -123,7 +123,7 @@ class buffer_view {
      * @return The decoded value.
      */
     template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
-    ValueType read_be(const size_t offset) {
+    ValueType read_be(const size_t offset) const {
         return byte_order::swap_if_le(read_ne<ValueType>(offset));
     }
 
@@ -134,7 +134,7 @@ class buffer_view {
      * @return The decoded value.
      */
     template<typename ValueType, std::enable_if_t<std::is_trivially_copyable_v<ValueType>, bool> = true>
-    ValueType read_le(const size_t offset) {
+    ValueType read_le(const size_t offset) const {
         return byte_order::swap_if_be(read_ne<ValueType>(offset));
     }
 

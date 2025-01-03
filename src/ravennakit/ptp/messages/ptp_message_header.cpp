@@ -104,7 +104,9 @@ rav::ptp_message_header::from_data(buffer_view<const uint8_t> data) {
 
 tl::expected<void, rav::output_stream::error> rav::ptp_message_header::write_to(output_stream& stream) const {
     // major sdo id + message type (left shift by multiplication to avoid type promotion)
-    OK_OR_RETURN(stream.write_be<uint8_t>(((sdo_id.major & 0b00001111) * 16) | (static_cast<uint8_t>(message_type) & 0b00001111)));
+    OK_OR_RETURN(
+        stream.write_be<uint8_t>(((sdo_id.major & 0b00001111) * 16) | (static_cast<uint8_t>(message_type) & 0b00001111))
+    );
     // minor version ptp + version ptp (left shift by multiplication to avoid type promotion)
     OK_OR_RETURN(stream.write_be<uint8_t>((version.minor * 16) | (version.major & 0b00001111)));
     OK_OR_RETURN(stream.write_be<uint16_t>(message_length));

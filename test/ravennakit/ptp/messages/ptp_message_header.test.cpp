@@ -71,7 +71,7 @@ TEST_CASE("ptp_message_header") {
         SECTION("Test flags") {}
     }
 
-    SECTION("Pack to stream") {
+    SECTION("Write to stream") {
         rav::byte_stream stream;
         rav::ptp_message_header header;
         header.sdo_id.major = 0xf;

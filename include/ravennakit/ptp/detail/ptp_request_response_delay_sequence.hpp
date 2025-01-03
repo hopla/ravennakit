@@ -53,20 +53,25 @@ class ptp_request_response_delay_sequence {
 
     [[nodiscard]] ptp_delay_req_message create_delay_req_message(const ptp_port_ds& port_ds) const {
         ptp_delay_req_message delay_req_message;
-        delay_req_message.header.source_port_identity = port_ds.port_identity;
         delay_req_message.header = sync_message_.header;
+        delay_req_message.header.source_port_identity = port_ds.port_identity;
         delay_req_message.header.message_type = ptp_message_type::delay_req;
         delay_req_message.header.message_length = ptp_delay_req_message::k_message_length;
         delay_req_message.header.correction_field = 0;
-        delay_req_message.origin_timestamp = sync_message_.origin_timestamp;
+        delay_req_message.origin_timestamp = {};
         return delay_req_message;
     }
 
-    [[nodiscard]] std::optional<std::chrono::time_point<std::chrono::steady_clock>> get_delay_req_send_time() const {
+    [[nodiscard]] std::optional<std::chrono::time_point<std::chrono::steady_clock>> get_delay_req_scheduled_send_time() const {
         if (state_ != state::delay_req_send_scheduled) {
             return std::nullopt;
         }
         return send_delay_req_at_;
+    }
+
+    void set_delay_req_send_time(const ptp_timestamp& sent_at) {
+        t3_ = sent_at;
+        state_ = state::awaiting_delay_resp;
     }
 
   private:

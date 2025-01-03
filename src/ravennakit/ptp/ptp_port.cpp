@@ -206,7 +206,7 @@ void rav::ptp_port::process_request_response_delay_sequence() {
     const auto now = std::chrono::steady_clock::now();
     std::optional<std::chrono::time_point<std::chrono::steady_clock>> next_timer_expires_at;
     for (auto& seq : request_response_delay_sequences_) {
-        if (auto send_at = seq.get_delay_req_send_time()) {
+        if (auto send_at = seq.get_delay_req_scheduled_send_time()) {
             if (now >= send_at.value()) {
                 send_delay_req_message(seq);
             } else if (next_timer_expires_at) {
@@ -238,7 +238,8 @@ void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& 
     byte_buffer buffer;  // TODO: Reuse the buffer
     msg.write_to(buffer);
     event_socket_.send(buffer.data(), buffer.size(), {k_ptp_multicast_address, k_ptp_event_port});
-    // TODO: Take timestamp, update sequence.
+    RAV_TRACE("Sent delay request message");
+    sequence.set_delay_req_send_time(parent_.get_local_ptp_time());
 }
 
 rav::ptp_state rav::ptp_port::state() const {
@@ -486,6 +487,8 @@ void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, bu
     } else {
         RAV_ASSERT_FALSE("Unknown delay mechanism");
     }
+
+    process_request_response_delay_sequence();
 }
 
 void rav::ptp_port::handle_follow_up_message(
@@ -507,6 +510,7 @@ void rav::ptp_port::handle_follow_up_message(
     for (auto& seq : request_response_delay_sequences_) {
         if (seq.matches(follow_up_message.header)) {
             seq.update(follow_up_message, port_ds_);
+            process_request_response_delay_sequence();
             return;
         }
     }

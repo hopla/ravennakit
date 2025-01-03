@@ -156,9 +156,15 @@ void rav::udp_sender_receiver::impl::send(
 ) {
     RAV_ASSERT(data != nullptr, "Data must not be null");
     RAV_ASSERT(size > 0, "Size must be greater than 0");
-    const auto sent = socket_.send_to(asio::buffer(data, size), endpoint);
+    asio::error_code ec;
+    const auto sent = socket_.send_to(asio::buffer(data, size), endpoint, 0, ec);
+    if (ec) {
+        RAV_ERROR("Failed to send data: {}", ec.message());
+        return;
+    }
     if (sent != size) {
         RAV_ERROR("Failed to send all data");
+        return;
     }
 }
 
@@ -223,6 +229,7 @@ rav::udp_sender_receiver::impl::impl(asio::io_context& io_context, const asio::i
     socket_.set_option(asio::ip::udp::socket::reuse_address(true));
     socket_.bind(endpoint);
     socket_.non_blocking(true);
+    socket_.set_option(asio::ip::multicast::outbound_interface(asio::ip::make_address_v4("192.168.15.53"))); // TODO: Make this configurable
     socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1));
 }
 

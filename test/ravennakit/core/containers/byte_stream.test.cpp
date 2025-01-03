@@ -61,9 +61,12 @@ TEST_CASE("byte_stream", "[byte_stream]") {
         REQUIRE(stream.write_ne<uint32_t>(1));
         REQUIRE(stream.set_write_position(0));
         REQUIRE(stream.write_ne<uint32_t>(1));
-        REQUIRE(stream.set_write_position(5) == false);
-        REQUIRE(stream.get_write_position() == 4);
+        REQUIRE(stream.set_write_position(10));
+        REQUIRE(stream.get_write_position() == 10);
         REQUIRE(stream.size() == 4);
+        REQUIRE(stream.write_ne<uint32_t>(1));
+        REQUIRE(stream.size() == 14);
+        REQUIRE(stream.get_write_position() == 14);
     }
 
     SECTION("Flush") {

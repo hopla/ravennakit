@@ -35,7 +35,7 @@ struct ptp_follow_up_message {
      * Write the ptp_announce_message to a stream.
      * @param stream The stream to write to.
      */
-    [[nodiscard]] tl::expected<size_t, output_stream::error> write_to(output_stream& stream) const;
+    [[nodiscard]] tl::expected<void, rav::output_stream::error> write_to(output_stream& stream) const;
 
     /**
      * @returns A string representation of the ptp_announce_message.

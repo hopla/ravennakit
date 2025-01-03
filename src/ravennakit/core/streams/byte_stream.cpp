@@ -47,7 +47,7 @@ bool rav::byte_stream::exhausted() const {
     return read_position_ >= data_.size();
 }
 
-tl::expected<size_t, rav::output_stream::error> rav::byte_stream::write(const uint8_t* buffer, const size_t size) {
+tl::expected<void, rav::output_stream::error> rav::byte_stream::write(const uint8_t* buffer, const size_t size) {
     try {
         if (write_position_ + size > data_.size()) {
             data_.resize(write_position_ + size, 0);
@@ -58,15 +58,12 @@ tl::expected<size_t, rav::output_stream::error> rav::byte_stream::write(const ui
 
     std::memcpy(data_.data() + write_position_, buffer, size);
     write_position_ += size;
-    return size;
+    return {};
 }
 
-bool rav::byte_stream::set_write_position(const size_t position) {
-    if (position > data_.size()) {
-        return false;
-    }
+tl::expected<void, rav::output_stream::error> rav::byte_stream::set_write_position(const size_t position) {
     write_position_ = position;
-    return true;
+    return {};
 }
 
 size_t rav::byte_stream::get_write_position() {

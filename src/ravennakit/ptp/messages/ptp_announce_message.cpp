@@ -33,8 +33,7 @@ rav::ptp_announce_message::from_data(const ptp_message_header& header, buffer_vi
     return msg;
 }
 
-tl::expected<size_t, rav::output_stream::error> rav::ptp_announce_message::write_to(output_stream& stream) const {
-    const auto pos = stream.get_write_position();
+tl::expected<void, rav::output_stream::error> rav::ptp_announce_message::write_to(output_stream& stream) const {
     OK_OR_RETURN(origin_timestamp.write_to(stream));
     OK_OR_RETURN(stream.write_be<int16_t>(current_utc_offset));
     OK_OR_RETURN(stream.write_be<uint8_t>(0));  // Reserved
@@ -44,7 +43,7 @@ tl::expected<size_t, rav::output_stream::error> rav::ptp_announce_message::write
     OK_OR_RETURN(grandmaster_identity.write_to(stream));
     OK_OR_RETURN(stream.write_be<uint16_t>(steps_removed));
     OK_OR_RETURN(stream.write_be<uint8_t>(static_cast<uint8_t>(time_source)));
-    return stream.get_write_position() - pos;
+    return {};
 }
 
 std::string rav::ptp_announce_message::to_string() const {

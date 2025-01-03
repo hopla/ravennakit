@@ -50,11 +50,10 @@ struct ptp_port_identity {
      * Writes the port identity to the given stream.
      * @param stream The stream to write the port identity to.
      */
-    [[nodiscard]] tl::expected<size_t, output_stream::error> write_to(output_stream& stream) const {
-        const auto pos = stream.get_write_position();
+    [[nodiscard]] tl::expected<void, output_stream::error> write_to(output_stream& stream) const {
         OK_OR_RETURN(clock_identity.write_to(stream));
         OK_OR_RETURN(stream.write_be<uint16_t>(port_number));
-        return stream.get_write_position() - pos;
+        return {};
     }
 
     /**

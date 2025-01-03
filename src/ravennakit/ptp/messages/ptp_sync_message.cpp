@@ -22,11 +22,10 @@ rav::ptp_sync_message::from_data(const ptp_message_header& header, const buffer_
     return msg;
 }
 
-tl::expected<size_t, rav::output_stream::error> rav::ptp_sync_message::write_to(output_stream& stream) const {
-    const auto pos = stream.get_write_position();
+tl::expected<void, rav::output_stream::error> rav::ptp_sync_message::write_to(output_stream& stream) const {
     OK_OR_RETURN(header.write_to(stream));
     OK_OR_RETURN(origin_timestamp.write_to(stream));
-    return stream.get_write_position() - pos;
+    return {};
 }
 
 std::string rav::ptp_sync_message::to_string() const {

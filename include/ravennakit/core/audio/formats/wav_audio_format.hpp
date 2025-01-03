@@ -139,7 +139,7 @@ class writer {
      * @param size The number of bytes to write.
      * @return The number of bytes written.
      */
-    [[nodiscard]] tl::expected<size_t, output_stream::error> write_audio_data(const uint8_t* buffer, size_t size);
+    [[nodiscard]] tl::expected<void, rav::output_stream::error> write_audio_data(const uint8_t* buffer, size_t size);
 
     /**
      * Finalizes the WAVE file by writing the header and flushing the output stream.
@@ -155,7 +155,7 @@ class writer {
     size_t audio_data_written_ {};
     size_t chunks_total_size_ {};
 
-    [[nodiscard]] tl::expected<size_t, output_stream::error> write_header();
+    [[nodiscard]] tl::expected<void, rav::output_stream::error> write_header();
 };
 
 }  // namespace rav::wav_audio_format

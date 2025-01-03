@@ -52,7 +52,7 @@ struct ptp_clock_identity {
      * Writes the clock identity to the given stream.
      * @param stream The stream to write the clock identity to.
      */
-    [[nodiscard]] tl::expected<size_t, output_stream::error> write_to(output_stream& stream) const {
+    [[nodiscard]] tl::expected<void, output_stream::error> write_to(output_stream& stream) const {
         return stream.write(data.data(), data.size());
     }
 

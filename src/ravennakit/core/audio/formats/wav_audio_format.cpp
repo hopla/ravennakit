@@ -46,20 +46,24 @@ void rav::wav_audio_format::fmt_chunk::read(input_stream& istream, const uint32_
 tl::expected<size_t, rav::output_stream::error> rav::wav_audio_format::fmt_chunk::write(output_stream& ostream) const {
     const auto start_pos = ostream.get_write_position();
 
-    OK_OR_RETURN(ostream.write("fmt ", 4));  // Note the trailing space
-    OK_OR_RETURN(ostream.write_le<uint32_t>(extension.has_value() ? 40 : 16));
-    OK_OR_RETURN(ostream.write_le(format));
-    OK_OR_RETURN(ostream.write_le(num_channels));
-    OK_OR_RETURN(ostream.write_le(sample_rate));
-    OK_OR_RETURN(ostream.write_le(avg_bytes_per_sec));
-    OK_OR_RETURN(ostream.write_le(block_align));
-    OK_OR_RETURN(ostream.write_le(bits_per_sample));
+    auto map_value = [] {
+        return 0;
+    };
+
+    OK_OR_RETURN(ostream.write("fmt ", 4).map(map_value));  // Note the trailing space
+    OK_OR_RETURN(ostream.write_le<uint32_t>(extension.has_value() ? 40 : 16).map(map_value));
+    OK_OR_RETURN(ostream.write_le(format).map(map_value));
+    OK_OR_RETURN(ostream.write_le(num_channels).map(map_value));
+    OK_OR_RETURN(ostream.write_le(sample_rate).map(map_value));
+    OK_OR_RETURN(ostream.write_le(avg_bytes_per_sec).map(map_value));
+    OK_OR_RETURN(ostream.write_le(block_align).map(map_value));
+    OK_OR_RETURN(ostream.write_le(bits_per_sample).map(map_value));
 
     if (extension.has_value()) {
-        OK_OR_RETURN(ostream.write_le(extension->cb_size));
-        OK_OR_RETURN(ostream.write_le(extension->valid_bits_per_sample));
-        OK_OR_RETURN(ostream.write_le(extension->channel_mask));
-        OK_OR_RETURN(ostream.write_le(extension->sub_format));
+        OK_OR_RETURN(ostream.write_le(extension->cb_size).map(map_value));
+        OK_OR_RETURN(ostream.write_le(extension->valid_bits_per_sample).map(map_value));
+        OK_OR_RETURN(ostream.write_le(extension->channel_mask).map(map_value));
+        OK_OR_RETURN(ostream.write_le(extension->sub_format).map(map_value));
     }
 
     return ostream.get_write_position() - start_pos;
@@ -73,10 +77,13 @@ bool rav::wav_audio_format::data_chunk::read(input_stream& istream, const uint32
 
 tl::expected<size_t, rav::output_stream::error>
 rav::wav_audio_format::data_chunk::write(output_stream& ostream, const size_t data_written) {
+    auto map_value = [] {
+        return 0;
+    };
     const auto pos = ostream.get_write_position();
     data_size = data_written;
-    OK_OR_RETURN(ostream.write("data", 4));
-    OK_OR_RETURN(ostream.write_le<uint32_t>(static_cast<uint32_t>(data_size)));
+    OK_OR_RETURN(ostream.write("data", 4).map(map_value));
+    OK_OR_RETURN(ostream.write_le<uint32_t>(static_cast<uint32_t>(data_size)).map(map_value));
     data_begin = ostream.get_write_position();
     return data_begin - pos;
 }
@@ -193,14 +200,11 @@ rav::wav_audio_format::writer::~writer() {
     }
 }
 
-tl::expected<size_t, rav::output_stream::error>
+tl::expected<void, rav::output_stream::error>
 rav::wav_audio_format::writer::write_audio_data(const uint8_t* buffer, const size_t size) {
-    auto written = ostream_.write(buffer, size);
-    if (!written) {
-        return written;
-    }
-    audio_data_written_ += written.value();
-    return written;
+    OK_OR_RETURN(ostream_.write(buffer, size));
+    audio_data_written_ += size;
+    return {};
 }
 
 bool rav::wav_audio_format::writer::finalize() {
@@ -211,10 +215,9 @@ bool rav::wav_audio_format::writer::finalize() {
     return true;
 }
 
-tl::expected<size_t, rav::output_stream::error> rav::wav_audio_format::writer::write_header() {
+tl::expected<void, rav::output_stream::error> rav::wav_audio_format::writer::write_header() {
     const auto pos = ostream_.get_write_position();
     OK_OR_RETURN(ostream_.set_write_position(0));
-
     OK_OR_RETURN(ostream_.write("RIFF", 4));
     // The riff size will only be correct after calling write_header() once before.
     const auto riff_size = chunks_total_size_ + audio_data_written_ + 4;  // +4 for "WAVE"
@@ -228,5 +231,5 @@ tl::expected<size_t, rav::output_stream::error> rav::wav_audio_format::writer::w
         OK_OR_RETURN(ostream_.set_write_position(pos));
     }
 
-    return ostream_.get_write_position() - pos;
+    return {};
 }

@@ -17,6 +17,7 @@
 #include "detail/ptp_request_response_delay_sequence.hpp"
 #include "messages/ptp_announce_message.hpp"
 #include "messages/ptp_delay_req_message.hpp"
+#include "messages/ptp_delay_resp_message.hpp"
 #include "messages/ptp_follow_up_message.hpp"
 #include "messages/ptp_pdelay_req_message.hpp"
 #include "messages/ptp_pdelay_resp_follow_up_message.hpp"
@@ -106,7 +107,7 @@ class ptp_port {
     void handle_announce_message(const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs);
     void handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs);
     void handle_follow_up_message(const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs);
-    void handle_delay_resp_message(const ptp_delay_req_message& delay_resp_message, buffer_view<const uint8_t> tlvs);
+    void handle_delay_resp_message(const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs);
     void handle_pdelay_resp_message(const ptp_pdelay_resp_message& delay_req_message, buffer_view<const uint8_t> tlvs);
     void handle_pdelay_resp_follow_up_message(
         const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
@@ -126,7 +127,7 @@ class ptp_port {
     void trigger_announce_receipt_timeout_expires_event();
 
     void process_request_response_delay_sequence();
-    void send_delay_req_message(ptp_request_response_delay_sequence& sequence);
+    void send_delay_req_message(ptp_request_response_delay_sequence& sequence) const;
 
     void set_state(ptp_state new_state);
 };

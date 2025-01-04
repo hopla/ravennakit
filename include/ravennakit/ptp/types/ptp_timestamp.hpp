@@ -20,10 +20,10 @@ namespace rav {
 
 /**
  * A PTP timestamp, consisting of a seconds and nanoseconds part.
- * Note: due to padding not suitable for memcpy to and from the wire.
+ * Note: not suitable for memcpy to and from the wire.
  */
 struct ptp_timestamp {
-    uint48_t seconds;
+    uint64_t seconds {};  // 48 bits on the wire
     uint32_t nanoseconds {};
 
     /// Size on the wire in bytes.
@@ -41,15 +41,93 @@ struct ptp_timestamp {
     }
 
     /**
+     * Adds two ptp_timestamps together.
+     * @param other The timestamp to add.
+     * @return The sum of the two timestamps.
+     */
+    [[nodiscard]] ptp_timestamp operator+(const ptp_timestamp& other) const {
+        auto result = *this;
+        result.seconds += other.seconds;
+        result.nanoseconds += other.nanoseconds;
+        if (result.nanoseconds >= 1'000'000'000) {
+            result.seconds += 1;
+            result.nanoseconds -= 1'000'000'000;
+        }
+        return result;
+    }
+
+    /**
+     * Subtracts two ptp_timestamps.
+     * @param other The timestamp to subtract.
+     * @return The difference of the two timestamps.
+     */
+    [[nodiscard]] ptp_timestamp operator-(const ptp_timestamp& other) const {
+        auto result = *this;
+        if (result.nanoseconds < other.nanoseconds) {
+            result.seconds -= 1;
+            result.nanoseconds += 1'000'000'000;
+        }
+        result.seconds -= other.seconds;
+        result.nanoseconds -= other.nanoseconds;
+        return result;
+    }
+
+    /**
+     * Subtracts given correction field from the timestamp, returning the remaining fractional nanoseconds. This is
+     * because ptp_timestamp has a resolution of 1 ns, but the correction field has a resolution of 1/65536 ns.
+     * @param correction_field The correction field to subtract. This number is as specified in IEEE 1588-2019 13.3.2.9
+     * @return The remaining fractional nanoseconds in picoseconds.
+     */
+    int64_t add_correction(const int64_t correction_field) {
+        constexpr static int64_t correction_field_multiplier = 0x10000;  // pow(2, 16) = 65536
+        const auto correction_field_ns = correction_field / correction_field_multiplier;
+        const auto remaining_fractional_ns = correction_field - correction_field_ns * correction_field_multiplier;
+
+        if (correction_field_ns < 0) {
+            if (nanoseconds < static_cast<uint32_t>(-correction_field_ns)) {
+                seconds -= 1;
+                nanoseconds += 1'000'000'000;
+            }
+            seconds -= static_cast<uint64_t>(-correction_field_ns) / 1'000'000'000;
+            nanoseconds -= static_cast<uint32_t>(-correction_field_ns);
+        } else {
+            seconds += static_cast<uint64_t>(correction_field_ns) / 1'000'000'000;
+            nanoseconds += static_cast<uint32_t>(correction_field_ns);
+            if (nanoseconds >= 1'000'000'000) {
+                seconds += 1;
+                nanoseconds -= 1'000'000'000;
+            }
+        }
+
+        return remaining_fractional_ns * 1000 / correction_field_multiplier;
+    }
+
+    friend bool operator<(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+        return lhs.seconds < rhs.seconds || (lhs.seconds == rhs.seconds && lhs.nanoseconds < rhs.nanoseconds);
+    }
+
+    friend bool operator<=(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+        return rhs >= lhs;
+    }
+
+    friend bool operator>(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+        return rhs < lhs;
+    }
+
+    friend bool operator>=(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+        return !(lhs < rhs);
+    }
+
+    /**
      * Create a ptp_timestamp from a buffer_view. Data is assumed to valid, and the buffer_view must be at least 10
      * bytes long. No bounds checking is performed.
      * @param data The data to create the timestamp from. Assumed to be in network byte order.
      * @return The created ptp_timestamp.
      */
-    static ptp_timestamp from_data(buffer_view<const uint8_t> data) {
+    static ptp_timestamp from_data(const buffer_view<const uint8_t> data) {
         RAV_ASSERT(data.size() >= 10, "data is too short to create a ptp_timestamp");
         ptp_timestamp ts;
-        ts.seconds = data.read_be<uint48_t>(0);
+        ts.seconds = data.read_be<uint48_t>(0).to_uint64();
         ts.nanoseconds = data.read_be<uint32_t>(6);
         return ts;
     }
@@ -67,7 +145,7 @@ struct ptp_timestamp {
      * @return A string representation of the ptp_timestamp.
      */
     [[nodiscard]] std::string to_string() const {
-        return fmt::format("{}.{:09}", seconds.to_uint64(), nanoseconds);
+        return fmt::format("{}.{:09}", seconds, nanoseconds);
     }
 
     /**
@@ -75,7 +153,7 @@ struct ptp_timestamp {
      * large to fit, the behaviour is undefined.
      */
     [[nodiscard]] std::optional<uint64_t> to_nanoseconds() const {
-        return seconds.to_uint64() * 1'000'000'000 + nanoseconds;
+        return seconds * 1'000'000'000 + nanoseconds;
     }
 };
 

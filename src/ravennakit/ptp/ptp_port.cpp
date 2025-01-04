@@ -16,6 +16,7 @@
 #include "ravennakit/ptp/ptp_constants.hpp"
 #include "ravennakit/ptp/ptp_instance.hpp"
 #include "ravennakit/ptp/ptp_profiles.hpp"
+#include "ravennakit/ptp/messages/ptp_delay_resp_message.hpp"
 #include "ravennakit/ptp/messages/ptp_follow_up_message.hpp"
 #include "ravennakit/ptp/messages/ptp_pdelay_resp_follow_up_message.hpp"
 #include "ravennakit/ptp/messages/ptp_pdelay_resp_message.hpp"
@@ -44,6 +45,24 @@ rav::ptp_port::ptp_port(
 
     subscriptions_.push_back(event_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
     subscriptions_.push_back(general_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
+
+    if (const auto ec = event_socket_.set_multicast_loopback(false)) {
+        RAV_WARNING("Failed to set multicast loopback for event socket: {}", ec.message());
+    }
+    if (const auto ec = general_socket_.set_multicast_loopback(false)) {
+        RAV_WARNING("Failed to set multicast loopback for general socket: {}", ec.message());
+    }
+
+    if (interface_address.is_v4()) {
+        if (const auto ec = event_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
+            RAV_ERROR("Failed to set multicast outbound interface for event socket: {}", ec.message());
+        }
+        if (const auto ec = general_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
+            RAV_ERROR("Failed to set multicast outbound interface for general socket: {}", ec.message());
+        }
+    } else {
+        RAV_WARNING("Interface address is not IPv4. Cannot set multicast outbound interface.");
+    }
 
     auto handler = [this](const udp_sender_receiver::recv_event& event) {
         handle_recv_event(event);
@@ -233,12 +252,11 @@ void rav::ptp_port::process_request_response_delay_sequence() {
     }
 }
 
-void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) {
+void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) const {
     const auto msg = sequence.create_delay_req_message(port_ds_);
     byte_buffer buffer;  // TODO: Reuse the buffer
     msg.write_to(buffer);
     event_socket_.send(buffer.data(), buffer.size(), {k_ptp_multicast_address, k_ptp_event_port});
-    RAV_TRACE("Sent delay request message");
     sequence.set_delay_req_send_time(parent_.get_local_ptp_time());
 }
 
@@ -379,7 +397,7 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
         }
         case ptp_message_type::delay_resp: {
             auto delay_resp =
-                ptp_delay_req_message::from_data(header.value(), data.subview(ptp_message_header::k_header_size));
+                ptp_delay_resp_message::from_data(header.value(), data.subview(ptp_message_header::k_header_size));
             if (!delay_resp) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(delay_resp.error()));
             }
@@ -519,10 +537,39 @@ void rav::ptp_port::handle_follow_up_message(
 }
 
 void rav::ptp_port::handle_delay_resp_message(
-    const ptp_delay_req_message& delay_resp_message, buffer_view<const uint8_t> tlvs
+    const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs
 ) {
-    std::ignore = delay_resp_message;
     std::ignore = tlvs;
+
+    // Ignore follow-up messages when not in slave or uncalibrated state
+    if (!(port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)) {
+        return;
+    }
+
+    // Ignore messages which are not from current parent
+    // Note: Figure 40 in section 9.5.7 of IEEE 1588-2019 suggests that the association should be tested before testing
+    // whether the message is from the current parent, but based on later text the order doesn't seem to matter that
+    // much, so we'll do the test here for clarity purposes.
+    if (delay_resp_message.header.source_port_identity != parent_.get_parent_ds().parent_port_identity) {
+        return;
+    }
+
+    for (auto& seq : request_response_delay_sequences_) {
+        if (delay_resp_message.requesting_port_identity == seq.get_requesting_port_identity()) {
+            if (delay_resp_message.header.sequence_id == seq.get_sequence_id()) {
+                // Message is associated with earlier delay request message
+                // Note: section 9.5.7 of IEEE 1588-2019 suggests that the Delay_Resp message should have a
+                // requestingSequenceId field, but 13.8.1 doesn't specify this field. We'll assume that the sequence ID
+                // in the header is the one to be used.
+                seq.update(delay_resp_message);
+                port_ds_.log_min_delay_req_interval = delay_resp_message.header.log_message_interval;
+                // TODO: Make clock adjustments
+                return;  // Done here.
+            }
+        }
+    }
+
+    RAV_WARNING("Received a delay response message without matching delay request message");
 }
 
 void rav::ptp_port::handle_pdelay_resp_message(

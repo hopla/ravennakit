@@ -143,6 +143,10 @@ class rav::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> 
     subscription
     join_multicast_group(const asio::ip::address& multicast_address, const asio::ip::address& interface_address);
 
+    [[nodiscard]] asio::error_code set_multicast_outbound_interface(const asio::ip::address_v4& interface_address);
+
+    asio::error_code set_multicast_loopback(bool enable);
+
   private:
     asio::ip::udp::socket socket_;
     asio::ip::udp::endpoint sender_endpoint_ {};  // For receiving the senders address.
@@ -150,6 +154,19 @@ class rav::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> 
     handler_type handler_;
     std::vector<multicast_group> multicast_groups_;
 };
+
+asio::error_code rav::udp_sender_receiver::impl::set_multicast_loopback(const bool enable) {
+    asio::error_code ec;
+    socket_.set_option(asio::ip::multicast::enable_loopback(enable), ec);
+    return ec;
+}
+
+asio::error_code
+rav::udp_sender_receiver::impl::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) {
+    asio::error_code ec;
+    socket_.set_option(asio::ip::multicast::outbound_interface(interface_address), ec);
+    return ec;
+}
 
 void rav::udp_sender_receiver::impl::send(
     const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& endpoint
@@ -223,13 +240,29 @@ rav::subscription rav::udp_sender_receiver::join_multicast_group(
     return impl_->join_multicast_group(multicast_address, interface_address);
 }
 
+asio::error_code
+rav::udp_sender_receiver::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) const {
+    if (impl_ == nullptr) {
+        RAV_WARNING("No implementation available");
+        return {};
+    }
+    return impl_->set_multicast_outbound_interface(interface_address);
+}
+
+asio::error_code rav::udp_sender_receiver::set_multicast_loopback(const bool enable) const {
+    if (impl_ == nullptr) {
+        RAV_WARNING("No implementation available");
+        return {};
+    }
+    return impl_->set_multicast_loopback(enable);
+}
+
 rav::udp_sender_receiver::impl::impl(asio::io_context& io_context, const asio::ip::udp::endpoint& endpoint) :
     socket_(io_context) {
     socket_.open(endpoint.protocol());
     socket_.set_option(asio::ip::udp::socket::reuse_address(true));
     socket_.bind(endpoint);
     socket_.non_blocking(true);
-    socket_.set_option(asio::ip::multicast::outbound_interface(asio::ip::make_address_v4("192.168.15.53"))); // TODO: Make this configurable
     socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1));
 }
 

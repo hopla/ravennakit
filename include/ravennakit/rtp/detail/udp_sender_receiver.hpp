@@ -80,6 +80,20 @@ class udp_sender_receiver {
     [[nodiscard]] subscription
     join_multicast_group(const asio::ip::address& multicast_address, const asio::ip::address& interface_address) const;
 
+    /**
+     * Set the outbound interface for multicast packets.
+     * @param interface_address The address of the interface to use.
+     * @return True if the operation was successful, false otherwise.
+     */
+    [[nodiscard]] asio::error_code set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) const;
+
+    /**
+     * Set the multicast loopback option.
+     * @param enable True to enable multicast loopback, false to disable.
+     * @return True if the operation was successful, false otherwise.
+     */
+    [[nodiscard]] asio::error_code set_multicast_loopback(bool enable) const;
+
   private:
     class impl;
     std::shared_ptr<impl> impl_;

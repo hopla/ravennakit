@@ -30,4 +30,84 @@ TEST_CASE("ptp_timestamp") {
         REQUIRE(ts.seconds == 18446744073);
         REQUIRE(ts.nanoseconds == 709551615);
     }
+
+    SECTION("Add") {
+        rav::ptp_timestamp ts1(1'000'000'001);
+        rav::ptp_timestamp ts2(1'000'000'002);
+        auto result = ts1 + ts2;
+        REQUIRE(result.seconds == 2);
+        REQUIRE(result.nanoseconds == 3);
+    }
+
+    SECTION("Add overflow") {
+        rav::ptp_timestamp ts1(1'500'000'000);
+        rav::ptp_timestamp ts2(1'500'000'001);
+        auto result = ts1 + ts2;
+        REQUIRE(result.seconds == 3);
+        REQUIRE(result.nanoseconds == 1);
+    }
+
+    SECTION("Subtract") {
+        rav::ptp_timestamp ts1(2'000'000'002);
+        rav::ptp_timestamp ts2(1'000'000'001);
+        auto result = ts1 - ts2;
+        REQUIRE(result.seconds == 1);
+        REQUIRE(result.nanoseconds == 1);
+    }
+
+    SECTION("Subtract underflow") {
+        rav::ptp_timestamp ts1(2'500'000'001);
+        rav::ptp_timestamp ts2(1'500'000'002);
+        auto result = ts1 - ts2;
+        REQUIRE(result.seconds == 0);
+        REQUIRE(result.nanoseconds == 999999999);
+    }
+
+    SECTION("Less than") {
+        rav::ptp_timestamp ts1(1'000'000'001);
+        rav::ptp_timestamp ts2(1'000'000'002);
+        REQUIRE(ts1 < ts2);
+        REQUIRE_FALSE(ts2 < ts1);
+    }
+
+    SECTION("Less than or equal") {
+        rav::ptp_timestamp ts1(1'000'000'001);
+        rav::ptp_timestamp ts2(1'000'000'002);
+        REQUIRE(ts1 <= ts2);
+        REQUIRE_FALSE(ts2 <= ts1);
+        REQUIRE(ts1 <= ts1);
+    }
+
+    SECTION("Greater than") {
+        rav::ptp_timestamp ts1(1'000'000'002);
+        rav::ptp_timestamp ts2(1'000'000'001);
+        REQUIRE(ts1 > ts2);
+        REQUIRE_FALSE(ts2 > ts1);
+    }
+
+    SECTION("Greater than or equal") {
+        rav::ptp_timestamp ts1(1'000'000'002);
+        rav::ptp_timestamp ts2(1'000'000'001);
+        REQUIRE(ts1 >= ts2);
+        REQUIRE_FALSE(ts2 >= ts1);
+        REQUIRE(ts1 >= ts1);
+    }
+
+    SECTION("Add correction field") {
+        SECTION("Add 2.5ns") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            auto remaining_fractional_ps = ts.add_correction(0x28000);  // 2.5ns
+            REQUIRE(ts.seconds == 1);
+            REQUIRE(ts.nanoseconds == 3);
+            REQUIRE(remaining_fractional_ps == 500);
+        }
+
+        SECTION("Add -2.5ns") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            auto remaining_fractional_ps = ts.add_correction(-0x28000);  // 2.5ns
+            REQUIRE(ts.seconds == 0);
+            REQUIRE(ts.nanoseconds == 999'999'999);
+            REQUIRE(remaining_fractional_ps == -500);
+        }
+    }
 }

@@ -31,7 +31,7 @@ struct ptp_timestamp {
     /// Size on the wire in bytes.
     static constexpr size_t k_size = 10;
 
-    constexpr static int64_t k_correction_field_multiplier = 0x10000;  // pow(2, 16) = 65536
+    constexpr static int64_t k_time_interval_multiplier = 0x10000;  // pow(2, 16) = 65536
 
     ptp_timestamp() = default;
 
@@ -42,6 +42,15 @@ struct ptp_timestamp {
     explicit ptp_timestamp(const uint64_t nanos) {
         seconds = nanos / 1'000'000'000;
         nanoseconds = static_cast<uint32_t>(nanos % 1'000'000'000);
+    }
+
+    /**
+     * Create a ptp_timestamp from a number of nanoseconds.
+     * @param nanos The number of nanoseconds.
+     */
+    explicit ptp_timestamp(const double nanos) {
+        seconds = static_cast<uint64_t>(nanos / 1'000'000'000.0);
+        nanoseconds = static_cast<uint32_t>(nanos - static_cast<double>(seconds) * 1'000'000'000.0);
     }
 
     /**
@@ -79,23 +88,23 @@ struct ptp_timestamp {
     /**
      * Subtracts given correction field from the timestamp, returning the remaining fractional nanoseconds. This is
      * because ptp_timestamp has a resolution of 1 ns, but the correction field has a resolution of 1/65536 ns.
-     * @param correction_field The correction field to subtract. This number is as specified in IEEE 1588-2019 13.3.2.9
+     * @param time_interval The correction field to subtract. This number is as specified in IEEE 1588-2019 13.3.2.9
      * @return The remaining fractional nanoseconds.
      */
-    int64_t add_correction(const int64_t correction_field) {
-        const auto correction_field_ns = correction_field / k_correction_field_multiplier;
-        const auto remaining_fractional_ns = correction_field - correction_field_ns * k_correction_field_multiplier;
+    ptp_time_interval add_time_interval(const ptp_time_interval time_interval) {
+        const auto time_interval_ns = time_interval / k_time_interval_multiplier;
+        const auto remaining_fractional_ns = time_interval - time_interval_ns * k_time_interval_multiplier;
 
-        if (correction_field_ns < 0) {
-            if (nanoseconds < static_cast<uint32_t>(-correction_field_ns)) {
+        if (time_interval_ns < 0) {
+            if (nanoseconds < static_cast<uint32_t>(-time_interval_ns)) {
                 seconds -= 1;
                 nanoseconds += 1'000'000'000;
             }
-            seconds -= static_cast<uint64_t>(-correction_field_ns) / 1'000'000'000;
-            nanoseconds -= static_cast<uint32_t>(-correction_field_ns);
+            seconds -= static_cast<uint64_t>(-time_interval_ns) / 1'000'000'000;
+            nanoseconds -= static_cast<uint32_t>(-time_interval_ns) % 1'000'000'000;
         } else {
-            seconds += static_cast<uint64_t>(correction_field_ns) / 1'000'000'000;
-            nanoseconds += static_cast<uint32_t>(correction_field_ns);
+            seconds += static_cast<uint64_t>(time_interval_ns) / 1'000'000'000;
+            nanoseconds += static_cast<uint32_t>(time_interval_ns) % 1'000'000'000;
             if (nanoseconds >= 1'000'000'000) {
                 seconds += 1;
                 nanoseconds -= 1'000'000'000;
@@ -179,7 +188,16 @@ struct ptp_timestamp {
         if (total > std::numeric_limits<int64_t>::max() - nanoseconds) {
             return std::numeric_limits<int64_t>::max();
         }
-        return (static_cast<ptp_time_interval>(seconds) * 1'000'000'000 + nanoseconds) * k_correction_field_multiplier;
+        return (static_cast<ptp_time_interval>(seconds) * 1'000'000'000 + nanoseconds) * k_time_interval_multiplier;
+    }
+
+    /**
+     * @return The number of nanoseconds times k_correction_field_multiplier as a double. The value might be outside the
+     * range of an int64_t, so it is returned as a double.
+     */
+    [[nodiscard]] double to_time_interval_double() const {
+        return (static_cast<double>(seconds) * 1'000'000'000.0 + static_cast<double>(nanoseconds))
+            * k_time_interval_multiplier;
     }
 };
 

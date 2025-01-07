@@ -14,6 +14,7 @@
 #include "ravennakit/ptp/messages/ptp_follow_up_message.hpp"
 #include "ravennakit/ptp/messages/ptp_sync_message.hpp"
 #include "ravennakit/core/random.hpp"
+#include "ravennakit/core/tracy.hpp"
 #include "ravennakit/ptp/messages/ptp_delay_resp_message.hpp"
 
 namespace rav {
@@ -96,23 +97,46 @@ class ptp_request_response_delay_sequence {
         return sync_message_.header.sequence_id;
     }
 
-    [[nodiscard]] ptp_time_interval calculate_mean_path_delay() const {
+    [[nodiscard]] double calculate_mean_path_delay() const {
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
+        const auto t1 = t1_.to_time_interval_double();
+        const auto t2 = t2_.to_time_interval_double();
+        const auto t3 = t3_.to_time_interval_double();
+        const auto t4 = t4_.to_time_interval_double();
         if (sync_message_.header.flags.two_step_flag) {
-            return (((t2_ - t3_) + (t4_ - t1_)).to_time_interval() - corrected_sync_correction_field_
-                    - follow_up_correction_field_ - delay_resp_correction_field_)
+            return ((t2 - t3) + (t4 - t1) - static_cast<double>(corrected_sync_correction_field_)
+                    - static_cast<double>(follow_up_correction_field_)
+                    - static_cast<double>(delay_resp_correction_field_))
                 / 2;
         }
-        return (((t2_ - t3_) + (t4_ - t1_)).to_time_interval() - corrected_sync_correction_field_
-                - delay_resp_correction_field_)
+        return ((t2 - t3) + (t4 - t1) - static_cast<double>(corrected_sync_correction_field_)
+                - static_cast<double>(delay_resp_correction_field_))
             / 2;
     }
 
-    [[nodiscard]] std::pair<int64_t, int64_t> calculate_offset_from_master() const {
+    [[nodiscard]] std::pair<double, double> calculate_offset_from_master() const {
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
-        auto mean_delay = calculate_mean_path_delay();
-        const auto offset = (t2_ - t1_).to_time_interval() - mean_delay - corrected_sync_correction_field_;
+        const auto mean_delay = calculate_mean_path_delay();
+        const auto t1 = t1_.to_time_interval_double();
+        const auto t2 = t2_.to_time_interval_double();
+        const auto offset = t2 - t1 - mean_delay - static_cast<double>(corrected_sync_correction_field_);
         return {offset, mean_delay};
+    }
+
+    [[nodiscard]] ptp_timestamp get_estimated_timestamp() const {
+        auto ts = t4_;
+        ts.add_time_interval(double_to_time_interval(calculate_mean_path_delay()));
+        return ts;
+    }
+
+    static ptp_time_interval double_to_time_interval(const double value) {
+        if (value < static_cast<double>(std::numeric_limits<int64_t>::min())) {
+            return std::numeric_limits<int64_t>::min();
+        }
+        if (value > static_cast<double>(std::numeric_limits<int64_t>::max())) {
+            return std::numeric_limits<int64_t>::max();
+        }
+        return static_cast<ptp_time_interval>(value);
     }
 
   private:

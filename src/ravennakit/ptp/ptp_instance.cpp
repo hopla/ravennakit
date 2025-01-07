@@ -217,11 +217,11 @@ rav::ptp_timestamp rav::ptp_instance::get_local_ptp_time() const {
 }
 
 void rav::ptp_instance::adjust_ptp_clock(
-    const ptp_time_interval mean_delay, const ptp_time_interval offset_from_master
+    const double mean_delay, const double offset_from_master, const ptp_timestamp best_guess_timestamp
 ) {
-    current_ds_.mean_delay = mean_delay;
-    current_ds_.offset_from_master = offset_from_master;
-    local_ptp_clock_.adjust(offset_from_master);
+    current_ds_.mean_delay = ptp_request_response_delay_sequence::double_to_time_interval(mean_delay);
+    current_ds_.offset_from_master = ptp_request_response_delay_sequence::double_to_time_interval(offset_from_master);
+    local_ptp_clock_.adjust(offset_from_master, best_guess_timestamp);
 }
 
 uint16_t rav::ptp_instance::get_next_available_port_number() const {

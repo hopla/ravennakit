@@ -22,31 +22,31 @@ TEST_CASE("ptp_time_interval") {
 
     SECTION("Constructor initializes with correct values") {
         SECTION("Positive values") {
-            rav::ptp_time_interval interval(5, 5'000'000, 0x3fffffff);  // 5.50000005s
+            rav::ptp_time_interval interval(5, 5'000'000, 0x3fff);  // 5.50000005s
             REQUIRE(interval.seconds() == 5);
             REQUIRE(interval.nanos_raw() == 5'000'000);
-            REQUIRE(interval.fraction_raw() == 0x3fffffff);
+            REQUIRE(interval.fraction_raw() == 0x3fff);
         }
 
         SECTION("Negative values") {
-            rav::ptp_time_interval negative_interval(-5, 5'000'000, 0x3fffffff);
+            rav::ptp_time_interval negative_interval(-5, 5'000'000, 0x3fff);
             REQUIRE(negative_interval.seconds() == -5);
             REQUIRE(negative_interval.nanos_raw() == 5'000'000);
-            REQUIRE(negative_interval.fraction_raw() == 0x3fffffff);
+            REQUIRE(negative_interval.fraction_raw() == 0x3fff);
         }
 
         SECTION("Normalize nanos") {
-            rav::ptp_time_interval normalize(5, 2'000'000'000, 0x3fffffff);
+            rav::ptp_time_interval normalize(5, 2'000'000'000, 0x3fff);
             REQUIRE(normalize.seconds() == 7);
             REQUIRE(normalize.nanos_raw() == 0);
-            REQUIRE(normalize.fraction_raw() == 0x3fffffff);
+            REQUIRE(normalize.fraction_raw() == 0x3fff);
         }
 
         SECTION("Normalize nanos 2") {
-            rav::ptp_time_interval normalize(5, 2'100'000'000, 0x3fffffff);
+            rav::ptp_time_interval normalize(5, 2'100'000'000, 0x3fff);
             REQUIRE(normalize.seconds() == 7);
             REQUIRE(normalize.nanos_raw() == 100'000'000);
-            REQUIRE(normalize.fraction_raw() == 0x3fffffff);
+            REQUIRE(normalize.fraction_raw() == 0x3fff);
         }
 
         SECTION("Normalize nanos 3") {
@@ -57,44 +57,44 @@ TEST_CASE("ptp_time_interval") {
         }
 
         SECTION("Normalize nanos 4") {
-            rav::ptp_time_interval normalize(5, -1'000'000'000, 0x3fffffff);
+            rav::ptp_time_interval normalize(5, -1'000'000'000, 0x3fff);
             REQUIRE(normalize.seconds() == 4);
             REQUIRE(normalize.nanos_raw() == 0);
-            REQUIRE(normalize.fraction_raw() == 0x3fffffff);
+            REQUIRE(normalize.fraction_raw() == 0x3fff);
         }
 
         SECTION("Normalize nanos 5") {
-            rav::ptp_time_interval normalize(5, -1'100'000'000, 0x3fffffff);
+            rav::ptp_time_interval normalize(5, -1'100'000'000, 0x3fff);
             REQUIRE(normalize.seconds() == 3);
             REQUIRE(normalize.nanos_raw() == 900'000'000);
-            REQUIRE(normalize.fraction_raw() == 0x3fffffff);
+            REQUIRE(normalize.fraction_raw() == 0x3fff);
         }
     }
 
     SECTION("Arithmetic addition works correctly") {
         SECTION("Check arithmetic") {
-            rav::ptp_time_interval interval1(3, 50000, 0x20000000);
-            rav::ptp_time_interval interval2(4, 70000, 0x10000000);
+            rav::ptp_time_interval interval1(3, 50000, 0x2000);
+            rav::ptp_time_interval interval2(4, 70000, 0x1000);
 
             rav::ptp_time_interval result = interval1 + interval2;
             REQUIRE(result.seconds() == 7);
             REQUIRE(result.nanos_raw() == 120000);
-            REQUIRE(result.fraction_raw() == 0x30000000);
+            REQUIRE(result.fraction_raw() == 0x3000);
         }
 
         SECTION("Check normalization of nanos during addition") {
-            rav::ptp_time_interval interval3(3, 500'000'000, 0x20000000);
-            rav::ptp_time_interval interval4(1, 500'000'000, 0x10000000);
+            rav::ptp_time_interval interval3(3, 500'000'000, 0x2000);
+            rav::ptp_time_interval interval4(1, 500'000'000, 0x1000);
 
             rav::ptp_time_interval result2 = interval3 + interval4;
             REQUIRE(result2.seconds() == 5);
             REQUIRE(result2.nanos_raw() == 0);
-            REQUIRE(result2.fraction_raw() == 0x30000000);
+            REQUIRE(result2.fraction_raw() == 0x3000);
         }
 
         SECTION("Check normalization of fractal during addition") {
             // Check normalization of fractal during addition
-            rav::ptp_time_interval interval1(3, 0, 0xffffffff);
+            rav::ptp_time_interval interval1(3, 0, 0xffff);
             rav::ptp_time_interval interval2(1, 0, 1);
 
             rav::ptp_time_interval result = interval1 + interval2;
@@ -106,23 +106,23 @@ TEST_CASE("ptp_time_interval") {
 
     SECTION("Arithmetic subtraction works correctly") {
         SECTION("Check arithmetic") {
-            rav::ptp_time_interval interval1(3, 50000, 0x20000000);
-            rav::ptp_time_interval interval2(4, 70000, 0x10000000);
+            rav::ptp_time_interval interval1(3, 50000, 0x2000);
+            rav::ptp_time_interval interval2(4, 70000, 0x1000);
 
             rav::ptp_time_interval result = interval1 - interval2;
             REQUIRE(result.seconds() == -2);
             REQUIRE(result.nanos_raw() == 0x3b9a7be0);
-            REQUIRE(result.fraction_raw() == 0x10000000);
+            REQUIRE(result.fraction_raw() == 0x1000);
         }
 
         SECTION("Check normalization of nanos during subtraction") {
-            rav::ptp_time_interval interval3(3, 500'000'000, 0x20000000);
-            rav::ptp_time_interval interval4(1, 600'000'000, 0x10000000);
+            rav::ptp_time_interval interval3(3, 500'000'000, 0x2000);
+            rav::ptp_time_interval interval4(1, 600'000'000, 0x1000);
 
             rav::ptp_time_interval result2 = interval3 - interval4;
             REQUIRE(result2.seconds() == 1);
             REQUIRE(result2.nanos_raw() == 900'000'000);
-            REQUIRE(result2.fraction_raw() == 0x10000000);
+            REQUIRE(result2.fraction_raw() == 0x1000);
         }
 
         SECTION("Check normalization of fraction during subtraction") {
@@ -132,7 +132,7 @@ TEST_CASE("ptp_time_interval") {
             rav::ptp_time_interval result = interval1 - interval2;
             REQUIRE(result.seconds() == -1);
             REQUIRE(result.nanos_raw() == 0x3b9ac9ff);
-            REQUIRE(result.fraction_raw() == 0xffffffff);
+            REQUIRE(result.fraction_raw() == 0xffff);
         }
     }
 
@@ -140,29 +140,34 @@ TEST_CASE("ptp_time_interval") {
         const auto interval = rav::ptp_time_interval::from_wire_format(0x24000);
         REQUIRE(interval.seconds() == 0);
         REQUIRE(interval.nanos_raw() == 0x2);
-        REQUIRE(interval.fraction_raw() == 0x40000000);
+        REQUIRE(interval.fraction_raw() == 0x4000);
     }
 
     SECTION("From wire negative") {
         const auto interval = rav::ptp_time_interval::from_wire_format(-0x24000);
         REQUIRE(interval.seconds() == -1);
         REQUIRE(interval.nanos_raw() == 0x3b9ac9fd);
-        REQUIRE(interval.fraction_raw() == 0xc0000000);  // 0x10000 - 0x4000
+        REQUIRE(interval.fraction_raw() == 0xc000);  // 0x10000 - 0x4000
     }
 
     SECTION("To wire positive") {
-        const auto interval = rav::ptp_time_interval(0, 2, 0x40000000);
+        const auto interval = rav::ptp_time_interval(0, 2, 0x4000);
         REQUIRE(interval.to_wire_format() == 0x24000);
     }
 
     SECTION("To wire negative") {
-        const auto interval = rav::ptp_time_interval(0, -0x2, 0x40000000);
+        const auto interval = rav::ptp_time_interval(0, -3, 0xc000);
         REQUIRE(interval.to_wire_format() == -0x24000);
     }
 
     SECTION("From and to wire roundtrip") {
         const auto interval = rav::ptp_time_interval::from_wire_format(0x28000);
         REQUIRE(interval.to_wire_format() == 0x28000);
+    }
+
+    SECTION("From and to wire roundtrip negative") {
+        const auto interval = rav::ptp_time_interval::from_wire_format(-0x28000);
+        REQUIRE(interval.to_wire_format() == -0x28000);
     }
 
     SECTION("Equality and inequality operators") {
@@ -202,10 +207,10 @@ TEST_CASE("ptp_time_interval") {
     }
 
     SECTION("Nanos rounded") {
-        rav::ptp_time_interval interval1(0, 1, 0x80000000);
+        rav::ptp_time_interval interval1(0, 1, 0x8000);
         REQUIRE(interval1.nanos_rounded() == 2);
 
-        rav::ptp_time_interval interval2(0, 1, 0x7fffffff);
+        rav::ptp_time_interval interval2(0, 1, 0x7fff);
         REQUIRE(interval2.nanos_rounded() == 1);
     }
 

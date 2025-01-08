@@ -29,7 +29,7 @@ class ptp_time_interval {
      * @param nanos The number of nanoseconds.
      * @param fraction The nanosecond fraction part.
      */
-    ptp_time_interval(const int64_t seconds, const int32_t nanos, const uint32_t fraction) :
+    ptp_time_interval(const int64_t seconds, const int32_t nanos, const uint16_t fraction) :
         seconds_(seconds), nanos_(nanos) {
         seconds_ = seconds;
         nanos_ = nanos * k_fractional_scale + fraction;
@@ -87,7 +87,7 @@ class ptp_time_interval {
         nanoseconds -= seconds * 1'000'000'000;
         return {
             seconds, static_cast<int32_t>(nanoseconds),
-            static_cast<uint32_t>((value & 0xffff) * (k_fractional_scale / 0x10000))
+            static_cast<uint16_t>((value & 0xffff))
         };
     }
 
@@ -97,13 +97,8 @@ class ptp_time_interval {
      * @return The wire format value.
      */
     [[nodiscard]] int64_t to_wire_format() const {
-        const auto fraction16 = (nanos_ & 0xffffffff) / (k_fractional_scale / 0x10000);
-        const auto ns = (seconds_ * 1'000'000'000 + nanos_ / k_fractional_scale) * 0x10000;
-        if (seconds_ < 0) {
-            return ns - fraction16;
-        }
         // TODO: Clamp value to INT64_MAX or INT64_MIN if it's too big
-        return ns + fraction16;
+        return seconds_ * 1'000'000'000 * k_fractional_scale + nanos_;
     }
 
     /**
@@ -201,11 +196,11 @@ class ptp_time_interval {
         return !(*this == other);
     }
 
-    constexpr static int64_t k_fractional_scale = 0x100000000;
+    constexpr static int64_t k_fractional_scale = 0x10000;
 
   private:
     int64_t seconds_ {};  // 48 bits on the wire
-    int64_t nanos_ {};    // [0, 1'000'000'000) including 32-bit fraction
+    int64_t nanos_ {};    // [0, 1'000'000'000) including 16-bit fraction
 
     /**
      * Normalizes the time interval such that:

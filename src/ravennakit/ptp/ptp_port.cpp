@@ -566,10 +566,8 @@ void rav::ptp_port::handle_delay_resp_message(
 
                 auto [offset, mean_delay] = seq.calculate_offset_from_master();
 
-                if (std::abs(offset.nanos_raw()) >= 1'000'000'000) {
-                    RAV_WARNING("Offset from master is too large: {}", offset.nanos_raw());
-                    return;
-                }
+                TRACY_PLOT("Offset from master", offset.nanos());
+                RAV_TRACE("Offset from master: {}.{}", offset.seconds(), offset.nanos_raw());
 
                 parent_.adjust_ptp_clock(mean_delay, offset);
                 return;  // Done here.

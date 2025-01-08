@@ -24,11 +24,11 @@ namespace rav {
  */
 class ptp_local_ptp_clock {
   public:
-    ptp_local_ptp_clock() : last_sync_(ptp_local_clock::now()){
-    }
+    ptp_local_ptp_clock() : last_sync_(ptp_local_clock::now()) {}
 
     [[nodiscard]] ptp_timestamp now() const {
-        const auto now = ptp_local_clock::now();
+        auto now = ptp_local_clock::now();
+        now.add(shift_);
         return now;
     }
 
@@ -37,16 +37,18 @@ class ptp_local_ptp_clock {
     }
 
     void adjust(const ptp_time_interval offset_from_master) {
-
+        std::ignore = offset_from_master;
+        last_sync_ = ptp_local_clock::now();
     }
 
-    void step_clock() {
-
+    void step_clock(const ptp_time_interval offset_from_master) {
+        last_sync_ = ptp_local_clock::now();
+        shift_ += offset_from_master * -1;
     }
 
   private:
-    ptp_timestamp last_sync_{};
-    ptp_time_interval correction_ns_ {};
+    ptp_timestamp last_sync_ {};             // Timestamp from ptp_local_clock when the clock was last synchronized
+    ptp_time_interval shift_ {};
 };
 
 }  // namespace rav

@@ -8,7 +8,7 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-#include "ravennakit/core/math/safe_int.hpp"
+#include "ravennakit/core/types/safe_int.hpp"
 
 #include <catch2/catch_all.hpp>
 

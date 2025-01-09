@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "ravennakit/core/math/safe_int.hpp"
+#include "ravennakit/core/types/safe_int.hpp"
 
 #include <cstdint>
 #include <cmath>

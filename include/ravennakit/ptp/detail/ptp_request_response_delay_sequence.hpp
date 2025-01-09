@@ -22,7 +22,7 @@ namespace rav {
 class ptp_request_response_delay_sequence {
   public:
     enum class state {
-        sync_received,
+        initial,
         awaiting_follow_up,
         delay_req_send_scheduled,
         awaiting_delay_resp,
@@ -127,6 +127,10 @@ class ptp_request_response_delay_sequence {
         return ((t2 - t3) + (t4 - t1) - corrected_sync_correction_field_ - delay_resp_correction_field_) / 2;
     }
 
+    /**
+     * Calculate the offset from the master clock.
+     * @return A pair of the offset and the mean path delay.
+     */
     [[nodiscard]] std::pair<ptp_time_interval, ptp_time_interval> calculate_offset_from_master() const {
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
         const auto mean_delay = calculate_mean_path_delay();
@@ -142,8 +146,12 @@ class ptp_request_response_delay_sequence {
         return {};
     }
 
+    state get_state() const {
+        return state_;
+    }
+
   private:
-    state state_ = state::sync_received;
+    state state_ = state::initial;
     ptp_sync_message sync_message_;
     std::chrono::time_point<std::chrono::steady_clock> send_delay_req_at_ {};  // Should this be a ptp_timestamp?
     ptp_time_interval corrected_sync_correction_field_ {};

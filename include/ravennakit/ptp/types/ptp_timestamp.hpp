@@ -24,9 +24,6 @@ namespace rav {
  * Note: not suitable for memcpy to and from the wire.
  */
 struct ptp_timestamp {
-    uint64_t seconds {};      // 6 bytes (48 bits) on the wire
-    uint32_t nanoseconds {};  // 4 bytes (32 bits) on the wire, should be 1'000'000'000 or less.
-
     /// Size on the wire in bytes.
     static constexpr size_t k_size = 10;
 
@@ -37,9 +34,17 @@ struct ptp_timestamp {
      * @param nanos The number of nanoseconds.
      */
     explicit ptp_timestamp(const uint64_t nanos) {
-        seconds = nanos / 1'000'000'000;
-        nanoseconds = static_cast<uint32_t>(nanos % 1'000'000'000);
+        seconds_ = nanos / 1'000'000'000;
+        nanoseconds_ = static_cast<uint32_t>(nanos % 1'000'000'000);
     }
+
+    /**
+     * Create a ptp_timestamp from seconds and milliseconds.
+     * @param seconds The number of seconds.
+     * @param nanoseconds The number of nanoseconds.
+     */
+    ptp_timestamp(const uint64_t seconds, const uint32_t nanoseconds) :
+        seconds_(seconds), nanoseconds_(nanoseconds) {}
 
     /**
      * Adds two ptp_timestamps together.
@@ -48,11 +53,11 @@ struct ptp_timestamp {
      */
     [[nodiscard]] ptp_timestamp operator+(const ptp_timestamp& other) const {
         auto result = *this;
-        result.seconds += other.seconds;
-        result.nanoseconds += other.nanoseconds;
-        if (result.nanoseconds >= 1'000'000'000) {
-            result.seconds += 1;
-            result.nanoseconds -= 1'000'000'000;
+        result.seconds_ += other.seconds_;
+        result.nanoseconds_ += other.nanoseconds_;
+        if (result.nanoseconds_ >= 1'000'000'000) {
+            result.seconds_ += 1;
+            result.nanoseconds_ -= 1'000'000'000;
         }
         return result;
     }
@@ -64,18 +69,17 @@ struct ptp_timestamp {
      */
     [[nodiscard]] ptp_timestamp operator-(const ptp_timestamp& other) const {
         auto result = *this;
-        if (result.nanoseconds < other.nanoseconds) {
-            result.seconds -= 1;
-            result.nanoseconds += 1'000'000'000;
+        if (result.nanoseconds_ < other.nanoseconds_) {
+            result.seconds_ -= 1;
+            result.nanoseconds_ += 1'000'000'000;
         }
-        result.seconds -= other.seconds;
-        result.nanoseconds -= other.nanoseconds;
+        result.seconds_ -= other.seconds_;
+        result.nanoseconds_ -= other.nanoseconds_;
         return result;
     }
 
     /**
-     * Adds given time interval to the timestamp, returning the remaining fractional nanoseconds. This is
-     * because ptp_timestamp has a resolution of 1 ns, but the correction field has a resolution of 1/65536 ns.
+     * Adds given time interval to the timestamp.
      * @param time_interval The correction field to subtract. This number is as specified in IEEE 1588-2019 13.3.2.9
      * @return The remaining fractional nanoseconds.
      */
@@ -84,37 +88,37 @@ struct ptp_timestamp {
             // Subtract the value
             const auto seconds_delta = static_cast<uint64_t>(std::abs(time_interval.seconds()));
             const auto nanoseconds_delta = static_cast<uint64_t>(std::abs(time_interval.nanos_raw()));
-            if (nanoseconds_delta > nanoseconds) {
-                if (seconds < 1) {
+            if (nanoseconds_delta > nanoseconds_) {
+                if (seconds_ < 1) {
                     RAV_WARNING("ptp_timestamp underflow");
                     *this = {};  // Prevent underflow
                     return;
                 }
-                seconds -= 1;
-                nanoseconds += 1'000'000'000;
+                seconds_ -= 1;
+                nanoseconds_ += 1'000'000'000;
             }
-            if (seconds_delta > seconds) {
+            if (seconds_delta > seconds_) {
                 RAV_WARNING("ptp_timestamp underflow");
                 *this = {};  // Prevent underflow
                 return;
             }
-            seconds -= seconds_delta;
-            nanoseconds -= nanoseconds_delta;
+            seconds_ -= seconds_delta;
+            nanoseconds_ -= nanoseconds_delta;
         } else {
             // Add the value
             const auto seconds_delta = static_cast<uint64_t>(time_interval.seconds());
             const auto nanoseconds_delta = static_cast<uint64_t>(time_interval.nanos_raw());
-            seconds += seconds_delta;
-            nanoseconds += nanoseconds_delta;
-            if (nanoseconds >= 1'000'000'000) {
-                seconds += 1;
-                nanoseconds -= 1'000'000'000;
+            seconds_ += seconds_delta;
+            nanoseconds_ += nanoseconds_delta;
+            if (nanoseconds_ >= 1'000'000'000) {
+                seconds_ += 1;
+                nanoseconds_ -= 1'000'000'000;
             }
         }
     }
 
     friend bool operator<(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
-        return lhs.seconds < rhs.seconds || (lhs.seconds == rhs.seconds && lhs.nanoseconds < rhs.nanoseconds);
+        return lhs.seconds_ < rhs.seconds_ || (lhs.seconds_ == rhs.seconds_ && lhs.nanoseconds_ < rhs.nanoseconds_);
     }
 
     friend bool operator<=(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
@@ -138,8 +142,8 @@ struct ptp_timestamp {
     static ptp_timestamp from_data(const buffer_view<const uint8_t> data) {
         RAV_ASSERT(data.size() >= 10, "data is too short to create a ptp_timestamp");
         ptp_timestamp ts;
-        ts.seconds = data.read_be<uint48_t>(0).to_uint64();
-        ts.nanoseconds = data.read_be<uint32_t>(6);
+        ts.seconds_ = data.read_be<uint48_t>(0).to_uint64();
+        ts.nanoseconds_ = data.read_be<uint32_t>(6);
         return ts;
     }
 
@@ -148,15 +152,29 @@ struct ptp_timestamp {
      * @param buffer The buffer to write to.
      */
     void write_to(byte_buffer& buffer) const {
-        buffer.write_be<uint48_t>(seconds);
-        buffer.write_be<uint32_t>(nanoseconds);
+        buffer.write_be<uint48_t>(seconds_);
+        buffer.write_be<uint32_t>(nanoseconds_);
     }
 
     /**
      * @return A string representation of the ptp_timestamp.
      */
     [[nodiscard]] std::string to_string() const {
-        return fmt::format("{}.{:09}", seconds, nanoseconds);
+        return fmt::format("{}.{:09}", seconds_, nanoseconds_);
+    }
+
+    /**
+     * @return The number of seconds represented by this timestamp (does not include the nanoseconds).
+     */
+    [[nodiscard]] uint64_t seconds() const {
+        return seconds_;
+    }
+
+    /**
+     * @return The number of nanoseconds represented by this timestamp (does not include the seconds).
+     */
+    [[nodiscard]] uint32_t nanoseconds() const {
+        return nanoseconds_;
     }
 
     /**
@@ -164,14 +182,14 @@ struct ptp_timestamp {
      * large to fit, the behaviour is undefined.
      */
     [[nodiscard]] uint64_t to_nanoseconds() const {
-        return seconds * 1'000'000'000 + nanoseconds;
+        return seconds_ * 1'000'000'000 + nanoseconds_;
     }
 
     /**
      * @return The number of milliseconds represented by this timestamp.
      */
     [[nodiscard]] double to_milliseconds_double() const {
-        return static_cast<double>(seconds) * 1'000.0 + static_cast<double>(nanoseconds) / 1'000'000.0;
+        return static_cast<double>(seconds_) * 1'000.0 + static_cast<double>(nanoseconds_) / 1'000'000.0;
     }
 
     /**
@@ -179,17 +197,19 @@ struct ptp_timestamp {
      * and never overflow.
      */
     [[nodiscard]] ptp_time_interval to_time_interval() const {
-        RAV_ASSERT(nanoseconds < 1'000'000'000, "Nano seconds must be within [0, 1'000'000'000)");
+        RAV_ASSERT(nanoseconds_ < 1'000'000'000, "Nano seconds must be within [0, 1'000'000'000)");
 
-        const auto nanos = seconds * 1'000'000'000 + nanoseconds;
-
-        if (seconds > std::numeric_limits<int64_t>::max()) {
+        if (seconds_ > std::numeric_limits<int64_t>::max()) {
             RAV_WARNING("Time interval overflow");
             return {};
         }
 
-        return {static_cast<int64_t>(seconds), static_cast<int32_t>(nanos), 0};
+        return {static_cast<int64_t>(seconds_), static_cast<int32_t>(nanoseconds_), 0};
     }
+
+  private:
+    uint64_t seconds_ {};      // 6 bytes (48 bits) on the wire
+    uint32_t nanoseconds_ {};  // 4 bytes (32 bits) on the wire, should be 1'000'000'000 or less.
 };
 
 }  // namespace rav

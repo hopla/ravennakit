@@ -59,7 +59,7 @@ class ptp_local_ptp_clock {
     ptp_timestamp last_sync_ {};  // Timestamp from ptp_local_clock when the clock was last synchronized
     ptp_time_interval shift_ {};
     running_average offset_average_;
-    sliding_window_average offset_window_average_{200};
+    sliding_window_average offset_window_average_{2024};
 };
 
 }  // namespace rav

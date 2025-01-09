@@ -15,52 +15,52 @@
 TEST_CASE("ptp_timestamp") {
     SECTION("Construct from nanos") {
         rav::ptp_timestamp ts(1'000'000'000);
-        REQUIRE(ts.seconds == 1);
-        REQUIRE(ts.nanoseconds == 0);
+        REQUIRE(ts.seconds() == 1);
+        REQUIRE(ts.nanoseconds() == 0);
     }
 
     SECTION("Construct from nanos 2") {
         rav::ptp_timestamp ts(1'000'000'001);
-        REQUIRE(ts.seconds == 1);
-        REQUIRE(ts.nanoseconds == 1);
+        REQUIRE(ts.seconds() == 1);
+        REQUIRE(ts.nanoseconds() == 1);
     }
 
     SECTION("Construct from max nanos value") {
         rav::ptp_timestamp ts(std::numeric_limits<uint64_t>::max());
-        REQUIRE(ts.seconds == 18446744073);
-        REQUIRE(ts.nanoseconds == 709551615);
+        REQUIRE(ts.seconds() == 18446744073);
+        REQUIRE(ts.nanoseconds() == 709551615);
     }
 
     SECTION("Add") {
         rav::ptp_timestamp ts1(1'000'000'001);
         rav::ptp_timestamp ts2(1'000'000'002);
         auto result = ts1 + ts2;
-        REQUIRE(result.seconds == 2);
-        REQUIRE(result.nanoseconds == 3);
+        REQUIRE(result.seconds() == 2);
+        REQUIRE(result.nanoseconds() == 3);
     }
 
     SECTION("Add overflow") {
         rav::ptp_timestamp ts1(1'500'000'000);
         rav::ptp_timestamp ts2(1'500'000'001);
         auto result = ts1 + ts2;
-        REQUIRE(result.seconds == 3);
-        REQUIRE(result.nanoseconds == 1);
+        REQUIRE(result.seconds() == 3);
+        REQUIRE(result.nanoseconds() == 1);
     }
 
     SECTION("Subtract") {
         rav::ptp_timestamp ts1(2'000'000'002);
         rav::ptp_timestamp ts2(1'000'000'001);
         auto result = ts1 - ts2;
-        REQUIRE(result.seconds == 1);
-        REQUIRE(result.nanoseconds == 1);
+        REQUIRE(result.seconds() == 1);
+        REQUIRE(result.nanoseconds() == 1);
     }
 
     SECTION("Subtract underflow") {
         rav::ptp_timestamp ts1(2'500'000'001);
         rav::ptp_timestamp ts2(1'500'000'002);
         auto result = ts1 - ts2;
-        REQUIRE(result.seconds == 0);
-        REQUIRE(result.nanoseconds == 999999999);
+        REQUIRE(result.seconds() == 0);
+        REQUIRE(result.nanoseconds() == 999999999);
     }
 
     SECTION("Less than") {
@@ -93,33 +93,41 @@ TEST_CASE("ptp_timestamp") {
         REQUIRE(ts1 >= ts1);
     }
 
-    SECTION("Add correction field") {
+    SECTION("Add time interval") {
         SECTION("Add 2.5ns") {
             rav::ptp_timestamp ts(1'000'000'001);
             ts.add({0, 2, 0x8000});  // 2.5ns
-            REQUIRE(ts.seconds == 1);
-            REQUIRE(ts.nanoseconds == 3);  // 4 because of rounding
+            REQUIRE(ts.seconds() == 1);
+            REQUIRE(ts.nanoseconds() == 3);  // 4 because of rounding
         }
 
         SECTION("Add -2.5ns") {
             rav::ptp_timestamp ts(1'000'000'001);
             ts.add({0, -3, 0x8000});  // -2.5ns
-            REQUIRE(ts.seconds == 0);
-            REQUIRE(ts.nanoseconds == 0);
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 0);
         }
 
         SECTION("Add 2.5s") {
             rav::ptp_timestamp ts(1'000'000'001);
             ts.add({2, 500'000'001, 0});  // 2.5s + 1
-            REQUIRE(ts.seconds == 3);
-            REQUIRE(ts.nanoseconds == 500'000'002);
+            REQUIRE(ts.seconds() == 3);
+            REQUIRE(ts.nanoseconds() == 500'000'002);
         }
 
         SECTION("Add -2.5s") {
             rav::ptp_timestamp ts(3'000'000'001);
             ts.add({-2, 500'000'001, 0});  // 2.5s + 1
-            REQUIRE(ts.seconds == 0);
-            REQUIRE(ts.nanoseconds == 500'000'000);
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 500'000'000);
         }
+    }
+
+    SECTION("To time interval") {
+        rav::ptp_timestamp ts(3'000'000'001);
+        auto ti = ts.to_time_interval();
+        REQUIRE(ti.seconds() == 3);
+        REQUIRE(ti.nanos_raw() == 1);
+        REQUIRE(ti.nanos() == 3'000'000'001);
     }
 }

@@ -35,7 +35,7 @@ class ptp_request_response_delay_sequence {
         const ptp_sync_message& sync_message, const ptp_timestamp sync_receive_time, const ptp_port_ds& port_ds
     ) :
         sync_message_(sync_message), t1_(sync_message.origin_timestamp), t2_(sync_receive_time) {
-        corrected_sync_correction_field_ = sync_message.header.correction_field;  // Ignoring delayAsymmetry
+        corrected_sync_correction_field_ = ptp_time_interval::from_wire_format(sync_message.header.correction_field);  // Ignoring delayAsymmetry
         if (sync_message.header.flags.two_step_flag) {
             state_ = state::awaiting_follow_up;
         } else {
@@ -50,14 +50,14 @@ class ptp_request_response_delay_sequence {
 
     void update(const ptp_follow_up_message& follow_up_message, const ptp_port_ds& port_ds) {
         RAV_ASSERT(state_ == state::awaiting_follow_up, "State should be awaiting_follow_up");
-        follow_up_correction_field_ = follow_up_message.header.correction_field;
+        follow_up_correction_field_ = ptp_time_interval::from_wire_format(follow_up_message.header.correction_field);
         t1_ = follow_up_message.precise_origin_timestamp;
         schedule_delay_req_message_send(port_ds);
     }
 
     void update(const ptp_delay_resp_message& delay_resp_message) {
         RAV_ASSERT(state_ == state::awaiting_delay_resp, "State should be awaiting_delay_resp");
-        delay_resp_correction_field_ = delay_resp_message.header.correction_field;
+        delay_resp_correction_field_ = ptp_time_interval::from_wire_format(delay_resp_message.header.correction_field);
         t4_ = delay_resp_message.receive_timestamp;
         state_ = state::delay_resp_received;
     }
@@ -146,9 +146,9 @@ class ptp_request_response_delay_sequence {
     state state_ = state::sync_received;
     ptp_sync_message sync_message_;
     std::chrono::time_point<std::chrono::steady_clock> send_delay_req_at_ {};  // Should this be a ptp_timestamp?
-    int64_t corrected_sync_correction_field_ {};
-    int64_t follow_up_correction_field_ {};
-    int64_t delay_resp_correction_field_ {};
+    ptp_time_interval corrected_sync_correction_field_ {};
+    ptp_time_interval follow_up_correction_field_ {};
+    ptp_time_interval delay_resp_correction_field_ {};
     ptp_timestamp t1_ {};  // Sync.originTimestamp or Follow_Up.preciseOriginTimestamp if two-step
     ptp_timestamp t2_ {};  // Sync receive time (measured locally)
     ptp_timestamp t3_ {};  // Delay request send time (measured locally)

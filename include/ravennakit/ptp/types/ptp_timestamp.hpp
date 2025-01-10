@@ -66,36 +66,73 @@ struct ptp_timestamp {
 
     /**
      * Adds given time interval to the timestamp.
-     * @param time_interval The correction field to subtract. This number is as specified in IEEE 1588-2019 13.3.2.9
-     * @return The remaining fractional nanoseconds.
+     * @param time_interval The interval to add.
      */
     void add(const ptp_time_interval time_interval) {
         if (time_interval.seconds() < 0) {
             // Subtract the value
-            const auto seconds_delta = static_cast<uint64_t>(std::abs(time_interval.seconds()));
-            const auto nanoseconds_delta = static_cast<uint64_t>(std::abs(time_interval.nanos()));
-            if (nanoseconds_delta > nanoseconds_) {
-                if (seconds_ < 1) {
-                    RAV_WARNING("ptp_timestamp underflow");
-                    *this = {};  // Prevent underflow
-                    return;
-                }
-                seconds_ -= 1;
-                nanoseconds_ += 1'000'000'000;
+            const auto s_abs = static_cast<uint64_t>(std::abs(time_interval.seconds()));
+            nanoseconds_ += static_cast<uint64_t>(time_interval.nanos());
+            if (nanoseconds_ >= 1'000'000'000) {
+                seconds_ += 1;
+                nanoseconds_ -= 1'000'000'000;
             }
-            if (seconds_delta > seconds_) {
+            if (s_abs > seconds_) {
                 RAV_WARNING("ptp_timestamp underflow");
+                // TODO: This case should be reported to the caller
                 *this = {};  // Prevent underflow
                 return;
             }
-            seconds_ -= seconds_delta;
-            nanoseconds_ -= nanoseconds_delta;
+            seconds_ -= s_abs;
         } else {
             // Add the value
             const auto seconds_delta = static_cast<uint64_t>(time_interval.seconds());
             const auto nanoseconds_delta = static_cast<uint64_t>(time_interval.nanos());
             seconds_ += seconds_delta;
             nanoseconds_ += nanoseconds_delta;
+            if (nanoseconds_ >= 1'000'000'000) {
+                seconds_ += 1;
+                nanoseconds_ -= 1'000'000'000;
+            }
+        }
+    }
+
+    /**
+     * Adds given amount of seconds to the timestamp.
+     * @param time_interval_seconds The amount of seconds to add.
+     */
+    void add_seconds(const double time_interval_seconds) {
+        double seconds {};
+        const auto fractional = std::modf(time_interval_seconds, &seconds);
+        const auto nanos = std::round(fractional * 1'000'000'000);
+
+        if (time_interval_seconds < 0) {
+            // Subtract the value
+            const auto s_abs = std::fabs(seconds);
+            const auto n_abs = std::fabs(nanos);
+
+            if (n_abs > nanoseconds_) {
+                if (seconds_ < 1) {
+                    RAV_WARNING("ptp_timestamp underflow");
+                    // TODO: This case should be reported to the caller
+                    *this = {};  // Prevent underflow
+                    return;
+                }
+                seconds_ -= 1;
+                nanoseconds_ += 1'000'000'000;
+            }
+            if (s_abs > seconds_) {
+                RAV_WARNING("ptp_timestamp underflow");
+                // TODO: This case should be reported to the caller
+                *this = {};  // Prevent underflow
+                return;
+            }
+            seconds_ -= static_cast<uint64_t>(s_abs);
+            nanoseconds_ -= static_cast<uint64_t>(n_abs);
+        } else {
+            // Add the value
+            seconds_ += static_cast<uint64_t>(seconds);
+            nanoseconds_ += static_cast<uint64_t>(nanos);
             if (nanoseconds_ >= 1'000'000'000) {
                 seconds_ += 1;
                 nanoseconds_ -= 1'000'000'000;

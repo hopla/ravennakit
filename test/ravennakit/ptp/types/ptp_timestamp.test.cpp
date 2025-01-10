@@ -96,30 +96,77 @@ TEST_CASE("ptp_timestamp") {
     SECTION("Add time interval") {
         SECTION("Add 2.5ns") {
             rav::ptp_timestamp ts(1'000'000'001);
-            ts.add({0, 2, 0x8000});  // 2.5ns
+            ts.add({0, 2, 0x8000});
             REQUIRE(ts.seconds() == 1);
-            REQUIRE(ts.nanoseconds() == 3);  // 4 because of rounding
+            REQUIRE(ts.nanoseconds() == 3);
+        }
+
+        SECTION("Add 2.5ns double") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            ts.add_seconds(0.0000000025);  // 2.5ns
+            REQUIRE(ts.seconds() == 1);
+            REQUIRE(ts.nanoseconds() == 4); // Rounded up
         }
 
         SECTION("Add -2.5ns") {
             rav::ptp_timestamp ts(1'000'000'001);
-            ts.add({0, -3, 0x8000});  // -2.5ns
+            rav::ptp_time_interval ti(0, -3, 0x8000);
+            // Note how ti normalizes to -2.5ns:
+            REQUIRE(ti.seconds() == -1);
+            REQUIRE(ti.nanos() == 999'999'997);
+            ts.add(ti);
             REQUIRE(ts.seconds() == 0);
-            REQUIRE(ts.nanoseconds() == 0);
+            REQUIRE(ts.nanoseconds() == 999999998);
+        }
+
+        SECTION("Add -2ns") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            rav::ptp_time_interval ti(0, -2, 0x0000);
+            ts.add(ti);
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 999999999);
+        }
+
+        SECTION("Add -2ns double") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            ts.add_seconds(-0.000000002);  // 2ns
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 999999999);
+        }
+
+        SECTION("Add -2.5ns double") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            ts.add_seconds(-0.0000000025);
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 999999998);
         }
 
         SECTION("Add 2.5s") {
             rav::ptp_timestamp ts(1'000'000'001);
-            ts.add({2, 500'000'001, 0});  // 2.5s + 1
+            ts.add({2, 500'000'001, 0});
             REQUIRE(ts.seconds() == 3);
             REQUIRE(ts.nanoseconds() == 500'000'002);
         }
 
-        SECTION("Add -2.5s") {
-            rav::ptp_timestamp ts(3'000'000'001);
-            ts.add({-2, 500'000'001, 0});  // 2.5s + 1
+        SECTION("Add 2.5s double") {
+            rav::ptp_timestamp ts(1'000'000'001);
+            ts.add_seconds(2.500000001);
+            REQUIRE(ts.seconds() == 3);
+            REQUIRE(ts.nanoseconds() == 500'000'002);
+        }
+
+        SECTION("Add -2.49s") {
+            rav::ptp_timestamp ts(3'000'000'000);
+            ts.add({-3, 510'000'000, 0});
             REQUIRE(ts.seconds() == 0);
-            REQUIRE(ts.nanoseconds() == 500'000'000);
+            REQUIRE(ts.nanoseconds() == 510'000'000);
+        }
+
+        SECTION("Add -2.49s double") {
+            rav::ptp_timestamp ts(3'000'000'000);
+            ts.add_seconds(-2.490'000'000); // Equals ptp_time_interval{-3, 510'000'000, 0}
+            REQUIRE(ts.seconds() == 0);
+            REQUIRE(ts.nanoseconds() == 510'000'000);
         }
     }
 
@@ -128,6 +175,6 @@ TEST_CASE("ptp_timestamp") {
         auto ti = ts.to_time_interval();
         REQUIRE(ti.seconds() == 3);
         REQUIRE(ti.nanos() == 1);
-        REQUIRE(ti.nanos_total() == 3'000'000'001);
+        REQUIRE(ti.total_nanos() == 3'000'000'001);
     }
 }

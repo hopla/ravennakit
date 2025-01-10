@@ -69,6 +69,13 @@ TEST_CASE("ptp_time_interval") {
             REQUIRE(normalize.nanos() == 900'000'000);
             REQUIRE(normalize.fraction() == 0x3fff);
         }
+
+        SECTION("Normalize nanos 6") {
+            rav::ptp_time_interval normalize(5, -900'000'000, 0x3fff);
+            REQUIRE(normalize.seconds() == 4);
+            REQUIRE(normalize.nanos() == 100'000'000);
+            REQUIRE(normalize.fraction() == 0x3fff);
+        }
     }
 
     SECTION("Arithmetic addition works correctly") {
@@ -226,17 +233,17 @@ TEST_CASE("ptp_time_interval") {
         REQUIRE(interval2.nanos_rounded() == 1);
     }
 
-    SECTION("Divide") {
+    SECTION("Divide 1") {
         rav::ptp_time_interval interval1(5, 10000, 2);
-        auto nanos = interval1.nanos_total();
+        auto nanos = interval1.total_nanos();
         interval1 /= 2;
-        REQUIRE(nanos / 2 == interval1.nanos_total());
+        REQUIRE(nanos / 2 == interval1.total_nanos());
         REQUIRE(interval1.seconds() == 2);
         REQUIRE(interval1.nanos() == 500'005'000);
         REQUIRE(interval1.fraction() == 1);
     }
 
-    SECTION("Divide") {
+    SECTION("Divide 2") {
         auto r = rav::ptp_time_interval(5, 10000, 2) / 2;
         REQUIRE(r.seconds() == 2);
         REQUIRE(r.nanos() == 500'005'000);
@@ -261,9 +268,9 @@ TEST_CASE("ptp_time_interval") {
 
     SECTION("Multiply") {
         rav::ptp_time_interval interval1(5, 600'000'000, 1);
-        auto nanos = interval1.nanos_total();
+        auto nanos = interval1.total_nanos();
         interval1 *= -1;
-        REQUIRE(nanos * -1 == interval1.nanos_total());
+        REQUIRE(nanos * -1 == interval1.total_nanos());
         REQUIRE(interval1.seconds() == -6);
         REQUIRE(interval1.nanos() == 400'000'000);
         REQUIRE(interval1.fraction() == 1);
@@ -271,9 +278,9 @@ TEST_CASE("ptp_time_interval") {
 
     SECTION("Multiply") {
         rav::ptp_time_interval interval1(5, 600'000'000, 1);
-        auto nanos = interval1.nanos_total();
+        auto nanos = interval1.total_nanos();
         interval1 *= -2;
-        REQUIRE(nanos * -2 == interval1.nanos_total());
+        REQUIRE(nanos * -2 == interval1.total_nanos());
         REQUIRE(interval1.seconds() == -12);
         REQUIRE(interval1.nanos() == 800'000'000);
         REQUIRE(interval1.fraction() == 2);

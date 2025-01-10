@@ -48,7 +48,7 @@ class ptp_time_interval {
     /**
      * @return The number of seconds, including the nanosecond and fraction part as double.
      */
-    double seconds_total_double() const {
+    [[nodiscard]] double total_seconds_double() const {
         return static_cast<double>(seconds_) + static_cast<double>(nanos_) / 1'000'000'000.0 / k_fractional_scale;
     }
 
@@ -56,6 +56,7 @@ class ptp_time_interval {
      * @return The nanoseconds part (without fraction or seconds).
      */
     [[nodiscard]] int64_t nanos() const {
+        RAV_ASSERT(nanos_ >= 0, "Nanos should be positive");
         return nanos_ / k_fractional_scale;
     }
 
@@ -63,7 +64,8 @@ class ptp_time_interval {
      * @return The number of nanoseconds summed with he seconds part, without the fraction. If the value is too big to
      * represent as a 64-bit integer, the result is undefined.
      */
-    [[nodiscard]] int64_t nanos_total() const {
+    [[nodiscard]] int64_t total_nanos() const {
+        RAV_ASSERT(nanos_ >= 0, "Nanos should be positive");
         return seconds_ * 1'000'000'000 + nanos_ / k_fractional_scale;
     }
 
@@ -71,10 +73,11 @@ class ptp_time_interval {
      * @return The number of nanoseconds, rounded to the nearest nanosecond.
      */
     [[nodiscard]] int64_t nanos_rounded() const {
+        RAV_ASSERT(nanos_ >= 0, "Nanos should be positive");
         if (fraction() >= k_fractional_scale / 2) {
-            return nanos_total() + 1;
+            return nanos() + 1;
         }
-        return nanos_total();
+        return nanos();
     }
 
     /**
@@ -280,6 +283,8 @@ class ptp_time_interval {
             seconds_ -= borrow;
             nanos_ += borrow * k_fractional_scale * 1'000'000'000;
         }
+        RAV_ASSERT(nanos_ >= 0, "Nanos should be positive");
+        RAV_ASSERT(nanos_ < 1'000'000'000 * k_fractional_scale, "Nanos should not contain more than a second");
     }
 };
 

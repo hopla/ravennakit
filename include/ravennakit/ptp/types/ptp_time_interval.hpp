@@ -240,6 +240,23 @@ class ptp_time_interval {
 
     constexpr static int64_t k_fractional_scale = 0x10000;
 
+    /**
+     * Converts a double in seconds to a time interval with fraction (wire format of time interval in PTP). If the
+     * number is out of bounds, the result will be clamped to the min/max value.
+     * @param seconds The number of seconds.
+     * @return The time interval.
+     */
+    static int64_t to_fractional_interval(const double seconds) {
+        const auto scaled = seconds * 1'000'000'000 * k_fractional_scale;
+        if (scaled < std::numeric_limits<int64_t>::min()) {
+            return std::numeric_limits<int64_t>::min();
+        }
+        if (scaled > std::numeric_limits<int64_t>::max()) {
+            return std::numeric_limits<int64_t>::max();
+        }
+        return static_cast<int64_t>(scaled);
+    }
+
   private:
     int64_t seconds_ {};  // 48 bits on the wire
     int64_t nanos_ {};    // [0, 1'000'000'000) including 16-bit fraction

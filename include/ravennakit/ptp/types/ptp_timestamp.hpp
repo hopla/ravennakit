@@ -150,17 +150,24 @@ struct ptp_timestamp {
     }
 
     /**
-     * @return The number of seconds represented by this timestamp (does not include the nanoseconds).
+     * @return The seconds part of this timestamp (does not include the nanoseconds).
      */
     [[nodiscard]] uint64_t seconds() const {
         return seconds_;
     }
 
     /**
-     * @return The number of nanoseconds represented by this timestamp (does not include the seconds).
+     * @return The nanoseconds part of this timestamp (does not include the seconds).
      */
     [[nodiscard]] uint32_t nanoseconds() const {
         return nanoseconds_;
+    }
+
+    /**
+     * @return The total number of seconds represented by this timestamp as double.
+     */
+    [[nodiscard]] double total_seconds_double() const {
+        return static_cast<double>(seconds_) + static_cast<double>(nanoseconds_) / 1'000'000'000.0;
     }
 
     /**

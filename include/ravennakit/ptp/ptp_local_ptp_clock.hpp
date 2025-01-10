@@ -15,7 +15,8 @@
 #include "ravennakit/core/util.hpp"
 #include "ravennakit/core/chrono/high_resolution_clock.hpp"
 #include "ravennakit/core/math/running_average.hpp"
-#include "ravennakit/core/math/sliding_window_average.hpp"
+#include "ravennakit/core/math/sliding_average.hpp"
+#include "ravennakit/core/math/sliding_median.hpp"
 #include "types/ptp_timestamp.hpp"
 
 #include <cstdint>
@@ -49,7 +50,7 @@ class ptp_local_ptp_clock {
 
     void adjust(const ptp_measurement<double>& measurement) {
         offset_average_.add(measurement.offset_from_master);
-        TRACY_PLOT("Offset from master (ms avg)", offset_average_.average() * 1000.0);
+        TRACY_PLOT("Offset from master (ms median)", offset_average_.median() * 1000.0);
 
         measurements_.push_back(measurement);
         if (measurements_.size() > 1) {
@@ -92,8 +93,8 @@ class ptp_local_ptp_clock {
     double shift_ {};
     ring_buffer<ptp_measurement<double>> measurements_ {8};
     double frequency_ratio_ = 1.0;
-    sliding_window_average frequency_ratio_average_ {100};
-    sliding_window_average offset_average_ {100};
+    sliding_average frequency_ratio_average_ {100};
+    sliding_median offset_average_ {101};
 };
 
 }  // namespace rav

@@ -73,15 +73,15 @@ class ptp_local_ptp_clock {
             }
 
             const auto ratio =
-                static_cast<double>(local_interval.nanos_total()) / static_cast<double>(master_interval.nanos_total());
+                static_cast<double>(local_interval.total_nanos()) / static_cast<double>(master_interval.total_nanos());
             const auto ppm = -(ratio - 1.0) * 1e6;
             freq_average_.add(ppm);
             TRACY_PLOT("Frequency ratio (ppm)", ppm);
             TRACY_PLOT("Frequency ratio (ppm, avg)", freq_average_.average());
             frequency_correction_ppm_ = static_cast<int64_t>(freq_average_.average());
+        } else {
+            frequency_correction_ppm_ = 0;
         }
-
-        frequency_correction_ppm_ = 0;
     }
 
     void step_clock(const ptp_time_interval offset_from_master) {

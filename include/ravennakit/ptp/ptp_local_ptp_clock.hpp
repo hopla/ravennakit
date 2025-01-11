@@ -11,7 +11,6 @@
 #pragma once
 
 #include "detail/ptp_measurement.hpp"
-#include "detail/ptp_servo.hpp"
 #include "ravennakit/core/tracy.hpp"
 #include "ravennakit/core/util.hpp"
 #include "ravennakit/core/chrono/high_resolution_clock.hpp"

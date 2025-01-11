@@ -21,6 +21,15 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
+/**
+ * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
+ * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
+ * Separate files for each stream are created and existing files will be overwritten.
+ */
+
+/**
+ * A class that is a subscriber to a rtp_stream_receiver and writes the audio data to a wav file.
+ */
 class stream_recorder: public rav::rtp_stream_receiver::subscriber {
   public:
     explicit stream_recorder(std::unique_ptr<rav::ravenna_sink> sink) : sink_(std::move(sink)) {
@@ -87,11 +96,6 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
     rav::audio_format audio_format_;
 };
 
-/**
- * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
- * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
- * Separate files for each stream are created and existing files will be overwritten.
- */
 class ravenna_recorder_example {
   public:
     explicit ravenna_recorder_example(const std::string& interface_address) {

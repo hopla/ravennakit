@@ -17,11 +17,15 @@
 #include <CLI/App.hpp>
 #include <asio/io_context.hpp>
 
+/**
+ * This example shows how to create a PTP client.
+ */
+
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
 
-    CLI::App app {"RAVENNA Receiver example"};
+    CLI::App app {"PTP Client example"};
     argv = app.ensure_utf8(argv);
 
     std::string interface_address = "0.0.0.0";

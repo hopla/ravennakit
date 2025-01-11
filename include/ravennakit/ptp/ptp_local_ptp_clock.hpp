@@ -30,7 +30,7 @@ namespace rav {
  */
 class ptp_local_ptp_clock {
   public:
-    ptp_local_ptp_clock() {}
+    ptp_local_ptp_clock() = default;
 
     static ptp_timestamp system_clock_now() {
         return ptp_timestamp(high_resolution_clock::now());
@@ -62,6 +62,13 @@ class ptp_local_ptp_clock {
         shift_ = now().total_seconds_double() - system_now.total_seconds_double();
         last_sync_ = system_now;
 
+        // Filter out outliers
+        if (offset_median_.is_outlier(measurement.offset_from_master, 0.0015)) {
+            RAV_WARNING("Ignoring outlier in offset from master: {}", measurement.offset_from_master * 1000.0);
+            TRACY_MESSAGE("Ignoring outlier in offset from master");
+            return;
+        }
+
         const auto offset = offset_filter_.update(measurement.offset_from_master);
         offset_median_.add(offset);
         TRACY_PLOT("Filtered offset (ms)", offset * 1000.0);
@@ -69,11 +76,10 @@ class ptp_local_ptp_clock {
         TRACY_PLOT("Adjustments since last step", static_cast<int64_t>(adjustments_since_last_step_));
 
         if (adjustments_since_last_step_ >= 10) {
-            constexpr double base = 1.5;  // The higher the value, the faster the clock will adjust (>= 1.0)
-            constexpr double max_ratio = 0.5; // +/-
+            constexpr double base = 1.5;        // The higher the value, the faster the clock will adjust (>= 1.0)
+            constexpr double max_ratio = 0.5;   // +/-
             constexpr double max_step = 0.001;  // Maximum step size
-            const auto nominal_ratio =
-                std::clamp(std::pow(base, -offset), 1.0 - max_ratio, 1 + max_ratio);
+            const auto nominal_ratio = std::clamp(std::pow(base, -offset), 1.0 - max_ratio, 1 + max_ratio);
 
             if (std::fabs(nominal_ratio - frequency_ratio_) > max_step) {
                 if (frequency_ratio_ < nominal_ratio) {
@@ -106,7 +112,7 @@ class ptp_local_ptp_clock {
     double frequency_ratio_ = 1.0;
     sliding_median offset_median_ {101};
     size_t adjustments_since_last_step_ {};
-    ptp_basic_filter offset_filter_{0.5};
+    ptp_basic_filter offset_filter_ {0.5};
 };
 
 }  // namespace rav

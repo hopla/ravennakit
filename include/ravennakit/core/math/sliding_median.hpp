@@ -19,7 +19,7 @@ namespace rav {
 
 class sliding_median {
   public:
-    explicit sliding_median(const size_t size) : window_(size), buffer_(size) {}
+    explicit sliding_median(const size_t size) : window_(size), median_buffer_(size) {}
 
     /**
      * Adds a new value to the sliding window average.
@@ -33,19 +33,19 @@ class sliding_median {
      * @return The median of the values in the window.
      */
     double median() {
-        buffer_.clear();
+        median_buffer_.clear();
         for (auto& value : window_) {
-            buffer_.push_back(value);
+            median_buffer_.push_back(value);
         }
-        if (buffer_.empty()) {
+        if (median_buffer_.empty()) {
             return 0.0;
         }
-        std::sort(buffer_.begin(), buffer_.end());
-        const size_t n = buffer_.size();
+        std::sort(median_buffer_.begin(), median_buffer_.end());
+        const size_t n = median_buffer_.size();
         if (n % 2 == 1) {
-            return buffer_[n / 2]; // Odd: return the middle element
+            return median_buffer_[n / 2]; // Odd: return the middle element
         }
-        return (buffer_[n / 2 - 1] + buffer_[n / 2]) / 2.0; // Even: return the average of the two middle elements
+        return (median_buffer_[n / 2 - 1] + median_buffer_[n / 2]) / 2.0; // Even: return the average of the two middle elements
     }
 
     /**
@@ -56,16 +56,28 @@ class sliding_median {
     }
 
     /**
+     * Checks if the current value is an outlier.
+     * @param value The value to check.
+     * @param threshold The threshold for the outlier check as ration
+     * @return True if the current value is an outlier.
+     */
+    bool is_outlier(const double value, const double threshold) {
+        const auto current_median = median();
+        const auto diff = std::abs(value - current_median);
+        return diff > threshold;
+    }
+
+    /**
      * Resets the sliding window average.
      */
     void reset() {
         window_.clear();
-        buffer_.clear();
+        median_buffer_.clear();
     }
 
   private:
     ring_buffer<double> window_;
-    std::vector<double> buffer_;
+    std::vector<double> median_buffer_; // Used for median calculations
 };
 
 }  // namespace rav

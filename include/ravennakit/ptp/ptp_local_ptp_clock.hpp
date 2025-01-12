@@ -36,21 +36,17 @@ class ptp_local_ptp_clock {
         return ptp_timestamp(high_resolution_clock::now());
     }
 
-    [[nodiscard]] ptp_timestamp now() const {
-        const auto system_now = system_clock_now();
-        const auto elapsed = (system_now - last_sync_).total_seconds_double();
-        auto result = last_sync_;
-        result.add_seconds(elapsed * frequency_ratio_);
-        result.add_seconds(shift_);
-        return result;
-    }
-
     [[nodiscard]] ptp_timestamp now(const ptp_timestamp local_timestamp) const {
         const auto elapsed = local_timestamp.total_seconds_double() - last_sync_.total_seconds_double();
         auto result = last_sync_;
         result.add_seconds(elapsed * frequency_ratio_);
         result.add_seconds(shift_);
+        result.add_seconds(-offset_median_.median()); // I'm not super confident about this
         return result;
+    }
+
+    [[nodiscard]] ptp_timestamp now() const {
+        return now(system_clock_now());
     }
 
     // TODO: Make a difference between 'locked' and 'calibrated'
@@ -66,7 +62,7 @@ class ptp_local_ptp_clock {
         last_sync_ = system_now;
 
         // Filter out outliers
-        if (is_calibrated() && offset_median_.is_outlier(measurement.offset_from_master, 0.0015)) {
+        if (is_calibrated() && offset_median_.is_outlier(measurement.offset_from_master, 0.0013)) {
             RAV_WARNING("Ignoring outlier in offset from master: {}", measurement.offset_from_master * 1000.0);
             TRACY_MESSAGE("Ignoring outlier in offset from master");
             return;

@@ -16,6 +16,7 @@
 #include "ravennakit/ptp/messages/ptp_sync_message.hpp"
 #include "ravennakit/core/random.hpp"
 #include "ravennakit/core/tracy.hpp"
+#include "ravennakit/core/math/sliding_median.hpp"
 #include "ravennakit/ptp/messages/ptp_delay_resp_message.hpp"
 
 namespace rav {
@@ -36,8 +37,6 @@ class ptp_request_response_delay_sequence {
         const ptp_sync_message& sync_message, const ptp_timestamp sync_receive_time, const ptp_port_ds& port_ds
     ) :
         sync_message_(sync_message), t1_(sync_message.origin_timestamp), t2_(sync_receive_time) {
-        corrected_sync_correction_field_ =
-            ptp_time_interval::from_wire_format(sync_message.header.correction_field);  // Ignoring delayAsymmetry
         if (sync_message.header.flags.two_step_flag) {
             state_ = state::awaiting_follow_up;
         } else {
@@ -99,69 +98,40 @@ class ptp_request_response_delay_sequence {
         return sync_message_.header.sequence_id;
     }
 
-    [[nodiscard]] ptp_time_interval calculate_mean_path_delay() const {
-        RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
-        const auto t1 = t1_.to_time_interval();
-        const auto t2 = t2_.to_time_interval();
-        const auto t3 = t3_.to_time_interval();
-        const auto t4 = t4_.to_time_interval();
-
-        auto result = t2 - t3 + (t4 - t1) - corrected_sync_correction_field_;
-        if (sync_message_.header.flags.two_step_flag) {
-            result -= follow_up_correction_field_;
-        }
-        result -= delay_resp_correction_field_;
-        return result / 2;
-    }
-
-    [[nodiscard]] double calculate_mean_path_delay_as_double() const {
+    [[nodiscard]] double calculate_mean_path_delay() {
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
         const auto t1 = t1_.total_seconds_double();
         const auto t2 = t2_.total_seconds_double();
         const auto t3 = t3_.total_seconds_double();
         const auto t4 = t4_.total_seconds_double();
 
-        auto result = t2 - t3 + (t4 - t1) - corrected_sync_correction_field_.total_seconds_double();
+        corrected_sync_correction_field_ =
+            ptp_time_interval::from_wire_format(sync_message_.header.correction_field).total_seconds_double();
+        corrected_sync_correction_field_ += asymmetry_median_.median();
+
+        auto result = t2 - t3 + (t4 - t1) - corrected_sync_correction_field_;
         if (sync_message_.header.flags.two_step_flag) {
             result -= follow_up_correction_field_.total_seconds_double();
         }
         result -= delay_resp_correction_field_.total_seconds_double();
-        return result / 2.0;
+        const auto mean_path_delay = result / 2.0;
+        const auto master_to_slave = t2 - t1;
+        asymmetry_median_.add(mean_path_delay - master_to_slave);
+        return mean_path_delay;
     }
 
     /**
      * Calculate the offset from the master clock.
      * @return A pair of the offset and the mean path delay.
      */
-    [[nodiscard]] ptp_measurement<ptp_time_interval> calculate_offset_from_master() const {
+    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master() {
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
         const auto mean_delay = calculate_mean_path_delay();
-        const auto t1 = t1_.to_time_interval();
-        const auto t2 = t2_.to_time_interval();
+        const auto t1 = t1_.total_seconds_double();
+        const auto t2 = t2_.total_seconds_double();
         const auto offset = t2 - t1 - mean_delay - corrected_sync_correction_field_;
 
         auto corrected_master_event_timestamp = t1 + mean_delay + corrected_sync_correction_field_;
-
-        if (sync_message_.header.flags.two_step_flag) {
-            corrected_master_event_timestamp += follow_up_correction_field_;
-        }
-
-        return {t2, offset, mean_delay, corrected_master_event_timestamp};
-    }
-
-    /**
-     * Calculate the offset from the master clock.
-     * @return A pair of the offset and the mean path delay.
-     */
-    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master_as_double() const {
-        RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
-        const auto mean_delay = calculate_mean_path_delay_as_double();
-        const auto t1 = t1_.total_seconds_double();
-        const auto t2 = t2_.total_seconds_double();
-        const auto offset = t2 - t1 - mean_delay - corrected_sync_correction_field_.total_seconds_double();
-
-        auto corrected_master_event_timestamp =
-            t1 + mean_delay + corrected_sync_correction_field_.total_seconds_double();
 
         if (sync_message_.header.flags.two_step_flag) {
             corrected_master_event_timestamp += follow_up_correction_field_.total_seconds_double();
@@ -181,7 +151,7 @@ class ptp_request_response_delay_sequence {
     state state_ = state::initial;
     ptp_sync_message sync_message_;
     std::chrono::time_point<std::chrono::steady_clock> send_delay_req_at_ {};  // Should this be a ptp_timestamp?
-    ptp_time_interval corrected_sync_correction_field_ {};
+    double corrected_sync_correction_field_ {};
     ptp_time_interval follow_up_correction_field_ {};
     ptp_time_interval delay_resp_correction_field_ {};
     ptp_timestamp t1_ {};  // Sync.originTimestamp or Follow_Up.preciseOriginTimestamp if two-step
@@ -190,6 +160,7 @@ class ptp_request_response_delay_sequence {
     ptp_timestamp t4_ {};  // Delay_Resp.receiveTimestamp
     ptp_port_identity requesting_port_identity_ {};
     sequence_number<uint16_t> sequence_id_ {};
+    sliding_median asymmetry_median_ {101};
 
     void schedule_delay_req_message_send(const ptp_port_ds& port_ds) {
         const auto max_interval_ms = std::pow(2, port_ds.log_min_delay_req_interval + 1) * 1000;

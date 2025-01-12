@@ -41,7 +41,6 @@ class ptp_local_ptp_clock {
         auto result = last_sync_;
         result.add_seconds(elapsed * frequency_ratio_);
         result.add_seconds(shift_);
-        result.add_seconds(-offset_median_.median()); // I'm not super confident about this
         return result;
     }
 
@@ -49,11 +48,15 @@ class ptp_local_ptp_clock {
         return now(system_clock_now());
     }
 
+    [[nodiscard]] bool is_calibrated() const {
+        return util::is_between(offset_median_.median(), -0.0013, 0.0013);
+    }
+
     // TODO: Make a difference between 'locked' and 'calibrated'
     // Calibrated means that the clock has been adjusted enough times to be considered stable
     // Locked means that the clock has been adjusted enough times to be considered stable and is locked to the master
-    [[nodiscard]] bool is_calibrated() const {
-        return adjustments_since_last_step_ >= k_calibrated_threshold;
+    [[nodiscard]] bool is_locked() const {
+        return adjustments_since_last_step_ >= k_lock_threshold;
     }
 
     void adjust(const ptp_measurement<double>& measurement) {
@@ -74,7 +77,7 @@ class ptp_local_ptp_clock {
         TRACY_PLOT("Offset from master (ms median)", offset_median_.median() * 1000.0);
         TRACY_PLOT("Adjustments since last step", static_cast<int64_t>(adjustments_since_last_step_));
 
-        if (is_calibrated()) {
+        if (is_locked()) {
             constexpr double base = 1.5;        // The higher the value, the faster the clock will adjust (>= 1.0)
             constexpr double max_ratio = 0.5;   // +/-
             constexpr double max_step = 0.001;  // Maximum step size
@@ -106,13 +109,13 @@ class ptp_local_ptp_clock {
     }
 
   private:
-    constexpr static size_t k_calibrated_threshold = 10;
+    constexpr static size_t k_lock_threshold = 10;
     ptp_timestamp last_sync_ = system_clock_now();
     double shift_ {};
     double frequency_ratio_ = 1.0;
     sliding_median offset_median_ {101};
     size_t adjustments_since_last_step_ {};
-    ptp_basic_filter offset_filter_ {0.5};
+    ptp_basic_filter offset_filter_ {0.4};
 };
 
 }  // namespace rav

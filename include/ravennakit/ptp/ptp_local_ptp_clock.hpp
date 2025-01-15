@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include "ptp_constants.hpp"
 #include "detail/ptp_basic_filter.hpp"
 #include "detail/ptp_measurement.hpp"
 #include "ravennakit/core/tracy.hpp"
@@ -90,13 +89,13 @@ class ptp_local_ptp_clock {
 
         // Filter out outliers, allowing a maximum per non-filtered outliers to avoid getting in a loop where all
         // measurements are filtered out and no adjustment is made anymore.
-        if (is_calibrated() && filtered_outliers_ < 10
-            && offset_median_.is_outlier(measurement.offset_from_master, k_calibrated_threshold)) {
-            RAV_WARNING("Ignoring outlier in offset from master: {}", measurement.offset_from_master * 1000.0);
-            TRACY_MESSAGE("Ignoring outlier in offset from master");
-            filtered_outliers_++;
-            return;
-        }
+        // if (is_calibrated() && filtered_outliers_ < 10
+        //     && offset_median_.is_outlier(measurement.offset_from_master, k_calibrated_threshold)) {
+        //     RAV_WARNING("Ignoring outlier in offset from master: {}", measurement.offset_from_master * 1000.0);
+        //     TRACY_MESSAGE("Ignoring outlier in offset from master");
+        //     filtered_outliers_++;
+        //     return;
+        // }
 
         filtered_outliers_ = std::max(filtered_outliers_ - 1, 0);
 
@@ -104,8 +103,8 @@ class ptp_local_ptp_clock {
         offset_median_.add(offset);
         TRACY_PLOT("Filtered offset (ms)", offset * 1000.0);
         TRACY_PLOT("Offset from master (ms median)", offset_median_.median() * 1000.0);
-        TRACY_PLOT("Adjustments since last step", static_cast<int64_t>(adjustments_since_last_step_));
-        TRACY_PLOT("Filtered outlier count", static_cast<int64_t>(filtered_outliers_));
+        // TRACY_PLOT("Adjustments since last step", static_cast<int64_t>(adjustments_since_last_step_));
+        // TRACY_PLOT("Filtered outlier count", static_cast<int64_t>(filtered_outliers_));
 
         if (is_locked()) {
             constexpr double base = 1.5;        // The higher the value, the faster the clock will adjust (>= 1.0)
@@ -152,6 +151,9 @@ class ptp_local_ptp_clock {
      */
     bool update(const ptp_measurement<double>& measurement) {
         TRACY_ZONE_SCOPED;
+
+        TRACY_PLOT("Offset from master (ms)", measurement.offset_from_master * 1000.0);
+        RAV_TRACE("Offset from master (ms): {}", measurement.offset_from_master * 1000.0);
 
         if (std::fabs(measurement.offset_from_master) >= k_clock_step_threshold_seconds) {
             step_clock(measurement.offset_from_master);

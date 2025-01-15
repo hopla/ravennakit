@@ -94,19 +94,21 @@ class ptp_port {
     ptp_instance& parent_;
     ptp_port_ds port_ds_;
     asio::steady_timer announce_receipt_timeout_timer_;
-    asio::steady_timer delay_req_timer_;
     udp_sender_receiver event_socket_;
     udp_sender_receiver general_socket_;
     std::vector<subscription> subscriptions_;
     ptp_foreign_master_list foreign_master_list_;
     std::optional<ptp_announce_message> erbest_;
-    bool first_sync_ = true;
+    double mean_delay_ = 0.0;
+    sliding_stats mean_delay_stats_ {5};
+    int32_t syncs_until_delay_req_ = 0; // Number of syncs until the next delay_req message
 
+    ring_buffer<ptp_sync_message> sync_messages_ {8};
     ring_buffer<ptp_request_response_delay_sequence> request_response_delay_sequences_ {8};
 
     void handle_recv_event(const udp_sender_receiver::recv_event& event);
     void handle_announce_message(const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs);
-    void handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs);
+    void handle_sync_message(ptp_sync_message sync_message, buffer_view<const uint8_t> tlvs);
     void handle_follow_up_message(const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs);
     void handle_delay_resp_message(const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs);
     void handle_pdelay_resp_message(const ptp_pdelay_resp_message& delay_req_message, buffer_view<const uint8_t> tlvs);
@@ -131,6 +133,12 @@ class ptp_port {
     void send_delay_req_message(ptp_request_response_delay_sequence& sequence) const;
 
     void set_state(ptp_state new_state);
+
+    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master(const ptp_sync_message& sync_message) const;
+
+    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master(
+        const ptp_sync_message& sync_message, const ptp_follow_up_message& follow_up_message
+    ) const;
 };
 
 }  // namespace rav

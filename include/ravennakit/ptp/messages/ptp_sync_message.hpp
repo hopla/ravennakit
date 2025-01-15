@@ -21,6 +21,7 @@ struct ptp_sync_message {
 
     ptp_message_header header;
     ptp_timestamp origin_timestamp;
+    ptp_timestamp receive_timestamp; // Not part of the message on the wire, but used for calculations
 
     /**
      * Create a ptp_announce_message from a buffer_view.

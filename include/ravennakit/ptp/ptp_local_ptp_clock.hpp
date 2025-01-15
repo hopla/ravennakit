@@ -161,6 +161,20 @@ class ptp_local_ptp_clock {
         return false;
     }
 
+    /**
+     * Force updates the time of the clock to the given timestamp.
+     * @param timestamp_seconds The timestamp to set the clock to.
+     */
+    void force_update_time(const ptp_timestamp timestamp_seconds) {
+        TRACY_ZONE_SCOPED;
+
+        last_sync_ = system_clock_now();
+        shift_ = timestamp_seconds.total_seconds_double() - last_sync_.total_seconds_double();
+        offset_median_.reset();
+        frequency_ratio_ = 1.0;
+        adjustments_since_last_step_ = 0;
+    }
+
   private:
     constexpr static size_t k_lock_threshold = 10;
     constexpr static double k_calibrated_threshold = 0.0013;

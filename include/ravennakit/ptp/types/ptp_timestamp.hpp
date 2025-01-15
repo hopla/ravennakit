@@ -235,6 +235,12 @@ struct ptp_timestamp {
         return {static_cast<int64_t>(seconds_), static_cast<int32_t>(nanoseconds_), 0};
     }
 
+    /**
+     * @return True if the timestamp is valid, false otherwise. The timestamp is considered valid when it is not zero.
+     */
+    [[nodiscard]] bool valid() const {
+        return seconds_ != 0 || nanoseconds_ != 0;
+    }
   private:
     uint64_t seconds_ {};      // 6 bytes (48 bits) on the wire
     uint32_t nanoseconds_ {};  // 4 bytes (32 bits) on the wire, should be 1'000'000'000 or less.

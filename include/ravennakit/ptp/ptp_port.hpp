@@ -100,6 +100,7 @@ class ptp_port {
     std::vector<subscription> subscriptions_;
     ptp_foreign_master_list foreign_master_list_;
     std::optional<ptp_announce_message> erbest_;
+    bool first_sync_ = true;
 
     ring_buffer<ptp_request_response_delay_sequence> request_response_delay_sequences_ {8};
 

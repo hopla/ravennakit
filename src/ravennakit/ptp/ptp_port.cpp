@@ -483,7 +483,13 @@ void rav::ptp_port::handle_announce_message(
 void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs) {
     std::ignore = tlvs;
 
-    // TODO: Should this timestamp be taken earlier? Or maybe even from the SO_TIMESTAMP value with added latency?
+    // When this is the first sync message, update the local PTP clock with the origin timestamp of the sync message to
+    // be somewhere in the range of the master's clock. It doesn't have to be precise.
+    if (first_sync_ && sync_message.origin_timestamp.valid()) {
+        first_sync_ = false;
+        parent_.force_update_local_ptp_clock(sync_message.origin_timestamp);
+    }
+
     const auto sync_receive_time = parent_.get_local_ptp_time();
 
     // Ignore sync messages when not in slave or uncalibrated state
@@ -521,6 +527,13 @@ void rav::ptp_port::handle_follow_up_message(
     // Ignore follow-up messages which are not from current parent
     if (follow_up_message.header.source_port_identity != parent_.get_parent_ds().parent_port_identity) {
         return;
+    }
+
+    // If the sync message didn't already force update the clock, do it here. In most cases this speeds up locking quite
+    // substantially.
+    if (first_sync_) {
+        first_sync_ = false;
+        parent_.force_update_local_ptp_clock(follow_up_message.precise_origin_timestamp);
     }
 
     for (auto& seq : request_response_delay_sequences_) {
@@ -570,7 +583,7 @@ void rav::ptp_port::handle_delay_resp_message(
             TRACY_PLOT("Offset from master (ms)", measurement.offset_from_master * 1000.0);
             RAV_TRACE("Offset from master (ms): {}", measurement.offset_from_master * 1000.0);
 
-            parent_.adjust_ptp_clock(measurement);
+            parent_.update_local_ptp_clock(measurement);
             return;  // Done here.
         }
     }

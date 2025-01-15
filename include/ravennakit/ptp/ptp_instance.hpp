@@ -101,7 +101,13 @@ class ptp_instance {
      * Adjusts the PTP clock of the PTP instance based on the mean delay and offset from the master.
      * @param measurement The measurement data.
      */
-    void adjust_ptp_clock(const ptp_measurement<double>& measurement);
+    void update_local_ptp_clock(const ptp_measurement<double>& measurement);
+
+    /**
+     * Force updates the local PTP clock to the given timestamp.
+     * @param timestamp The timestamp to set the clock to.
+     */
+    void force_update_local_ptp_clock(ptp_timestamp timestamp);
 
   private:
     asio::io_context& io_context_;

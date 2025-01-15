@@ -178,17 +178,17 @@ class ptp_request_response_delay_sequence {
         state_ = state::delay_req_send_scheduled;
     }
 
-    const char* state_to_string(ptp_request_response_delay_sequence::state state) {
-        switch (state) {
-            case ptp_request_response_delay_sequence::state::initial:
+    static const char* state_to_string(const state s) {
+        switch (s) {
+            case state::initial:
                 return "initial";
-            case ptp_request_response_delay_sequence::state::awaiting_follow_up:
+            case state::awaiting_follow_up:
                 return "awaiting_follow_up";
-            case ptp_request_response_delay_sequence::state::delay_req_send_scheduled:
+            case state::delay_req_send_scheduled:
                 return "delay_req_send_scheduled";
-            case ptp_request_response_delay_sequence::state::awaiting_delay_resp:
+            case state::awaiting_delay_resp:
                 return "awaiting_delay_resp";
-            case ptp_request_response_delay_sequence::state::delay_resp_received:
+            case state::delay_resp_received:
                 return "delay_resp_received";
             default:
                 return "unknown";

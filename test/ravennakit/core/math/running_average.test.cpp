@@ -16,7 +16,7 @@
 TEST_CASE("running_average") {
     SECTION("Initialization") {
         constexpr rav::running_average avg;
-        REQUIRE(avg.average() == 0.0);
+        REQUIRE(rav::util::is_within(avg.average() , 0.0, 0.0));
         REQUIRE(avg.count() == 0);
     }
 
@@ -28,7 +28,7 @@ TEST_CASE("running_average") {
         REQUIRE(rav::util::is_within(avg.average(), 2.0, 0.0));
         REQUIRE(avg.count() == 3);
         avg.reset();
-        REQUIRE(avg.average() == 0.0);
+        REQUIRE(rav::util::is_within(avg.average(), 0.0, 0.0));
         REQUIRE(avg.count() == 0);
     }
 }

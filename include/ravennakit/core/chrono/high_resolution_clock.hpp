@@ -10,10 +10,10 @@
 
 #pragma once
 
-#include "ravennakit/core/math/fraction.hpp"
 #include "ravennakit/core/platform.hpp"
 
 #include <cstdint>
+#include <ctime>
 
 #if RAV_APPLE
     #include <mach/mach_time.h>

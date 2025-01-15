@@ -16,7 +16,7 @@
 TEST_CASE("sliding_window_average") {
     rav::sliding_average avg(5);
     REQUIRE(avg.count() == 0);
-    REQUIRE(avg.average() == 0.0);
+    REQUIRE(rav::util::is_within(avg.average(), 0.0, 0.0));
     avg.add(1);
     avg.add(2);
     avg.add(3);
@@ -32,5 +32,5 @@ TEST_CASE("sliding_window_average") {
     REQUIRE(rav::util::is_within(avg.average(), 5.0, 0.0));
     avg.reset();
     REQUIRE(avg.count() == 0);
-    REQUIRE(avg.average() == 0.0);
+    REQUIRE(rav::util::is_within(avg.average(), 0.0, 0.0));
 }

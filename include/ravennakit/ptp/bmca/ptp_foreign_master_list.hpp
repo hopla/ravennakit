@@ -44,10 +44,10 @@ class ptp_foreign_master_list {
     void add_or_update_entry(const ptp_announce_message& announce_message) {
         const auto foreign_port_identity = announce_message.header.source_port_identity;
 
-        if (auto* entry = find_entry(foreign_port_identity)) {
+        if (auto* e = find_entry(foreign_port_identity)) {
             // IEEE 1588-2019: 9.3.2.5.b If message is not the most recent one, it is not qualified.
-            if (entry->most_recent_announce_message) {
-                if (announce_message.header.sequence_id < entry->most_recent_announce_message->header.sequence_id) {
+            if (e->most_recent_announce_message) {
+                if (announce_message.header.sequence_id < e->most_recent_announce_message->header.sequence_id) {
                     RAV_WARNING("Discarding announce message because it is not the most recent one");
                     return;
                 }
@@ -55,9 +55,9 @@ class ptp_foreign_master_list {
 
             // IEEE 1588-2019: 9.3.2.5.e Otherwise, the message is qualified.
 
-            entry->foreign_master_announce_messages++;
-            entry->most_recent_announce_message = announce_message;
-            entry->age = 0;
+            e->foreign_master_announce_messages++;
+            e->most_recent_announce_message = announce_message;
+            e->age = 0;
         } else {
             // IEEE 1588-2019: 9.5.3.b states that a new records start with 0 announce messages.
             entries_.push_back({foreign_port_identity, 0, {}, 0});
@@ -72,14 +72,14 @@ class ptp_foreign_master_list {
         entries_.erase(
             std::remove_if(
                 entries_.begin(), entries_.end(),
-                [&erbest](const entry& entry) {
-                    if (erbest && erbest->header.source_port_identity == entry.foreign_master_port_identity) {
+                [&erbest](const entry& e) {
+                    if (erbest && erbest->header.source_port_identity == e.foreign_master_port_identity) {
                         return false;  // Keep the entry for the new Erbest.
                     }
-                    if (entry.age > k_foreign_master_time_window) {
+                    if (e.age > k_foreign_master_time_window) {
                         return true;  // Entry is too old, so we remove it.
                     }
-                    if (entry.foreign_master_announce_messages < k_foreign_master_threshold) {
+                    if (e.foreign_master_announce_messages < k_foreign_master_threshold) {
                         return false;  // Message is not qualified, so we don't remove it.
                     }
                     return true;
@@ -115,11 +115,11 @@ class ptp_foreign_master_list {
      * Increases the age of all entries in the foreign master list.
      */
     void increase_age() {
-        for (auto& entry : entries_) {
-            entry.age++;
-            const auto max_num_messages_in_window = k_foreign_master_time_window - entry.age;
-            if (entry.foreign_master_announce_messages > max_num_messages_in_window) {
-                entry.foreign_master_announce_messages = max_num_messages_in_window;
+        for (auto& e : entries_) {
+            e.age++;
+            const auto max_num_messages_in_window = k_foreign_master_time_window - e.age;
+            if (e.foreign_master_announce_messages > max_num_messages_in_window) {
+                e.foreign_master_announce_messages = max_num_messages_in_window;
             }
         }
     }
@@ -128,9 +128,9 @@ class ptp_foreign_master_list {
     std::vector<entry> entries_;
 
     [[nodiscard]] const entry* find_entry(const ptp_port_identity& foreign_master_port_identity) const {
-        for (auto& entry : entries_) {
-            if (entry.foreign_master_port_identity == foreign_master_port_identity) {
-                return &entry;
+        for (auto& e : entries_) {
+            if (e.foreign_master_port_identity == foreign_master_port_identity) {
+                return &e;
             }
         }
 
@@ -138,9 +138,9 @@ class ptp_foreign_master_list {
     }
 
     [[nodiscard]] entry* find_entry(const ptp_port_identity& foreign_master_port_identity) {
-        for (auto& entry : entries_) {
-            if (entry.foreign_master_port_identity == foreign_master_port_identity) {
-                return &entry;
+        for (auto& e : entries_) {
+            if (e.foreign_master_port_identity == foreign_master_port_identity) {
+                return &e;
             }
         }
 

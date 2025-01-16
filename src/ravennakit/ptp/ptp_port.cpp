@@ -262,13 +262,15 @@ void rav::ptp_port::process_request_response_delay_sequence() {
     }
 }
 
-void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) const {
+void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) {
     TRACY_ZONE_SCOPED;
 
     const auto msg = sequence.create_delay_req_message(port_ds_);
-    byte_buffer buffer;  // TODO: Reuse the buffer
-    msg.write_to(buffer);
-    event_socket_.send(buffer.data(), buffer.size(), {k_ptp_multicast_address, k_ptp_event_port});
+    send_buffer_.clear();
+    msg.write_to(send_buffer_);
+    tracy_point();
+    event_socket_.send(send_buffer_.data(), send_buffer_.size(), {k_ptp_multicast_address, k_ptp_event_port});
+    tracy_point();
     sequence.set_delay_req_sent_time(parent_.get_local_ptp_time());
 }
 

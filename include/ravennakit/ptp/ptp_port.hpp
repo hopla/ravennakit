@@ -104,6 +104,7 @@ class ptp_port {
     double mean_delay_ = 0.0;
     ptp_basic_filter mean_delay_filter_ {0.1};
     int32_t syncs_until_delay_req_ = 10;  // Number of syncs until the next delay_req message.
+    byte_buffer send_buffer_{128};
 
     ring_buffer<ptp_sync_message> sync_messages_ {8};
     ring_buffer<ptp_request_response_delay_sequence> request_response_delay_sequences_ {8};
@@ -132,7 +133,7 @@ class ptp_port {
     void trigger_announce_receipt_timeout_expires_event();
 
     void process_request_response_delay_sequence();
-    void send_delay_req_message(ptp_request_response_delay_sequence& sequence) const;
+    void send_delay_req_message(ptp_request_response_delay_sequence& sequence);
 
     void set_state(ptp_state new_state);
 

@@ -39,7 +39,7 @@ namespace rav {
  * Sometimes you want to know when something happened, but you don't want to instrument functions which get called into.
  * Then use this function to get a quick and dirty point in time.
  */
-inline volatile void tracy_point() {
+inline void tracy_point() {
     TRACY_ZONE_SCOPED;
 }
 

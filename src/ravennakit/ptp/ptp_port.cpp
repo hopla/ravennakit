@@ -35,7 +35,6 @@ rav::ptp_port::ptp_port(
 ) :
     parent_(parent),
     announce_receipt_timeout_timer_(io_context),
-    delay_req_timer_(io_context),
     event_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
     general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
     // Initialize the port data set
@@ -76,9 +75,7 @@ rav::ptp_port::ptp_port(
     schedule_announce_receipt_timeout();
 }
 
-rav::ptp_port::~ptp_port() {
-    delay_req_timer_.cancel();
-}
+rav::ptp_port::~ptp_port() = default;
 
 const rav::ptp_port_identity& rav::ptp_port::get_port_identity() const {
     return port_ds_.port_identity;
@@ -203,7 +200,37 @@ void rav::ptp_port::set_state(const ptp_state new_state) {
     RAV_INFO("Switching port {} to {}", port_ds_.port_identity.port_number, to_string(new_state));
 }
 
+rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(const ptp_sync_message& sync_message) const {
+    RAV_ASSERT(!sync_message.header.flags.two_step_flag, "Use the other method for two-step sync messages");
+    const auto corrected_sync_correction_field =
+        ptp_time_interval::from_wire_format(sync_message.header.correction_field)
+            .total_seconds_double();  // TODO: Ignoring delay asymmetry for now
+    const auto t1 = sync_message.origin_timestamp.total_seconds_double();
+    const auto t2 = sync_message.receive_timestamp.total_seconds_double();
+    // Note: using mean_delay_stats_.median() with a window of 32 instead of mean_delay_ worked also quite well
+    const auto offset = t2 - t1 - mean_delay_ - corrected_sync_correction_field;
+    return {t2, offset, mean_delay_, {}};
+}
+
+rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(
+    const ptp_sync_message& sync_message, const ptp_follow_up_message& follow_up_message
+) const {
+    RAV_ASSERT(sync_message.header.flags.two_step_flag, "Use the other method for one-step sync messages");
+    const auto corrected_sync_correction_field =
+        ptp_time_interval::from_wire_format(sync_message.header.correction_field)
+            .total_seconds_double();  // TODO: Ignoring delay asymmetry for now
+    const auto follow_up_correction_field =
+        ptp_time_interval::from_wire_format(follow_up_message.header.correction_field).total_seconds_double();
+    const auto t1 = follow_up_message.precise_origin_timestamp.total_seconds_double();
+    const auto t2 = sync_message.receive_timestamp.total_seconds_double();
+    // Note: using mean_delay_stats_.median() with a window of 32 instead of mean_delay_ worked also quite well
+    const auto offset = t2 - t1 - mean_delay_ - corrected_sync_correction_field - follow_up_correction_field;
+    return {t2, offset, mean_delay_, {}};
+}
+
 void rav::ptp_port::trigger_announce_receipt_timeout_expires_event() {
+    TRACY_ZONE_SCOPED;
+
     erbest_.reset();
     if (parent_.default_ds().slave_only) {
         set_state(ptp_state::listening);
@@ -213,6 +240,8 @@ void rav::ptp_port::trigger_announce_receipt_timeout_expires_event() {
 }
 
 void rav::ptp_port::process_request_response_delay_sequence() {
+    TRACY_ZONE_SCOPED;
+
     if (!(port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)) {
         RAV_WARNING("Request-response delay sequence should only be processed in slave or uncalibrated state");
     }
@@ -220,42 +249,29 @@ void rav::ptp_port::process_request_response_delay_sequence() {
         RAV_WARNING("Request-response delay sequence should only be processed in E2E delay mechanism");
     }
 
-    const auto now = std::chrono::steady_clock::now();
-    std::optional<std::chrono::time_point<std::chrono::steady_clock>> next_timer_expires_at;
+    const auto now = parent_.get_local_ptp_time();
     for (auto& seq : request_response_delay_sequences_) {
-        if (auto send_at = seq.get_delay_req_scheduled_send_time()) {
-            if (now >= send_at.value()) {
+        if (seq.get_state() == ptp_request_response_delay_sequence::state::ready_to_be_scheduled) {
+            seq.schedule_delay_req_message_send(port_ds_);
+        }
+        if (auto send_after = seq.get_delay_req_scheduled_send_time()) {
+            if (now >= send_after.value()) {
                 send_delay_req_message(seq);
-            } else if (next_timer_expires_at) {
-                if (send_at.value() < next_timer_expires_at.value()) {
-                    next_timer_expires_at = send_at;
-                }
-            } else {
-                next_timer_expires_at = send_at;
             }
         }
     }
-
-    if (next_timer_expires_at) {
-        delay_req_timer_.expires_at(*next_timer_expires_at);
-        delay_req_timer_.async_wait([this](const std::error_code& error) {
-            if (error == asio::error::operation_aborted) {
-                return;
-            }
-            if (error) {
-                RAV_ERROR("Delay req timer error: {}", error.message());
-            }
-            process_request_response_delay_sequence();
-        });
-    }
 }
 
-void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) const {
+void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) {
+    TRACY_ZONE_SCOPED;
+
     const auto msg = sequence.create_delay_req_message(port_ds_);
-    byte_buffer buffer;  // TODO: Reuse the buffer
-    msg.write_to(buffer);
-    event_socket_.send(buffer.data(), buffer.size(), {k_ptp_multicast_address, k_ptp_event_port});
-    sequence.set_delay_req_send_time(parent_.get_local_ptp_time());
+    send_buffer_.clear();
+    msg.write_to(send_buffer_);
+    tracy_point();
+    event_socket_.send(send_buffer_.data(), send_buffer_.size(), {k_ptp_multicast_address, k_ptp_event_port});
+    tracy_point();
+    sequence.set_delay_req_sent_time(parent_.get_local_ptp_time());
 }
 
 rav::ptp_state rav::ptp_port::state() const {
@@ -321,6 +337,8 @@ void rav::ptp_port::increase_age() {
 }
 
 void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& event) {
+    TRACY_ZONE_SCOPED;
+
     const buffer_view data(event.data, event.size);
     auto header = ptp_message_header::from_data(data);
     if (!header) {
@@ -434,6 +452,8 @@ void rav::ptp_port::handle_recv_event(const udp_sender_receiver::recv_event& eve
 void rav::ptp_port::handle_announce_message(
     const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs
 ) {
+    TRACY_ZONE_SCOPED;
+
     std::ignore = announce_message;
     std::ignore = tlvs;
 
@@ -480,17 +500,12 @@ void rav::ptp_port::handle_announce_message(
     parent_.execute_state_decision_event();
 }
 
-void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, buffer_view<const uint8_t> tlvs) {
+void rav::ptp_port::handle_sync_message(ptp_sync_message sync_message, buffer_view<const uint8_t> tlvs) {
+    TRACY_ZONE_SCOPED;
+
     std::ignore = tlvs;
 
-    // When this is the first sync message, update the local PTP clock with the origin timestamp of the sync message to
-    // be somewhere in the range of the master's clock. It doesn't have to be precise.
-    if (first_sync_ && sync_message.origin_timestamp.valid()) {
-        first_sync_ = false;
-        parent_.force_update_local_ptp_clock(sync_message.origin_timestamp);
-    }
-
-    const auto sync_receive_time = parent_.get_local_ptp_time();
+    sync_message.receive_timestamp = parent_.get_local_ptp_time();
 
     // Ignore sync messages when not in slave or uncalibrated state
     if (!(port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)) {
@@ -503,19 +518,34 @@ void rav::ptp_port::handle_sync_message(const ptp_sync_message& sync_message, bu
     }
 
     if (port_ds_.delay_mechanism == ptp_delay_mechanism::e2e) {
-        request_response_delay_sequences_.push_back({sync_message, sync_receive_time, port_ds_});
+        if (syncs_until_delay_req_ <= 0) {
+            request_response_delay_sequences_.push_back(ptp_request_response_delay_sequence {sync_message});
+            syncs_until_delay_req_ = static_cast<int32_t>(
+                std::pow(2, port_ds_.log_min_delay_req_interval) / std::pow(2, sync_message.header.log_message_interval)
+            );
+        } else {
+            syncs_until_delay_req_--;
+        }
     } else if (port_ds_.delay_mechanism == ptp_delay_mechanism::e2e) {
         TODO("Implement P2P delay mechanism");
     } else {
         RAV_ASSERT_FALSE("Unknown delay mechanism");
     }
 
+    if (sync_message.header.flags.two_step_flag) {
+        sync_messages_.push_back(sync_message);
+        return;  // Wait for a follow-up message
+    }
+
+    parent_.update_local_ptp_clock(calculate_offset_from_master(sync_message));
     process_request_response_delay_sequence();
 }
 
 void rav::ptp_port::handle_follow_up_message(
     const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs
 ) {
+    TRACY_ZONE_SCOPED;
+
     std::ignore = follow_up_message;
     std::ignore = tlvs;
 
@@ -529,27 +559,31 @@ void rav::ptp_port::handle_follow_up_message(
         return;
     }
 
-    // If the sync message didn't already force update the clock, do it here. In most cases this speeds up locking quite
-    // substantially.
-    if (first_sync_) {
-        first_sync_ = false;
-        parent_.force_update_local_ptp_clock(follow_up_message.precise_origin_timestamp);
-    }
-
+    // Update request-response delay sequence with follow-up message if necessary
     for (auto& seq : request_response_delay_sequences_) {
         if (seq.matches(follow_up_message.header)) {
-            seq.update(follow_up_message, port_ds_);
+            seq.update(follow_up_message);
+        }
+    }
+
+    // Find the previous sync message and update the clock
+    for (auto& sync : sync_messages_) {
+        if (sync.header.matches(follow_up_message.header)) {
+            parent_.update_local_ptp_clock(calculate_offset_from_master(sync, follow_up_message));
             process_request_response_delay_sequence();
             return;
         }
     }
 
+    process_request_response_delay_sequence();
     RAV_WARNING("Received follow-up message without matching sync message");
 }
 
 void rav::ptp_port::handle_delay_resp_message(
     const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs
 ) {
+    TRACY_ZONE_SCOPED;
+
     std::ignore = tlvs;
 
     // Ignore follow-up messages when not in slave or uncalibrated state
@@ -571,19 +605,28 @@ void rav::ptp_port::handle_delay_resp_message(
 
     for (auto& seq : request_response_delay_sequences_) {
         if (delay_resp_message.header.sequence_id == seq.get_sequence_id()) {
+            port_ds_.log_min_delay_req_interval = delay_resp_message.header.log_message_interval;
             // Message is associated with earlier delay request message
             // Note: section 9.5.7 of IEEE 1588-2019 suggests that the Delay_Resp message should have a
             // requestingSequenceId field, but 13.8.1 doesn't specify this field. We'll assume that the sequence ID
             // in the header is the one to be used.
             seq.update(delay_resp_message);
-            port_ds_.log_min_delay_req_interval = delay_resp_message.header.log_message_interval;
+            const auto mean_delay = seq.calculate_mean_path_delay();
+            TRACY_PLOT("Mean delay (ms)", mean_delay * 1000.0);
 
-            const auto measurement = seq.calculate_offset_from_master();
+            mean_delay_stats_.add(mean_delay_);
+            TRACY_PLOT("Mean delay median (ms)", mean_delay_stats_.median() * 1000.0);
 
-            TRACY_PLOT("Offset from master (ms)", measurement.offset_from_master * 1000.0);
-            RAV_TRACE("Offset from master (ms): {}", measurement.offset_from_master * 1000.0);
+            if (mean_delay_stats_.count() > 10 && mean_delay_stats_.is_outlier_median(mean_delay, 0.001)) {
+                TRACY_PLOT("Mean delay outliers", mean_delay * 1000.0);
+                TRACY_MESSAGE("Ignoring outlier mean delay");
+                RAV_TRACE("Ignoring outlier mean delay: {}", mean_delay * 1000.0);
+                return;
+            }
+            TRACY_PLOT("Mean delay outliers", 0.0);
 
-            parent_.update_local_ptp_clock(measurement);
+            mean_delay_ = mean_delay_filter_.update(mean_delay);
+            TRACY_PLOT("Mean delay filtered (ms)", mean_delay_ * 1000.0);
             return;  // Done here.
         }
     }

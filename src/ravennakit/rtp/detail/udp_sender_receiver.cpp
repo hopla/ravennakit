@@ -100,6 +100,8 @@ size_t receive_from_socket(
     msg.msg_controllen = sizeof(ctrl_buf);
     msg.msg_flags = 0;
 
+    rav::tracy_point();
+
     const ssize_t received_bytes = recvmsg(socket.native_handle(), &msg, 0);
     if (received_bytes < 0) {
         ec = asio::error_code(errno, asio::system_category());
@@ -115,8 +117,12 @@ size_t receive_from_socket(
         }
     }
 
+    rav::tracy_point();
+
     src_endpoint =
         asio::ip::udp::endpoint(asio::ip::address_v4(ntohl(src_addr.sin_addr.s_addr)), ntohs(src_addr.sin_port));
+
+    rav::tracy_point();
 
     return static_cast<size_t>(received_bytes);
 }

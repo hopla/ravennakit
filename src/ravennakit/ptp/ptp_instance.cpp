@@ -226,7 +226,7 @@ void rav::ptp_instance::update_local_ptp_clock(const ptp_measurement<double>& me
     local_ptp_clock_.update(measurement);
 }
 
-void rav::ptp_instance::force_update_local_ptp_clock(ptp_timestamp timestamp) {
+void rav::ptp_instance::force_update_local_ptp_clock(const ptp_timestamp timestamp) {
     local_ptp_clock_.force_update_time(timestamp);
 }
 

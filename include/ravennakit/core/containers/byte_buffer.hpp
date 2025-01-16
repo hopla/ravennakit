@@ -22,6 +22,7 @@ namespace rav {
 class byte_buffer {
   public:
     byte_buffer() = default;
+    explicit byte_buffer(const size_t size) : data_(size) {}
 
     byte_buffer(const byte_buffer&) = default;
     byte_buffer& operator=(const byte_buffer&) = default;
@@ -35,6 +36,10 @@ class byte_buffer {
 
     [[nodiscard]] size_t size() const {
         return data_.size();
+    }
+
+    void clear() {
+        data_.clear();
     }
 
     /**

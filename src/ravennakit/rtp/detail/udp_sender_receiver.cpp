@@ -164,6 +164,7 @@ class rav::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> 
 };
 
 void rav::udp_sender_receiver::impl::set_dscp_value(const int value) {
+    // Note: this does not work on Windows, unfortunately. It's a whole other story to get this going on Windows...
     socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_TOS>(value << 2));
 }
 

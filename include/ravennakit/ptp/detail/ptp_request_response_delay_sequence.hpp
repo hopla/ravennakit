@@ -58,6 +58,7 @@ class ptp_request_response_delay_sequence {
      * @param follow_up_message The follow-up message to update with.
      */
     void update(const ptp_follow_up_message& follow_up_message) {
+        TRACY_ZONE_SCOPED;
         RAV_ASSERT(state_ == state::awaiting_follow_up, "State should be awaiting_follow_up");
         follow_up_correction_field_ = ptp_time_interval::from_wire_format(follow_up_message.header.correction_field);
         t1_ = follow_up_message.precise_origin_timestamp;
@@ -70,6 +71,7 @@ class ptp_request_response_delay_sequence {
      * @param delay_resp_message The delay response message to update with.
      */
     void update(const ptp_delay_resp_message& delay_resp_message) {
+        TRACY_ZONE_SCOPED;
         RAV_ASSERT(state_ == state::awaiting_delay_resp, "State should be awaiting_delay_resp");
         delay_resp_correction_field_ = ptp_time_interval::from_wire_format(delay_resp_message.header.correction_field);
         t4_ = delay_resp_message.receive_timestamp;
@@ -82,6 +84,7 @@ class ptp_request_response_delay_sequence {
      * @return True if the header matches the sequence, false otherwise.
      */
     [[nodiscard]] bool matches(const ptp_message_header& header) const {
+        TRACY_ZONE_SCOPED;
         return sync_message_.header.matches(header);
     }
 
@@ -91,6 +94,7 @@ class ptp_request_response_delay_sequence {
      * @return The created delay request message.
      */
     [[nodiscard]] ptp_delay_req_message create_delay_req_message(const ptp_port_ds& port_ds) {
+        TRACY_ZONE_SCOPED;
         RAV_ASSERT(state_ == state::delay_req_send_scheduled, "State should be delay_req_send_scheduled");
         requesting_port_identity_ = port_ds.port_identity;
         ptp_delay_req_message delay_req_message;
@@ -108,6 +112,7 @@ class ptp_request_response_delay_sequence {
      * @param port_ds The port data set of the port that received the sync message.
      */
     void schedule_delay_req_message_send(const ptp_port_ds& port_ds) {
+        TRACY_ZONE_SCOPED;
         const auto max_interval_ms = std::pow(2, port_ds.log_min_delay_req_interval + 1) * 1000;
         const auto seconds =
             static_cast<double>(random().get_random_int(0, static_cast<int>(max_interval_ms))) / 1000.0;
@@ -120,6 +125,7 @@ class ptp_request_response_delay_sequence {
      * @return The time the delay request message is scheduled to be sent.
      */
     [[nodiscard]] std::optional<ptp_timestamp> get_delay_req_scheduled_send_time() const {
+        TRACY_ZONE_SCOPED;
         if (state_ != state::delay_req_send_scheduled) {
             return std::nullopt;
         }
@@ -132,6 +138,7 @@ class ptp_request_response_delay_sequence {
      * @param sent_at The time the delay request message was sent.
      */
     void set_delay_req_sent_time(const ptp_timestamp& sent_at) {
+        TRACY_ZONE_SCOPED;
         RAV_ASSERT(state_ == state::delay_req_send_scheduled, "State should be delay_req_send_scheduled");
         t3_ = sent_at;
         state_ = state::awaiting_delay_resp;
@@ -156,6 +163,7 @@ class ptp_request_response_delay_sequence {
      * @return The mean path delay.
      */
     [[nodiscard]] double calculate_mean_path_delay() const {
+        TRACY_ZONE_SCOPED;
         RAV_ASSERT(state_ == state::delay_resp_received, "State should be delay_resp_received");
         const auto t1 = t1_.total_seconds_double();
         const auto t2 = t2_.total_seconds_double();
@@ -181,6 +189,7 @@ class ptp_request_response_delay_sequence {
      * @return The current state of the sequence as a string.
      */
     [[nodiscard]] std::string to_string() const {
+        TRACY_ZONE_SCOPED;
         return fmt::format(
             "{}, state: {}, requesting_port_identity: {}", sync_message_.header.sequence_id.value(),
             state_to_string(state_), requesting_port_identity_.to_string()

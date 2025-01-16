@@ -64,6 +64,7 @@ class ptp_local_ptp_clock {
      * @return True if the clock is locked and within a certain amount of error, false otherwise.
      */
     [[nodiscard]] bool is_calibrated() const {
+        TRACY_ZONE_SCOPED;
         return is_locked() && util::is_between(offset_stats_.median(), -k_calibrated_threshold, k_calibrated_threshold);
     }
 
@@ -72,6 +73,7 @@ class ptp_local_ptp_clock {
      * adjustments. When a clock steps, the adjustments are reset.
      */
     [[nodiscard]] bool is_locked() const {
+        TRACY_ZONE_SCOPED;
         return adjustments_since_last_step_ >= k_lock_threshold;
     }
 
@@ -93,7 +95,7 @@ class ptp_local_ptp_clock {
 
         // Filter out outliers, allowing a maximum per non-filtered outliers to avoid getting in a loop where all
         // measurements are filtered out and no adjustment is made anymore.
-        if (offset_stats_.count() > 10 && offset_stats_.is_outlier_zscore(measurement.offset_from_master, 1.8)) {
+        if (is_calibrated() && offset_stats_.is_outlier_zscore(measurement.offset_from_master, 1.8)) {
             RAV_WARNING("Ignoring outlier in offset from master: {}", measurement.offset_from_master * 1000.0);
             TRACY_PLOT("Offset from master outliers", measurement.offset_from_master * 1000.0);
             TRACY_MESSAGE("Ignoring outlier in offset from master");
@@ -102,7 +104,7 @@ class ptp_local_ptp_clock {
         TRACY_PLOT("Offset from master outliers", 0.0);
 
         const auto filtered_offset = offset_filter_.update(measurement.offset_from_master);
-        TRACY_PLOT("Filtered offset 1 (ms)", filtered_offset * 1000.0);
+        TRACY_PLOT("Filtered offset from master (ms)", filtered_offset * 1000.0);
 
         if (is_locked()) {
             constexpr double base = 1.5;         // The higher the value, the faster the clock will adjust (>= 1.0)

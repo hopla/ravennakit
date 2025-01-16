@@ -32,3 +32,15 @@ END_IGNORE_WARNINGS
     #define TRACY_PLOT(...)
     #define TRACY_MESSAGE(...)
 #endif
+
+namespace rav {
+
+/**
+ * Sometimes you want to know when something happened, but you don't want to instrument functions which get called into.
+ * Then use this function to get a quick and dirty point in time.
+ */
+inline volatile void tracy_point() {
+    TRACY_ZONE_SCOPED;
+}
+
+}  // namespace rav

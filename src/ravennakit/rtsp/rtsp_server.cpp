@@ -51,14 +51,17 @@ void rav::rtsp_server::reset() noexcept {
 }
 
 void rav::rtsp_server::on_connect(rtsp_connection& connection) {
+    RAV_TRACE("New connection from: {}", connection.remote_endpoint().address().to_string());
     events_.emit(rtsp_connection::connect_event {connection});
 }
 
 void rav::rtsp_server::on_request(const rtsp_request& request, rtsp_connection& connection) {
+    RAV_TRACE("Received request: {}", request.to_debug_string(false));
     events_.emit(rtsp_connection::request_event {request, connection});
 }
 
 void rav::rtsp_server::on_response(const rtsp_response& response, rtsp_connection& connection) {
+    RAV_TRACE("Received response: {}", response.to_debug_string(false));
     events_.emit(rtsp_connection::response_event {response, connection});
 }
 

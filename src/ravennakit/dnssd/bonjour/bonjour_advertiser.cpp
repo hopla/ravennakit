@@ -25,8 +25,11 @@ rav::dnssd::bonjour_advertiser::bonjour_advertiser(asio::io_context& io_context)
 
 rav::util::id rav::dnssd::bonjour_advertiser::register_service(
     const std::string& reg_type, const char* name, const char* domain, uint16_t port, const txt_record& txt_record,
-    const bool auto_rename, bool local_only
+    const bool auto_rename, const bool local_only
 ) {
+    RAV_ASSERT(!reg_type.empty(), "Service type must not be empty");
+    RAV_ASSERT(port != 0, "Port must not be 0");
+
     DNSServiceRef service_ref = shared_connection_.service_ref();
     const auto record = bonjour_txt_record(txt_record);
 

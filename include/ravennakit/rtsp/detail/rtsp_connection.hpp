@@ -125,6 +125,8 @@ class rtsp_connection final: public std::enable_shared_from_this<rtsp_connection
     void async_write();
     void async_read_some();
 
+    asio::ip::tcp::endpoint remote_endpoint() const;
+
   private:
     asio::ip::tcp::socket socket_;
     string_buffer input_buffer_;

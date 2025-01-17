@@ -129,3 +129,7 @@ void rav::rtsp_connection::async_read_some() {
         }
     );
 }
+
+asio::ip::tcp::endpoint rav::rtsp_connection::remote_endpoint() const {
+    return socket_.remote_endpoint();
+}

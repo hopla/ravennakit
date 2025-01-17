@@ -23,6 +23,8 @@ class id {
   public:
     class generator {
       public:
+        generator() = default;
+
         /**
          * @return The next unique ID
          */

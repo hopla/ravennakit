@@ -58,6 +58,13 @@ class id {
         return id_ != 0;
     }
 
+    /**
+     * @return The integer value of the ID as string.
+     */
+    std::string to_string() const {
+        return std::to_string(id_);
+    }
+
     bool operator==(const uint64_t value) const {
         return id_ == value;
     }

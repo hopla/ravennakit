@@ -15,13 +15,13 @@ rav::rtsp_connection::~rtsp_connection() = default;
 rav::rtsp_connection::rtsp_connection(asio::ip::tcp::socket socket) : socket_(std::move(socket)) {
     parser_.on<rtsp_request>([this](const rtsp_request& request) {
         if (subscriber_) {
-            subscriber_->on_request(request, *this);
+            subscriber_->on_request(*this, request);
         }
     });
 
     parser_.on<rtsp_response>([this](const rtsp_response& response) {
         if (subscriber_) {
-            subscriber_->on_response(response, *this);
+            subscriber_->on_response(*this, response);
         }
     });
 }

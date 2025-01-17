@@ -16,6 +16,8 @@
 #include "ravennakit/core/file.hpp"
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
+#include "ravennakit/core/audio/formats/wav_audio_format.hpp"
+#include "ravennakit/core/streams/file_input_stream.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
 #include "ravennakit/ravenna/ravenna_transmitter.hpp"
 
@@ -24,9 +26,13 @@
 
 class ravenna_player_example {
   public:
-    explicit ravenna_player_example(asio::io_context& io_context, const uint16_t port_num) :
+    explicit ravenna_player_example(
+        asio::io_context& io_context, const asio::ip::address_v4& interface_address, const uint16_t port_num
+    ) :
+        interface_address_(interface_address),
         rtsp_server_(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), port_num)) {
         advertiser_ = rav::dnssd::dnssd_advertiser::create(io_context);
+        // TODO: Should the RTSP server only bind to the interface address?
     }
 
     void add_source(const rav::file& file) {
@@ -41,17 +47,22 @@ class ravenna_player_example {
             }
         }
         auto transmitter = std::make_unique<rav::ravenna_transmitter>(
-            *advertiser_, rtsp_server_, id_generator_.next(), file_session_name
+            *advertiser_, rtsp_server_, id_generator_.next(), file_session_name, interface_address_
         );
-        sources_.push_back({file, std::move(transmitter)});
+
+        auto file_input_stream = std::make_unique<rav::file_input_stream>(file);
+        auto reader = rav::wav_audio_format::reader(std::move(file_input_stream));
+
+        sources_.push_back({std::move(reader), std::move(transmitter)});
     }
 
   private:
     struct source {
-        rav::file file;
+        rav::wav_audio_format::reader reader;
         std::unique_ptr<rav::ravenna_transmitter> transmitter;
     };
 
+    asio::ip::address_v4 interface_address_;
     std::unique_ptr<rav::dnssd::dnssd_advertiser> advertiser_;
     rav::rtsp_server rtsp_server_;
     rav::util::id::generator id_generator_ {};
@@ -68,13 +79,15 @@ int main(int const argc, char* argv[]) {
     std::vector<std::string> file_paths;
     app.add_option("files", file_paths, "The files to stream")->required();
 
-    std::string interface_address = "0.0.0.0";
-    app.add_option("--interface-addr", interface_address, "The interface address");
+    std::string interface_address_string = "0.0.0.0";
+    app.add_option("--interface-addr", interface_address_string, "The interface address");
 
     CLI11_PARSE(app, argc, argv);
 
+    auto interface_address = asio::ip::make_address_v4(interface_address_string);
+
     asio::io_context io_context;
-    ravenna_player_example player_example(io_context, 5005);
+    ravenna_player_example player_example(io_context, interface_address, 5005);
 
     for (auto& file_path : file_paths) {
         player_example.add_source(rav::file(file_path));

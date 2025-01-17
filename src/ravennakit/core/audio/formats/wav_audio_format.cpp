@@ -88,15 +88,17 @@ rav::wav_audio_format::data_chunk::write(output_stream& ostream, const size_t da
     return data_begin - pos;
 }
 
-rav::wav_audio_format::reader::reader(input_stream& istream) : istream_(istream) {
+rav::wav_audio_format::reader::reader(std::unique_ptr<input_stream> istream) : istream_(std::move(istream)) {
+    RAV_ASSERT(istream_, "Invalid input stream");
+
     // RIFF header
-    const auto riff_header = istream.read_as_string(4);
+    const auto riff_header = istream_->read_as_string(4);
     if (riff_header != "RIFF") {
         RAV_THROW_EXCEPTION("expecting RIFF header");
     }
 
     // RIFF size
-    const auto riff_size = istream.read_le<uint32_t>();
+    const auto riff_size = istream_->read_le<uint32_t>();
     if (!riff_size.has_value()) {
         RAV_THROW_EXCEPTION("failed to read RIFF size");
     }
@@ -104,39 +106,39 @@ rav::wav_audio_format::reader::reader(input_stream& istream) : istream_(istream)
     // TODO: Check (validate?) RIFF size
 
     // WAVE header
-    const auto wave_header = istream.read_as_string(4);
+    const auto wave_header = istream_->read_as_string(4);
     if (wave_header != "WAVE") {
         RAV_THROW_EXCEPTION("expecting WAVE header");
     }
 
     // Loop through chunks
-    while (!istream.exhausted()) {
-        auto chunk_id = istream.read_as_string(4);
+    while (!istream_->exhausted()) {
+        auto chunk_id = istream_->read_as_string(4);
         if (chunk_id.value().size() != 4) {
             RAV_THROW_EXCEPTION("failed to read chunk id");
         }
 
-        const auto chunk_size = istream.read_le<uint32_t>();
+        const auto chunk_size = istream_->read_le<uint32_t>();
         if (!chunk_size.has_value()) {
             RAV_THROW_EXCEPTION("failed to read chunk size");
         }
 
         if (chunk_id == "fmt ") {
             fmt_chunk_.emplace();
-            fmt_chunk_->read(istream, chunk_size.value());
+            fmt_chunk_->read(*istream_, chunk_size.value());
             continue;
         }
 
         if (chunk_id == "data") {
             data_chunk_.emplace();
-            if (!data_chunk_->read(istream, chunk_size.value())) {
+            if (!data_chunk_->read(*istream_, chunk_size.value())) {
                 RAV_THROW_EXCEPTION("failed to read data chunk");
             }
             continue;
         }
 
         // Skip unknown chunk
-        if (!istream.skip(chunk_size.value())) {
+        if (!istream_->skip(chunk_size.value())) {
             RAV_THROW_EXCEPTION("failed to skip chunk");
         }
     }
@@ -153,11 +155,11 @@ rav::wav_audio_format::reader::read_audio_data(uint8_t* buffer, const size_t siz
         return 0;
     }
 
-    if (!istream_.set_read_position(data_chunk_->data_begin + data_read_position_)) {
+    if (!istream_->set_read_position(data_chunk_->data_begin + data_read_position_)) {
         return tl::unexpected(input_stream::error::failed_to_set_read_position);
     }
 
-    auto read = istream_.read(buffer, bytes_to_read);
+    auto read = istream_->read(buffer, bytes_to_read);
     if (!read) {
         return read;
     }

@@ -15,6 +15,7 @@
 #include "ravennakit/rtsp/detail/rtsp_request.hpp"
 #include "ravennakit/core/exclusive_access_guard.hpp"
 #include "ravennakit/core/tracy.hpp"
+#include "ravennakit/core/uri.hpp"
 
 rav::rtsp_server::~rtsp_server() {
     for (const auto& c : connections_) {
@@ -27,6 +28,15 @@ rav::rtsp_server::~rtsp_server() {
 
 uint16_t rav::rtsp_server::port() const {
     return acceptor_.local_endpoint().port();
+}
+
+void rav::rtsp_server::register_handler(
+    const std::string& path, const std::function<void(rtsp_connection::request_event)>& handler
+) {
+    if (handler == nullptr) {
+        request_handlers_.erase(path);
+    }
+    request_handlers_[path] = handler;
 }
 
 rav::rtsp_server::rtsp_server(asio::io_context& io_context, const asio::ip::tcp::endpoint& endpoint) :
@@ -47,22 +57,26 @@ void rav::rtsp_server::stop() {
 }
 
 void rav::rtsp_server::reset() noexcept {
-    events_.reset();
+    request_handlers_.clear();
 }
 
 void rav::rtsp_server::on_connect(rtsp_connection& connection) {
     RAV_TRACE("New connection from: {}", connection.remote_endpoint().address().to_string());
-    events_.emit(rtsp_connection::connect_event {connection});
 }
 
-void rav::rtsp_server::on_request(const rtsp_request& request, rtsp_connection& connection) {
+void rav::rtsp_server::on_request(rtsp_connection& connection, const rtsp_request& request) {
     RAV_TRACE("Received request: {}", request.to_debug_string(false));
-    events_.emit(rtsp_connection::request_event {request, connection});
+    const auto uri = uri::parse(request.uri);
+    const auto found = request_handlers_.find(uri.path);
+    if (found == request_handlers_.end()) {
+        RAV_WARNING("No handler registered for uri: {}", uri.to_string());
+        return;
+    }
+    found->second({connection, request});
 }
 
-void rav::rtsp_server::on_response(const rtsp_response& response, rtsp_connection& connection) {
+void rav::rtsp_server::on_response(rtsp_connection& connection, const rtsp_response& response) {
     RAV_TRACE("Received response: {}", response.to_debug_string(false));
-    events_.emit(rtsp_connection::response_event {response, connection});
 }
 
 void rav::rtsp_server::async_accept() {

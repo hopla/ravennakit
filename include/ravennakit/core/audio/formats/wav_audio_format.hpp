@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "ravennakit/core/file.hpp"
+#include "ravennakit/core/streams/file_input_stream.hpp"
 #include "ravennakit/core/streams/input_stream.hpp"
 #include "ravennakit/core/streams/output_stream.hpp"
 
@@ -97,7 +99,11 @@ struct data_chunk {
  */
 class reader {
   public:
-    explicit reader(input_stream& istream);
+    /**
+     * Constructs a new reader.
+     * @param istream The input stream to read from. Must be valid.
+     */
+    explicit reader(std::unique_ptr<input_stream> istream);
 
     /**
      * Reads audio data from the input stream.
@@ -118,7 +124,7 @@ class reader {
     [[nodiscard]] size_t num_channels() const;
 
   private:
-    input_stream& istream_;
+    std::unique_ptr<input_stream> istream_;
     std::optional<fmt_chunk> fmt_chunk_;
     std::optional<data_chunk> data_chunk_;
     size_t data_read_position_ {};
@@ -139,7 +145,7 @@ class writer {
      * @param size The number of bytes to write.
      * @return The number of bytes written.
      */
-    [[nodiscard]] tl::expected<void, rav::output_stream::error> write_audio_data(const uint8_t* buffer, size_t size);
+    [[nodiscard]] tl::expected<void, output_stream::error> write_audio_data(const uint8_t* buffer, size_t size);
 
     /**
      * Finalizes the WAVE file by writing the header and flushing the output stream.

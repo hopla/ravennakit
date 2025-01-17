@@ -98,8 +98,8 @@ class rtsp_client final: rtsp_connection::subscriber {
 
     // rtsp_connection::subscriber overrides
     void on_connect(rtsp_connection& connection) override;
-    void on_request(const rtsp_request& request, rtsp_connection& connection) override;
-    void on_response(const rtsp_response& response, rtsp_connection& connection) override;
+    void on_request(rtsp_connection& connection, const rtsp_request& request) override;
+    void on_response(rtsp_connection& connection, const rtsp_response& response) override;
 
   private:
     asio::ip::tcp::resolver resolver_;

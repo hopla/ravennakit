@@ -18,10 +18,10 @@
 TEST_CASE("wav_audio_format | Read wav file", "[wav_audio_format]") {
     REQUIRE(sin_1ms_wav.size() == 1808);
 
-    rav::byte_stream bytes(sin_1ms_wav);
-    REQUIRE(bytes.size().value() == 1808);
+    auto bytes = std::make_unique<rav::byte_stream>(sin_1ms_wav);
+    REQUIRE(bytes->size().value() == 1808);
 
-    rav::wav_audio_format::reader reader(bytes);
+    rav::wav_audio_format::reader reader(std::move(bytes));
     REQUIRE(reader.num_channels() == 2);
     REQUIRE(rav::util::is_within(reader.sample_rate(), 44100.0, 0.00001));
 

@@ -173,9 +173,21 @@ TEST_CASE("media_description | To string") {
         REQUIRE(md.to_string().value() == expected);
     }
 
+    SECTION("ptime") {
+        md.set_ptime(1.0880808);
+        expected += "a=ptime:1.09\r\n";
+        REQUIRE(md.to_string().value() == expected);
+    }
+
     SECTION("max_ptime") {
         md.set_max_ptime(60);
         expected += "a=maxptime:60\r\n";
+        REQUIRE(md.to_string().value() == expected);
+    }
+
+    SECTION("max_ptime") {
+        md.set_max_ptime(1.0880808);
+        expected += "a=maxptime:1.09\r\n";
         REQUIRE(md.to_string().value() == expected);
     }
 

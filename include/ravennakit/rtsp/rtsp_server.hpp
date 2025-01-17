@@ -16,6 +16,7 @@
 #include "ravennakit/core/events.hpp"
 
 #include <asio.hpp>
+#include <unordered_map>
 
 namespace rav {
 

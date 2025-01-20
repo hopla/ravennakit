@@ -17,6 +17,7 @@
 #include "datasets/ptp_default_ds.hpp"
 #include "datasets/ptp_parent_ds.hpp"
 #include "datasets/ptp_time_properties_ds.hpp"
+#include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/core/net/interfaces/network_interface_list.hpp"
 
 #include <asio/ip/address.hpp>
@@ -29,6 +30,23 @@ namespace rav {
  */
 class ptp_instance {
   public:
+    class subscriber {
+      public:
+        virtual ~subscriber() = default;
+
+        /**
+         * Called when the parent data set of the PTP instance changes.
+         * @param parent The new parent data set.
+         */
+        virtual void on_parent_changed([[maybe_unused]] const ptp_parent_ds& parent) {}
+
+        /**
+         * Called when a port in the PTP instance changes state.
+         * @param port The port that changed state.
+         */
+        virtual void on_port_changed_state([[maybe_unused]] const ptp_port& port) {}
+    };
+
     /**
      * Constructs a PTP instance.
      * @param io_context The asio io context to use for networking and timers. Should be a single-threaded context,
@@ -109,6 +127,39 @@ class ptp_instance {
      */
     void force_update_local_ptp_clock(ptp_timestamp timestamp);
 
+    /**
+     * Adds a subscriber to the PTP instance. The subscriber will be notified when a port changes state.
+     * Subscriber will be notified of the current state of all ports when added.
+     * @param sub The subscriber to add.
+     */
+    void add_subscriber(subscriber* sub) {
+        subscribers_.add(sub);
+        for (auto& p : ports_) {
+            sub->on_port_changed_state(*p);
+        }
+    }
+
+    /**
+     * Removes a subscriber from the PTP instance.
+     * @param sub The subscriber to remove.
+     */
+    void remove_subscriber(subscriber* sub) {
+        subscribers_.remove(sub);
+    }
+
+    /**
+     * Notifies all subscribers that the parent has changed.
+     * @tparam T The type of the callback.
+     * @param callback The callback to call for each subscriber.
+     */
+    template<class T>
+    void notify_subscribers(const T& callback) {
+        for (auto* s : subscribers_) {
+            RAV_ASSERT(s != nullptr, "Subscriber is nullptr");
+            callback(*s);
+        }
+    }
+
   private:
     asio::io_context& io_context_;
     asio::steady_timer state_decision_timer_;
@@ -119,6 +170,7 @@ class ptp_instance {
     std::vector<std::unique_ptr<ptp_port>> ports_;
     network_interface_list network_interfaces_;
     ptp_local_ptp_clock local_ptp_clock_;
+    subscriber_list<subscriber> subscribers_;
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;
     void schedule_state_decision_timer();

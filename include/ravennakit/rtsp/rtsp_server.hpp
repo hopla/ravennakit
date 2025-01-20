@@ -46,12 +46,19 @@ class rtsp_server final: rtsp_connection::subscriber {
     void register_handler(const std::string& path, const request_handler& handler);
 
     /**
+     * Sends a request to all connected clients. The path will determine which clients will receive the request.
+     * @param path The path to send the request to.
+     * @param request The request to send.
+     */
+    void send_request(const std::string& path, const rtsp_request& request) const;
+
+    /**
      * Closes the listening socket. Implies cancellation.
      */
     void stop();
 
     /**
-     * Resets handlers for all events.
+     * Resets handlers for all paths.
      */
     void reset() noexcept;
 
@@ -62,9 +69,15 @@ class rtsp_server final: rtsp_connection::subscriber {
     void on_disconnect(rtsp_connection& connection) override;
 
   private:
+    static constexpr auto k_special_path_all = "/all";
+
+    struct path_context {
+        request_handler handler;
+        std::vector<std::shared_ptr<rtsp_connection>> connections;
+    };
+
     asio::ip::tcp::acceptor acceptor_;
-    std::vector<std::shared_ptr<rtsp_connection>> connections_;
-    std::unordered_map<std::string, request_handler> request_handlers_;
+    std::unordered_map<std::string, path_context> paths_;
 
     void async_accept();
 };

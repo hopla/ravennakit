@@ -65,7 +65,7 @@ class rtp_packet {
      * Encodes the RTP packet into given stream. This method writes to the stream as-is, the caller is responsible to
      * prepare the stream (reset it after previous calls).
      * @param payload_data The payload to encode.
-     * @param payload_size
+     * @param payload_size The size of the payload in bytes.
      * @param stream The stream to write to.
      * @return true if the packet was successfully encoded and written, or false otherwise.
      */
@@ -74,8 +74,8 @@ class rtp_packet {
 
   private:
     uint8_t payload_type_ {0};
-    uint16_t sequence_number_ {0};
-    uint32_t timestamp_ {0};
+    uint16_t sequence_number_ {0};  // TODO: Make this a sequence_number type to allow *_inc() to wrap around
+    uint32_t timestamp_ {0};        // TODO: Make this a sequence_number type to allow timestamp_inc() to wrap around
     uint32_t ssrc_ {0};
 };
 

@@ -14,23 +14,26 @@
 
 #include "ravennakit/core/uri.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
+#include "ravennakit/ptp/types/ptp_timestamp.hpp"
 #include "ravennakit/rtsp/rtsp_server.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
 
 namespace rav {
 
-class ravenna_transmitter {
+class ravenna_transmitter: public ptp_instance::subscriber {
   public:
     ravenna_transmitter(
-        dnssd::dnssd_advertiser& advertiser, rtsp_server& rtsp_server, const id id, std::string session_name,
-        asio::ip::address_v4 interface_address
+        dnssd::dnssd_advertiser& advertiser, rtsp_server& rtsp_server, ptp_instance& ptp_instance, const id id,
+        std::string session_name, asio::ip::address_v4 interface_address
     ) :
         advertiser_(advertiser),
         rtsp_server_(rtsp_server),
+        ptp_instance_(ptp_instance),
         id_(id),
         session_name_(std::move(session_name)),
         interface_address_(std::move(interface_address)) {
         RAV_ASSERT(!interface_address_.is_unspecified(), "Address should be specified");
+
         // Construct a multicast address from the interface address
         const auto interface_address_bytes = interface_address_.to_bytes();
         destination_address_ = asio::ip::address_v4(
@@ -38,25 +41,30 @@ class ravenna_transmitter {
         );
 
         // Register handlers for the paths
-        by_name_path_ = fmt::format("/by-name/{}", session_name_);
-        by_id_path_ = fmt::format("/by-id/{}", id_.to_string());
+        path_by_name_ = fmt::format("/by-name/{}", session_name_);
+        path_by_id_ = fmt::format("/by-id/{}", id_.to_string());
         auto handler = [this](const rtsp_connection::request_event event) {
             on_request_event(event);
         };
-        rtsp_server_.register_handler(by_name_path_, handler);
-        rtsp_server_.register_handler(by_id_path_, handler);
+        rtsp_server_.register_handler(path_by_name_, handler);
+        rtsp_server_.register_handler(path_by_id_, handler);
 
         advertisement_id_ = advertiser_.register_service(
             "_rtsp._tcp,_ravenna_session", session_name_.c_str(), nullptr, rtsp_server.port(), {}, false, false
         );
+
+        ptp_instance_.add_subscriber(this);
     }
 
-    ~ravenna_transmitter() {
+    ~ravenna_transmitter() override {
+        ptp_instance_.remove_subscriber(this);
+
         if (advertisement_id_.is_valid()) {
             advertiser_.unregister_service(advertisement_id_);
         }
-        rtsp_server_.register_handler(by_name_path_, nullptr);
-        rtsp_server_.register_handler(by_id_path_, nullptr);
+
+        rtsp_server_.register_handler(path_by_name_, nullptr);
+        rtsp_server_.register_handler(path_by_id_, nullptr);
     }
 
     ravenna_transmitter(const ravenna_transmitter& other) = delete;
@@ -116,29 +124,90 @@ class ravenna_transmitter {
         ptime_ = packet_time;
     }
 
+    /**
+     * Start the streaming.
+     * @param timestamp The timestamp at which to start the streaming.
+     */
+    void start(const ptp_timestamp timestamp) {
+        if (running_) {
+            return;
+        }
+        running_ = true;
+        start_time_ = timestamp;
+    }
+
+    /**
+     * Stops the streaming.
+     */
+    void stop() {
+        if (!running_) {
+            return;
+        }
+        running_ = false;
+        start_time_ = {};
+    }
+
+    // ptp_instance::subscriber overrides
+    void on_parent_changed(const ptp_parent_ds& parent) override {
+        if (grandmaster_identity_ == parent.grandmaster_identity) {
+            return;
+        }
+        grandmaster_identity_ = parent.grandmaster_identity;
+        send_announce();
+    }
+
   private:
     dnssd::dnssd_advertiser& advertiser_;
     rtsp_server& rtsp_server_;
+    ptp_instance& ptp_instance_;
     id id_;
     std::string session_name_;
     asio::ip::address_v4 interface_address_;
     id advertisement_id_;
-    std::string by_name_path_;
-    std::string by_id_path_;
+    std::string path_by_name_;
+    std::string path_by_id_;
     int32_t clock_domain_ {};
     sdp::format format_;
     asio::ip::address_v4 destination_address_;
     float ptime_ {1.0f};
+    bool running_ {false};
+    ptp_timestamp start_time_;
+    ptp_clock_identity grandmaster_identity_;
 
     void on_request_event(const rtsp_connection::request_event event) const {
-        RAV_TRACE("Received request: {}", event.request.to_debug_string(false));
-        const auto sdp = build_sdp();
+        const auto sdp = build_sdp();  // Should the SDP be cached and updated on changes?
+        RAV_TRACE("SDP:\n{}", sdp.to_string("\n").value());
         const auto encoded = sdp.to_string();
         if (!encoded) {
             RAV_ERROR("Failed to encode SDP");
             return;
         }
-        event.connection.async_send_response(rtsp_response(200, "OK", *encoded));
+        const auto response = rtsp_response(200, "OK", *encoded);
+        response.headers["content-type"] = "application/sdp";
+        event.connection.async_send_response(response);
+    }
+
+    /**
+     * Sends an announce request to all connected clients.
+     */
+    void send_announce() const {
+        auto sdp = build_sdp().to_string();
+        if (!sdp) {
+            RAV_ERROR("Failed to encode SDP: {}", sdp.error());
+            return;
+        }
+        rtsp_request request;
+        request.method = "ANNOUNCE";
+        request.headers["content-type"] = "application/sdp";
+        request.data = std::move(sdp.value());
+        request.uri = uri::encode(
+            "rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_name_
+        );
+        rtsp_server_.send_request(path_by_name_, request);
+        request.uri = uri::encode(
+            "rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_id_
+        );
+        rtsp_server_.send_request(path_by_name_, request);
     }
 
     [[nodiscard]] sdp::session_description build_sdp() const {
@@ -154,13 +223,13 @@ class ravenna_transmitter {
         );
 
         // Reference clock
-        // TODO: Fill in the GMID
         const sdp::reference_clock ref_clock {
-            sdp::reference_clock::clock_source::ptp, sdp::reference_clock::ptp_ver::IEEE_1588_2008, "GMID",
-            clock_domain_
+            sdp::reference_clock::clock_source::ptp, sdp::reference_clock::ptp_ver::IEEE_1588_2008,
+            grandmaster_identity_.to_string(), clock_domain_
         };
 
         // Media clock
+        // ST 2110-30:2017 defines a constraint to use a zero offset exclusively.
         sdp::media_clock_source media_clk {sdp::media_clock_source::clock_mode::direct, 0, {}};
 
         sdp::ravenna_clock_domain clock_domain {sdp::ravenna_clock_domain::sync_source::ptp_v2, clock_domain_};
@@ -173,7 +242,7 @@ class ravenna_transmitter {
         media.add_format(format_);
         media.add_source_filter(filter);
         media.set_clock_domain(clock_domain);
-        media.set_sync_time(0);  // TODO: Fill in the sync time
+        media.set_sync_time(0);
         media.set_ref_clock(ref_clock);
         media.set_direction(sdp::media_direction::recvonly);
 
@@ -189,10 +258,10 @@ class ravenna_transmitter {
         sdp::session_description sdp;
 
         // Origin
-        const sdp::origin_field o {
+        const sdp::origin_field origin {
             "-", id_.to_string(), 0, sdp::netw_type::internet, sdp::addr_type::ipv4, interface_address_.to_string()
         };
-        sdp.set_origin(o);
+        sdp.set_origin(origin);
 
         // Session name
         sdp.set_session_name(session_name_);

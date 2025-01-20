@@ -19,21 +19,33 @@
 #include "ravennakit/core/audio/formats/wav_audio_format.hpp"
 #include "ravennakit/core/streams/file_input_stream.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
+#include "ravennakit/ptp/ptp_instance.hpp"
 #include "ravennakit/ravenna/ravenna_transmitter.hpp"
 
 #include <CLI/App.hpp>
 #include <asio/io_context.hpp>
 #include <utility>
 
-class ravenna_player_example {
+/**
+ * This example shows how to send audio data from a wav file onto the network using RAVENNA.
+ */
+class ravenna_player_example : public rav::ptp_instance::subscriber {
   public:
     explicit ravenna_player_example(
         asio::io_context& io_context, asio::ip::address_v4 interface_address, const uint16_t port_num
     ) :
         interface_address_(std::move(interface_address)),
-        rtsp_server_(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), port_num)) {
+        rtsp_server_(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), port_num)),
+        ptp_instance_(io_context) {
         advertiser_ = rav::dnssd::dnssd_advertiser::create(io_context);
-        // TODO: Should the RTSP server only bind to the interface address?
+        ptp_instance_.add_subscriber(this);
+        if (const auto result = ptp_instance_.add_port(interface_address_); !result) {
+            RAV_ERROR("Failed to add PTP port: {}", to_string(result.error()));
+        }
+    }
+
+    ~ravenna_player_example() override {
+        ptp_instance_.remove_subscriber(this);
     }
 
     void add_source(const rav::file& file) {
@@ -48,7 +60,7 @@ class ravenna_player_example {
             }
         }
         auto transmitter = std::make_unique<rav::ravenna_transmitter>(
-            *advertiser_, rtsp_server_, id_generator_.next(), file_session_name, interface_address_
+            *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), file_session_name, interface_address_
         );
 
         auto file_input_stream = std::make_unique<rav::file_input_stream>(file);
@@ -65,6 +77,15 @@ class ravenna_player_example {
         sources_.push_back({std::move(reader), std::move(transmitter)});
     }
 
+    void on_port_changed_state(const rav::ptp_port& port) override {
+        if (port.state() == rav::ptp_state::slave) {
+            // Start the transmitters when the port is in slave state (and thus synchronized)
+            for (const auto& s : sources_) {
+                s.transmitter->start(ptp_instance_.get_local_ptp_time());
+            }
+        }
+    }
+
   private:
     struct source {
         rav::wav_audio_format::reader reader;
@@ -76,6 +97,7 @@ class ravenna_player_example {
     rav::rtsp_server rtsp_server_;
     rav::id::generator id_generator_ {};
     std::vector<source> sources_;
+    rav::ptp_instance ptp_instance_;
 };
 
 int main(int const argc, char* argv[]) {

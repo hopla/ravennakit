@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ravennakit/core/containers/byte_buffer.hpp"
 #include "ravennakit/core/streams/output_stream.hpp"
 
 #include <vector>
@@ -66,11 +67,10 @@ class rtp_packet {
      * prepare the stream (reset it after previous calls).
      * @param payload_data The payload to encode.
      * @param payload_size The size of the payload in bytes.
-     * @param stream The stream to write to.
+     * @param buffer The buffer to write to.
      * @return true if the packet was successfully encoded and written, or false otherwise.
      */
-    [[nodiscard]] tl::expected<void, output_stream::error>
-    encode(const uint8_t* payload_data, size_t payload_size, output_stream& stream) const;
+    void encode(const uint8_t* payload_data, size_t payload_size, byte_buffer& buffer) const;
 
   private:
     uint8_t payload_type_ {0};

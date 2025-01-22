@@ -24,7 +24,7 @@ class aes67_packet_time {
   public:
     aes67_packet_time() = default;
 
-    aes67_packet_time(const uint8_t numerator, const uint8_t denominator) : fraction {numerator, denominator} {}
+    aes67_packet_time(const uint8_t numerator, const uint8_t denominator) : fraction_ {numerator, denominator} {}
 
     /**
      * @param sample_rate The sample rate of the audio.
@@ -32,11 +32,11 @@ class aes67_packet_time {
      */
     [[nodiscard]] float signaled_ptime(const uint32_t sample_rate) const {
         if (sample_rate % 48000 > 0) {
-            return static_cast<float>(fraction.numerator) * static_cast<float>(sample_rate / 48000 + 1)  // NOLINT
-                * 48000 / static_cast<float>(sample_rate) / static_cast<float>(fraction.denominator);
+            return static_cast<float>(fraction_.numerator) * static_cast<float>(sample_rate / 48000 + 1)  // NOLINT
+                * 48000 / static_cast<float>(sample_rate) / static_cast<float>(fraction_.denominator);
         }
 
-        return static_cast<float>(fraction.numerator) / static_cast<float>(fraction.denominator);
+        return static_cast<float>(fraction_.numerator) / static_cast<float>(fraction_.denominator);
     }
 
     /**
@@ -93,7 +93,7 @@ class aes67_packet_time {
     }
 
   private:
-    fraction<uint8_t> fraction {};
+    fraction<uint8_t> fraction_ {};
 };
 
 }  // namespace rav

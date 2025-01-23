@@ -58,6 +58,8 @@ class wav_file_player {
         transmitter_ = std::move(transmitter);
 
         transmitter_->on<rav::ravenna_transmitter::on_data_requested_event>([this](auto event) {
+            TRACY_ZONE_SCOPED;
+
             if (reader_->remaining_audio_data() == 0) {
                 reader_->set_read_position(0);
             }

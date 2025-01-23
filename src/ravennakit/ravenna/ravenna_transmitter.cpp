@@ -12,6 +12,10 @@
 
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 
+#if RAV_WINDOWS
+    #include <timeapi.h>
+#endif
+
 rav::ravenna_transmitter::ravenna_transmitter(
     asio::io_context& io_context, dnssd::dnssd_advertiser& advertiser, rtsp_server& rtsp_server,
     ptp_instance& ptp_instance, rtp_transmitter& rtp_transmitter, const id id, std::string session_name,
@@ -47,9 +51,17 @@ rav::ravenna_transmitter::ravenna_transmitter(
     );
 
     ptp_instance_.add_subscriber(this);
+
+#if RAV_WINDOWS
+    timeBeginPeriod(1);
+#endif
 }
 
 rav::ravenna_transmitter::~ravenna_transmitter() {
+#if RAV_WINDOWS
+    timeEndPeriod(1);
+#endif
+
     timer_.cancel();
 
     ptp_instance_.remove_subscriber(this);
@@ -229,11 +241,16 @@ rav::sdp::session_description rav::ravenna_transmitter::build_sdp() const {
 void rav::ravenna_transmitter::start_timer() {
     TRACY_ZONE_SCOPED;
 
-    timer_.expires_after(
-        std::chrono::microseconds(
-            static_cast<int64_t>(get_signaled_ptime() * 1'000 / 10)
-        )  // A tenth of the packet time
-    );
+#if RAV_WINDOWS
+    // A dirty hack to get the precision somewhat right. This is only temporary since we have to come up with a much
+    // tighter solution.
+    auto expires_after = std::chrono::microseconds(1);
+#else
+    // A tenth of the packet time
+    auto expires_after = std::chrono::microseconds(static_cast<int64_t>(get_signaled_ptime() * 1'000 / 10));
+#endif
+
+    timer_.expires_after(expires_after);
     timer_.async_wait([this](const asio::error_code ec) {
         if (ec == asio::error::operation_aborted) {
             return;
@@ -254,29 +271,30 @@ void rav::ravenna_transmitter::send_data() {
         return;
     }
 
-    const auto now_samples = ptp_instance_.get_local_ptp_time().to_samples(audio_format_.sample_rate);
     const auto framecount = get_framecount();
-    if (sequence_number(static_cast<uint32_t>(now_samples)) < rtp_packet_.timestamp()) {
-        return;  // Not time to send data yet
-    }
-
     const auto required_amount_of_data = framecount * audio_format_.bytes_per_frame();
-
     RAV_ASSERT(packet_intermediate_buffer_.size() == required_amount_of_data, "Buffer size mismatch");
 
-    events_.emit(on_data_requested_event {buffer_view(packet_intermediate_buffer_)});
+    for (auto i = 0; i < 100; i++) {
+        const auto now_samples = ptp_instance_.get_local_ptp_time().to_samples(audio_format_.sample_rate);
+        if (sequence_number(static_cast<uint32_t>(now_samples)) < rtp_packet_.timestamp()) {
+            break;
+        }
 
-    if (audio_format_.byte_order == audio_format::byte_order::le) {
-        byte_order::swap_bytes(
-            packet_intermediate_buffer_.data(), required_amount_of_data, audio_format_.bytes_per_sample()
-        );
+        events_.emit(on_data_requested_event {buffer_view(packet_intermediate_buffer_)});
+
+        if (audio_format_.byte_order == audio_format::byte_order::le) {
+            byte_order::swap_bytes(
+                packet_intermediate_buffer_.data(), required_amount_of_data, audio_format_.bytes_per_sample()
+            );
+        }
+
+        send_buffer_.clear();
+        rtp_packet_.encode(packet_intermediate_buffer_.data(), required_amount_of_data, send_buffer_);
+        rtp_packet_.sequence_number_inc(1);
+        rtp_packet_.timestamp_inc(framecount);
+        rtp_transmitter_.send_to(send_buffer_, {destination_address_, 5004});
     }
-
-    byte_buffer buffer;
-    rtp_packet_.encode(packet_intermediate_buffer_.data(), required_amount_of_data, buffer);
-    rtp_packet_.sequence_number_inc(1);
-    rtp_packet_.timestamp_inc(framecount);
-    rtp_transmitter_.send_to(buffer, {destination_address_, 5004});
 }
 
 void rav::ravenna_transmitter::resize_internal_buffers() {

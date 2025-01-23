@@ -134,6 +134,7 @@ class ravenna_transmitter: public ptp_instance::subscriber {
     std::vector<uint8_t> packet_intermediate_buffer_;
     asio::high_resolution_timer timer_;
     events_type events_;
+    byte_buffer send_buffer_;
 
     void on_request_event(rtsp_connection::request_event event) const;
 

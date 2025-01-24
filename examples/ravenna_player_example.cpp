@@ -77,7 +77,7 @@ class wav_file_player {
                 RAV_ERROR("No bytes read");
             }
             if (read < event.buffer.size_bytes()) {
-                // Clear the buffer where we didn't write any data
+                // Clear the part of the buffer where we didn't write any data
                 std::fill(event.buffer.data() + read, event.buffer.data() + event.buffer.size_bytes(), 0);
             }
         });
@@ -90,15 +90,6 @@ class wav_file_player {
   private:
     std::unique_ptr<rav::wav_audio_format::reader> reader_;
     std::unique_ptr<rav::ravenna_transmitter> transmitter_;
-};
-
-class ptp_instance_subscriber: public rav::ptp_instance::subscriber {
-  public:
-    rav::events<rav::ptp_instance::port_changed_state_event> events;
-
-    void on_port_changed_state(const rav::ptp_instance::port_changed_state_event& port) override {
-        events.emit<rav::ptp_instance::port_changed_state_event>({port});
-    }
 };
 
 int main(int const argc, char* argv[]) {
@@ -128,9 +119,7 @@ int main(int const argc, char* argv[]) {
 
     // PTP
     rav::ptp_instance ptp_instance(io_context);
-    ptp_instance_subscriber ptp_subscriber;
-    ptp_subscriber.events.on<rav::ptp_instance::port_changed_state_event>([&wav_file_players,
-                                                                           &ptp_instance](const auto event) {
+    auto slot = ptp_instance.on_port_changed_state.subscribe([&ptp_instance, &wav_file_players](auto event) {
         if (event.port.state() == rav::ptp_state::slave) {
             RAV_INFO("Port state changed to slave, start players");
             auto start_at = ptp_instance.get_local_ptp_time();
@@ -140,7 +129,7 @@ int main(int const argc, char* argv[]) {
             }
         }
     });
-    ptp_instance.add_subscriber(&ptp_subscriber);
+
     if (const auto result = ptp_instance.add_port(interface_address); !result) {
         RAV_THROW_EXCEPTION("Failed to add PTP port: {}", to_string(result.error()));
     }

@@ -202,9 +202,7 @@ void rav::ptp_port::set_state(const ptp_state new_state) {
 
     RAV_INFO("Switching port {} to {}", port_ds_.port_identity.port_number, to_string(new_state));
 
-    parent_.notify_subscribers([this](ptp_instance::subscriber& s) {
-        s.on_port_changed_state({*this});
-    });
+    parent_.on_port_changed_state({*this});
 }
 
 rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(const ptp_sync_message& sync_message) const {

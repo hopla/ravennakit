@@ -26,7 +26,7 @@
 
 namespace rav {
 
-class ravenna_transmitter: public ptp_instance::subscriber, public rtsp_server::path_handler {
+class ravenna_transmitter: public rtsp_server::path_handler {
   public:
     struct on_data_requested_event {
         buffer_view<uint8_t> buffer;
@@ -108,9 +108,6 @@ class ravenna_transmitter: public ptp_instance::subscriber, public rtsp_server::
         events_.on(handler);
     }
 
-    // ptp_instance::subscriber overrides
-    void on_parent_changed(const ptp_instance::parent_changed_event& parent) override;
-
     // rtsp_server::handler overrides
     void on_request(rtsp_connection::request_event event) const override;
 
@@ -129,7 +126,7 @@ class ravenna_transmitter: public ptp_instance::subscriber, public rtsp_server::
     id advertisement_id_;
     int32_t clock_domain_ {};
     audio_format audio_format_;
-    sdp::format sdp_format_; // I think we can compute this from audio_format_ each time we need it
+    sdp::format sdp_format_;  // I think we can compute this from audio_format_ each time we need it
     aes67_packet_time ptime_ {aes67_packet_time::ms_1()};
     bool running_ {false};
     ptp_clock_identity grandmaster_identity_;
@@ -138,6 +135,7 @@ class ravenna_transmitter: public ptp_instance::subscriber, public rtsp_server::
     asio::high_resolution_timer timer_;
     events_type events_;
     byte_buffer send_buffer_;
+    event_slot<ptp_instance::parent_changed_event> ptp_parent_changed_slot_;
 
     /**
      * Sends an announce request to all connected clients.

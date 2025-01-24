@@ -48,7 +48,14 @@ rav::ravenna_transmitter::ravenna_transmitter(
         "_rtsp._tcp,_ravenna_session", session_name_.c_str(), nullptr, rtsp_server.port(), {}, false, false
     );
 
-    ptp_instance_.add_subscriber(this);
+    ptp_parent_changed_slot_ =
+        ptp_instance.on_parent_changed.subscribe([this](const ptp_instance::parent_changed_event& event) {
+            if (grandmaster_identity_ == event.parent.grandmaster_identity) {
+                return;
+            }
+            grandmaster_identity_ = event.parent.grandmaster_identity;
+            send_announce();
+        });
 
 #if RAV_WINDOWS
     timeBeginPeriod(1);
@@ -61,8 +68,6 @@ rav::ravenna_transmitter::~ravenna_transmitter() {
 #endif
 
     timer_.cancel();
-
-    ptp_instance_.remove_subscriber(this);
 
     if (advertisement_id_.is_valid()) {
         advertiser_.unregister_service(advertisement_id_);
@@ -136,14 +141,6 @@ bool rav::ravenna_transmitter::is_running() const {
 
 uint32_t rav::ravenna_transmitter::get_framecount() const {
     return ptime_.framecount(audio_format_.sample_rate);
-}
-
-void rav::ravenna_transmitter::on_parent_changed(const ptp_instance::parent_changed_event& event) {
-    if (grandmaster_identity_ == event.parent.grandmaster_identity) {
-        return;
-    }
-    grandmaster_identity_ = event.parent.grandmaster_identity;
-    send_announce();
 }
 
 void rav::ravenna_transmitter::on_request(rtsp_connection::request_event event) const {

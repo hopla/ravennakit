@@ -26,6 +26,9 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
+/**
+ * Holds the logic for transmitting a wav file over the network.
+ */
 class wav_file_player {
   public:
     explicit wav_file_player(
@@ -66,7 +69,7 @@ class wav_file_player {
 
             auto result = reader_->read_audio_data(event.buffer.data(), event.buffer.size_bytes());
             if (!result) {
-                RAV_ERROR("Failed to read audio data: {}", rav::input_stream::error_string(result.error()));
+                RAV_ERROR("Failed to read audio data: {}", rav::input_stream::to_string(result.error()));
                 return;
             }
             auto read = result.value();

@@ -131,7 +131,7 @@ class input_stream {
      * @param e The error to convert to a string.
      * @return The string representation of the error.
      */
-    static const char* error_string(const error e) {
+    static const char* to_string(const error e) {
         switch (e) {
             case error::insufficient_data:
                 return "insufficient data";

@@ -20,7 +20,6 @@ namespace rav {
  * integer type that wraps around to 0 after reaching its maximum value. It also supports handling gaps, making it
  * suitable for scenarios involving packet loss.
  * Use this class for the sequence id in PTP, sequence number in RTP, timestamp in RTP, etc.
- * TODO: Rename to wrapping_uint
  */
 template<class T>
 class sequence_number {

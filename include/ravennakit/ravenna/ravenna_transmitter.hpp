@@ -26,7 +26,7 @@
 
 namespace rav {
 
-class ravenna_transmitter: public ptp_instance::subscriber {
+class ravenna_transmitter: public ptp_instance::subscriber, public rtsp_server::handler {
   public:
     struct on_data_requested_event {
         buffer_view<uint8_t> buffer;
@@ -73,7 +73,7 @@ class ravenna_transmitter: public ptp_instance::subscriber {
 
     /**
      * @return The packet time in milliseconds as signaled using SDP. If the packet time is 1ms and the sample
-     * rat 44.1kHz, then the signaled packet time is 1.09.
+     * rate is 44.1kHz, then the signaled packet time is 1.09.
      */
     [[nodiscard]] float get_signaled_ptime() const;
 
@@ -111,6 +111,9 @@ class ravenna_transmitter: public ptp_instance::subscriber {
     // ptp_instance::subscriber overrides
     void on_parent_changed(const ptp_parent_ds& parent) override;
 
+    // rtsp_server::handler overrides
+    void on_request(rtsp_connection::request_event event) const override;
+
   private:
     dnssd::dnssd_advertiser& advertiser_;
     rtsp_server& rtsp_server_;
@@ -135,8 +138,6 @@ class ravenna_transmitter: public ptp_instance::subscriber {
     asio::high_resolution_timer timer_;
     events_type events_;
     byte_buffer send_buffer_;
-
-    void on_request_event(rtsp_connection::request_event event) const;
 
     /**
      * Sends an announce request to all connected clients.

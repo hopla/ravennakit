@@ -90,7 +90,7 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
         RAV_TRACE("{}", event.request.to_debug_string(true));
 
         if (event.request.method == "ANNOUNCE") {
-            if (auto* content_type = event.request.headers.find_header("content-type")) {
+            if (auto* content_type = event.request.headers.get("content-type")) {
                 if (!rav::string_starts_with(content_type->value, "application/sdp")) {
                     RAV_ERROR("RTSP request has unexpected Content-Type: {}", content_type->value);
                     return;
@@ -124,7 +124,7 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
             return;
         }
 
-        if (auto* content_type = event.response.headers.find_header("content-type")) {
+        if (auto* content_type = event.response.headers.get("content-type")) {
             if (!rav::string_starts_with(content_type->value, "application/sdp")) {
                 RAV_ERROR("RTSP response has unexpected Content-Type: {}", content_type->value);
                 return;

@@ -32,12 +32,35 @@ uint16_t rav::rtsp_server::port() const {
     return acceptor_.local_endpoint().port();
 }
 
-void rav::rtsp_server::register_handler(const std::string& path, const request_handler& handler) {
-    auto& path_ctx = paths_[path];
+void rav::rtsp_server::register_handler(const std::string& path, handler* handler) {
     if (handler == nullptr) {
-        path_ctx.handler = nullptr;
+        const auto found = paths_.find(path);
+        if (found == paths_.end()) {
+            return;
+        }
+        found->second.handler = nullptr;
+        if (found->second.connections.empty()) {
+            paths_.erase(path);
+        }
+        return;
     }
+    auto& path_ctx = paths_[path];
     path_ctx.handler = handler;
+}
+
+void rav::rtsp_server::unregister_handler(const handler* handler_to_remove) {
+    for (auto it = paths_.begin(); it != paths_.end();) {
+        if (it->second.handler == handler_to_remove) {
+            it->second.handler = nullptr;
+            if (it->second.connections.empty()) {
+                it = paths_.erase(it);
+            } else {
+                ++it;
+            }
+        } else {
+            ++it;
+        }
+    }
 }
 
 void rav::rtsp_server::send_request(const std::string& path, const rtsp_request& request) const {
@@ -85,7 +108,7 @@ void rav::rtsp_server::on_request(rtsp_connection& connection, const rtsp_reques
 
     const auto path_context = paths_[uri.path];
     if (path_context.handler) {
-        path_context.handler({connection, request});
+        path_context.handler->on_request({connection, request});
     } else {
         RAV_WARNING("No handler registered for uri: {}", uri.to_string());
         connection.async_send_response(rtsp_response(404, "Not Found", "No handler registered for URI"));

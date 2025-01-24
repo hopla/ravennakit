@@ -40,11 +40,9 @@ rav::ravenna_transmitter::ravenna_transmitter(
     // Register handlers for the paths
     path_by_name_ = fmt::format("/by-name/{}", session_name_);
     path_by_id_ = fmt::format("/by-id/{}", id_.to_string());
-    auto handler = [this](const rtsp_connection::request_event event) {
-        on_request_event(event);
-    };
-    rtsp_server_.register_handler(path_by_name_, handler);
-    rtsp_server_.register_handler(path_by_id_, handler);
+
+    rtsp_server_.register_handler(path_by_name_, this);
+    rtsp_server_.register_handler(path_by_id_, this);
 
     advertisement_id_ = advertiser_.register_service(
         "_rtsp._tcp,_ravenna_session", session_name_.c_str(), nullptr, rtsp_server.port(), {}, false, false
@@ -70,8 +68,7 @@ rav::ravenna_transmitter::~ravenna_transmitter() {
         advertiser_.unregister_service(advertisement_id_);
     }
 
-    rtsp_server_.register_handler(path_by_name_, nullptr);
-    rtsp_server_.register_handler(path_by_id_, nullptr);
+    rtsp_server_.unregister_handler(this);
 }
 
 rav::id rav::ravenna_transmitter::get_id() const {
@@ -149,7 +146,7 @@ void rav::ravenna_transmitter::on_parent_changed(const ptp_parent_ds& parent) {
     send_announce();
 }
 
-void rav::ravenna_transmitter::on_request_event(const rtsp_connection::request_event event) const {
+void rav::ravenna_transmitter::on_request(rtsp_connection::request_event event) const {
     const auto sdp = build_sdp();  // Should the SDP be cached and updated on changes?
     RAV_TRACE("SDP:\n{}", sdp.to_string("\n").value());
     const auto encoded = sdp.to_string();
@@ -157,8 +154,11 @@ void rav::ravenna_transmitter::on_request_event(const rtsp_connection::request_e
         RAV_ERROR("Failed to encode SDP");
         return;
     }
-    const auto response = rtsp_response(200, "OK", *encoded);
-    response.headers["content-type"] = "application/sdp";
+    auto response = rtsp_response(200, "OK", *encoded);
+    if (const auto* cseq = event.request.headers.get("cseq")) {
+        response.headers.set(*cseq);
+    }
+    response.headers.set("content-type", "application/sdp");
     event.connection.async_send_response(response);
 }
 
@@ -170,7 +170,7 @@ void rav::ravenna_transmitter::send_announce() const {
     }
     rtsp_request request;
     request.method = "ANNOUNCE";
-    request.headers["content-type"] = "application/sdp";
+    request.headers.set("content-type", "application/sdp");
     request.data = std::move(sdp.value());
     request.uri = uri::encode(
         "rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_name_

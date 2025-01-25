@@ -61,7 +61,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
 
         rtp_session session;
         rtp_filter filter;
-        sequence_number<uint16_t> sequence_number;
+        sequence_number<uint16_t> seq;
         uint32_t packet_time_frames = 0;
         std::optional<uint32_t> first_packet_timestamp;
     };

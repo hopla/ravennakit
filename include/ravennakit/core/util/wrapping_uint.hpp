@@ -22,7 +22,7 @@ namespace rav {
  * Use this class for the sequence id in PTP, sequence number in RTP, timestamp in RTP, etc.
  */
 template<class T>
-class sequence_number {
+class wrapping_uint {
     static_assert(std::is_integral_v<T>, "sequence_number only supports integral types");
     static_assert(std::is_unsigned_v<T>, "sequence_number only supports unsigned types");
 
@@ -30,13 +30,13 @@ class sequence_number {
     /**
      * Default construct a sequence number with the value 0.
      */
-    sequence_number() = default;
+    wrapping_uint() = default;
 
     /**
      * Construct a sequence number with the given value.
      * @param value The initial value of the sequence number.
      */
-    explicit sequence_number(const T value) : value_(value) {}
+    explicit wrapping_uint(const T value) : value_(value) {}
 
     /**
      * Updates the value in the sequence. The number of steps taken from the previous value to the next value
@@ -76,7 +76,7 @@ class sequence_number {
      * @param value The new value of the sequence number.
      * @return This instance.
      */
-    sequence_number& operator=(const T value) {
+    wrapping_uint& operator=(const T value) {
         value_ = value;
         return *this;
     }
@@ -86,7 +86,7 @@ class sequence_number {
      * @param value The value to increment by.
      * @return This instance.
      */
-    sequence_number& operator+=(const T value) {
+    wrapping_uint& operator+=(const T value) {
         value_ += value;
         return *this;
     }
@@ -96,7 +96,7 @@ class sequence_number {
      * @param value The value to decrement by.
      * @return This instance.
      */
-    sequence_number& operator-=(const T value) {
+    wrapping_uint& operator-=(const T value) {
         value_ -= value;
         return *this;
     }
@@ -106,8 +106,8 @@ class sequence_number {
      * @param value The value to increment by.
      * @return A new sequence number instance.
      */
-    sequence_number operator+(const T value) {
-        return sequence_number(value_ + value);
+    wrapping_uint operator+(const T value) {
+        return wrapping_uint(value_ + value);
     }
 
     /**
@@ -115,8 +115,8 @@ class sequence_number {
      * @param value The value to decrement by.
      * @return A new sequence number instance.
      */
-    sequence_number operator-(const T value) {
-        return sequence_number(value_ - value);
+    wrapping_uint operator-(const T value) {
+        return wrapping_uint(value_ - value);
     }
 
     /**
@@ -143,7 +143,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is less than the given value, false otherwise.
      */
-    friend bool operator==(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator==(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return lhs.value_ == rhs.value_;
     }
 
@@ -153,7 +153,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is not equal to the given value, false otherwise.
      */
-    friend bool operator!=(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator!=(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return lhs.value_ != rhs.value_;
     }
 
@@ -163,7 +163,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is less than the given value, false otherwise.
      */
-    friend bool operator<(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator<(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return is_older_than(lhs.value_, rhs.value_);
     }
 
@@ -173,7 +173,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is less than or equal to the given value, false otherwise.
      */
-    friend bool operator<=(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator<=(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return lhs < rhs || lhs == rhs;
     }
 
@@ -183,7 +183,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is greater than the given value, false otherwise.
      */
-    friend bool operator>(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator>(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return !(lhs <= rhs);
     }
 
@@ -193,7 +193,7 @@ class sequence_number {
      * @param rhs Right hand side.
      * @return True if the sequence number is greater than or equal to the given value, false otherwise.
      */
-    friend bool operator>=(const sequence_number& lhs, const sequence_number& rhs) {
+    friend bool operator>=(const wrapping_uint& lhs, const wrapping_uint& rhs) {
         return lhs > rhs || lhs == rhs;
     }
 

@@ -10,6 +10,7 @@
 
 #include "ravennakit/rtp/rtp_stream_receiver.hpp"
 
+#include "ravennakit/aes67/aes67_packet_time.hpp"
 #include "ravennakit/core/tracy.hpp"
 
 namespace {
@@ -115,7 +116,7 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     uint32_t packet_time_frames = 0;
     const auto ptime = selected_media_description->ptime();
     if (ptime.has_value()) {
-        packet_time_frames = static_cast<uint32_t>(std::round(*ptime * selected_audio_format->sample_rate)) / 1000;
+        packet_time_frames = aes67_packet_time::framecount(*ptime, selected_audio_format->sample_rate);
     }
 
     if (packet_time_frames == 0) {

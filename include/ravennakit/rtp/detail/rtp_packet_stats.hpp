@@ -10,6 +10,7 @@
 
 #pragma once
 #include "ravennakit/core/containers/ring_buffer.hpp"
+#include "ravennakit/core/containers/detail/fifo.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 
@@ -30,83 +31,104 @@ class rtp_packet_stats {
     explicit rtp_packet_stats() = default;
 
     /**
+     * @param window_size The window size in number of packets. Max value is 65535 (0xffff).
+     */
+    explicit rtp_packet_stats(const size_t window_size) : window_(window_size) {
+        RAV_ASSERT(window_size <= std::numeric_limits<uint16_t>::max(), "Window size too large");
+    }
+
+    /**
      * Updates the statistics with the given packet.
      * @param sequence_number
      * @return True if packet should be processed, or false if it should be dropped because it is too old.
      */
     void update(const uint16_t sequence_number) {
         const auto packet_sequence_number = wrapping_uint16(sequence_number);
-        if (first_packet_) {
-            last_collected_sequence_number_ = packet_sequence_number - 1;
-            first_packet_ = false;
-        }
-        if (packet_sequence_number <= last_collected_sequence_number_) {
-            num_too_old_++;
-            return;
+
+        if (!most_recent_sequence_number_.has_value()) {
+            most_recent_sequence_number_ = packet_sequence_number - 1;
         }
 
-        packets_.at(sequence_number % packets_.size()).times_received++;
+        const auto diff = most_recent_sequence_number_->update(sequence_number);
+        for (uint16_t i = 0; i < diff; ++i) {
+            window_.push_back({});
+        }
 
-        const auto diff = most_recent_sequence_number_.update(sequence_number);
+        const auto offset = (*most_recent_sequence_number_ - sequence_number).value();
 
-        for (uint16_t i = 1; i < diff; i++) {
-            packets_.at((sequence_number - i) % packets_.size()).out_of_order = true;
+        if (offset >= window_.size()) {
+            return;  // Too old for the window
+        }
+
+        auto& packet = window_[window_.size() - 1 - offset];
+        packet.times_received++;
+        if (packet_sequence_number < *most_recent_sequence_number_ - max_age_) {
+            packet.times_too_old++;  // Packet older than max_age_
+        } else if (packet_sequence_number < *most_recent_sequence_number_) {
+            packet.times_out_of_order++;  // Packet out of order
         }
     }
 
     /**
-     * Collects the statistics up to and including the given sequence number.
-     * @param until_sequence_number The sequence number to collect statistics up to.
+     * Collects the statistics, counting the number of dropped, out of order, too old, and duplicate packets for the
+     * current window.
      * @return The collected statistics.
      */
-    counters collect(const wrapping_uint16 until_sequence_number) {
-        if (until_sequence_number <= last_collected_sequence_number_) {
-            RAV_WARNING("Invalid sequence number");
+    counters collect() {
+        if (window_.empty()) {
             return {};
         }
 
         counters result {};
-        result.too_old = num_too_old_;
-        num_too_old_ = 0;
-
-        for (auto i = last_collected_sequence_number_ + 1; i <= until_sequence_number; i += 1) {
-            auto& packet = packets_.at(i.value() % packets_.size());
+        for (const auto& packet : window_) {
             if (packet.times_received == 0) {
                 result.dropped++;
             } else if (packet.times_received > 1) {
-                result.duplicates++;
-            } else if (packet.out_of_order) {
-                result.out_of_order++;
+                result.duplicates = packet.times_received - 1;
             }
-            packet = {};
+            result.out_of_order += packet.times_out_of_order;
+            result.too_old += packet.times_too_old;
         }
-
-        last_collected_sequence_number_ = until_sequence_number;
         return result;
     }
 
     /**
-     * Resets to the initial state.
+     * Sets the maximum age of a packet. When the packet is older than max age it will be marked as expired.
+     * @param max_age The maximum age in number of packets.
      */
-    void reset() {
-        first_packet_ = true;
-        std::fill(packets_.begin(), packets_.end(), packet {});
+    void set_max_age(const uint16_t max_age) {
+        max_age_ = max_age;
+    }
+
+    /**
+     * @return The number of packets in the window.
+     */
+    [[nodiscard]] size_t size() const {
+        return window_.size();
+    }
+
+    /**
+     * Resets to the initial state.
+     * @param window_size The window size in number of packets. Max value is 65535 (0xffff).
+     */
+    void reset(const std::optional<uint16_t> window_size = {}) {
+        if (window_size.has_value()) {
+            RAV_ASSERT(*window_size <= std::numeric_limits<uint16_t>::max(), "Window size too large");
+        }
+        window_.reset(window_size);
         most_recent_sequence_number_ = {};
-        last_collected_sequence_number_ = {};
-        num_too_old_ = 0;
     }
 
   private:
     struct packet {
         uint16_t times_received {};
-        bool out_of_order {};
+        uint16_t times_out_of_order {};
+        uint16_t times_too_old {};
     };
 
-    bool first_packet_ {true};
-    wrapping_uint16 most_recent_sequence_number_ {};
-    wrapping_uint16 last_collected_sequence_number_ {};
-    uint16_t num_too_old_ {};
-    std::vector<packet> packets_ {1024};  // TODO: Determine size
+    std::optional<wrapping_uint16> most_recent_sequence_number_ {};
+    uint16_t max_age_ {};
+    ring_buffer<packet> window_ {32};
 };
 
 }  // namespace rav

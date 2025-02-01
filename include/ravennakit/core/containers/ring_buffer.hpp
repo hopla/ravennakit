@@ -14,7 +14,7 @@
 
 #include <vector>
 #include <optional>
-#include  <tuple>
+#include <tuple>
 
 namespace rav {
 
@@ -52,6 +52,22 @@ class ring_buffer {
             other.clear();
         }
         return *this;
+    }
+
+    /**
+     * @return The oldest element in the buffer. No bounds checking is performed - be warned!
+     */
+    T& front() {
+        RAV_ASSERT(!empty(), "Cannot access front of empty ring buffer");
+        return data_[read_index_];
+    }
+
+    /**
+     * @return The newest element in the buffer. No bounds checking is performed - be warned!
+     */
+    T& back() {
+        RAV_ASSERT(!empty(), "Cannot access back of empty ring buffer");
+        return data_[(write_index_ + data_.size() - 1) % data_.size()];
     }
 
     /**
@@ -111,6 +127,14 @@ class ring_buffer {
     }
 
     /**
+     * Get the capacity of the buffer. This is the maximum number of elements that can be stored in the buffer.
+     * @return The capacity of the buffer.
+     */
+    [[nodiscard]] size_t capacity() const {
+        return data_.size();
+    }
+
+    /**
      * @returns True if the buffer is empty, false otherwise.
      */
     [[nodiscard]] bool empty() const {
@@ -125,12 +149,23 @@ class ring_buffer {
     }
 
     /**
-     * Clears the contents of the buffer.
+     * Sets the counters to zero, effectively clearing the buffer. The capacity remains the same.
      */
     void clear() {
         read_index_ = 0;
         write_index_ = 0;
         count_ = 0;
+    }
+
+    /**
+     * Resets the buffer, discarding existing contents.
+     * @param new_capacity The new capacity of the buffer. If not provided, the capacity remains the same.
+     */
+    void reset(std::optional<size_t> new_capacity = std::nullopt) {
+        if (new_capacity.has_value()) {
+            data_.resize(*new_capacity);
+        }
+        clear();
     }
 
     auto tie() {

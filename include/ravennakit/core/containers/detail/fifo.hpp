@@ -466,7 +466,7 @@ struct mpmc {
      * Realtime safe: yes
      * @return The number of elements in the buffer.
      */
-    [[nodiscard]] size_t size() const;
+    [[nodiscard]] size_t size();
 
     /**
      * Resizes the buffer. Implies a reset.

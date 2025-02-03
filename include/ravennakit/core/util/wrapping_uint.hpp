@@ -12,6 +12,7 @@
 
 #include <limits>
 #include <type_traits>
+#include <cstdint>
 
 namespace rav {
 

@@ -9,6 +9,7 @@
  */
 
 #pragma once
+#include "ravennakit/core/subscription.hpp"
 #include "ravennakit/core/containers/ring_buffer.hpp"
 #include "ravennakit/core/containers/detail/fifo.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
@@ -65,9 +66,10 @@ class rtp_packet_stats {
     /**
      * Updates the statistics with the given packet.
      * @param sequence_number
-     * @return True if packet should be processed, or false if it should be dropped because it is too old.
+     * @return Returns the total counts if one or more counters changed, but subsequent changes will be coalesced into a
+     * single return value where no more than one per window period will be returned.
      */
-    void update(const uint16_t sequence_number) {
+    std::optional<counters> update(const uint16_t sequence_number) {
         const auto packet_sequence_number = wrapping_uint16(sequence_number);
 
         if (!most_recent_sequence_number_) {
@@ -75,19 +77,22 @@ class rtp_packet_stats {
         }
 
         if (packet_sequence_number <= *most_recent_sequence_number_ - static_cast<uint16_t>(window_.size())) {
-            total_counts_.too_old++;
-            return;  // Too old for the window
+            total_counts_.too_old++;  // Too old for the window
+            should_return_total_counts_ = true;
+            return get_total_counters_if_necessary(sequence_number);
         }
 
         if (window_.capacity() == 0) {
             RAV_ASSERT_FALSE("Window is has zero capacity");
-            return;
+            return {};
         }
 
         if (const auto diff = most_recent_sequence_number_->update(sequence_number)) {
             for (uint16_t i = 0; i < *diff; i++) {
                 if (window_.full()) {
-                    collect_packet();
+                    if (collect_packet()) {
+                        should_return_total_counts_ = true;
+                    }
                 }
                 std::ignore = window_.push_back({});
             }
@@ -97,6 +102,8 @@ class rtp_packet_stats {
             packet.times_out_of_order++;  // Packet out of order
             packet.times_received++;
         }
+
+        return get_total_counters_if_necessary(sequence_number);
     }
 
     /**
@@ -183,23 +190,52 @@ class rtp_packet_stats {
     std::optional<wrapping_uint16> most_recent_sequence_number_ {};
     ring_buffer<packet> window_ {};
     counters total_counts_ {};
+    std::optional<wrapping_uint16> prev_sent_total_counts_ {};
+    bool should_return_total_counts_ {};
 
-    void collect_packet() {
+    [[nodiscard]] bool collect_packet() {
         const auto pkt = window_.pop_front();
         RAV_ASSERT(pkt.has_value(), "No packet to collect");
 
+        bool changed = false;
         if (pkt->times_received == 0) {
+            changed = true;
             total_counts_.dropped++;
         }
         if (pkt->times_received > 1) {
+            changed = true;
             total_counts_.duplicates += pkt->times_received - 1;
         }
         if (pkt->times_out_of_order > 0) {
+            changed = true;
             total_counts_.out_of_order += pkt->times_out_of_order;
         }
         if (pkt->times_too_late > 0) {
+            changed = true;
             total_counts_.too_late += pkt->times_too_late;
         }
+
+        return changed;
+    }
+
+    std::optional<counters> get_total_counters_if_necessary(const uint16_t sequence_number) {
+        if (prev_sent_total_counts_.has_value()
+            && *prev_sent_total_counts_ + static_cast<uint16_t>(window_.capacity())
+                > wrapping_uint16(sequence_number)) {
+            return {};  // Not yet time to return something
+        }
+
+        if (should_return_total_counts_) {
+            prev_sent_total_counts_ = sequence_number;
+            should_return_total_counts_ = false;
+            return total_counts_;
+        }
+
+        // Clear the previously sent time to prevent a long wait when the sequence number wraps around and
+        // sequence_number becomes < prev_sent_total_counts_.
+        prev_sent_total_counts_.reset();
+
+        return {};
     }
 };
 

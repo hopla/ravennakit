@@ -266,13 +266,13 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
         receiver_buffer_.set_next_ts(packet.timestamp());
         stream.seq = packet.sequence_number();
         stream.first_packet_timestamp = packet.timestamp();
-        stream.last_stats_dump_ = packet.sequence_number();
     }
 
     receiver_buffer_.clear_until(packet.timestamp());
 
     // Discard packet if it's too old
     if (packet_timestamp + stream.packet_time_frames < receiver_buffer_.next_ts() - delay_) {
+        // TODO: The age should be determined by the consuming side, not the producing side
         RAV_WARNING(
             "Dropping packet because it's too old (ts: {}, next_ts: {})", packet.timestamp(),
             receiver_buffer_.next_ts().value()
@@ -286,18 +286,9 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
 
     TRACY_PLOT("RTP Timestamp", static_cast<int64_t>(packet.timestamp()));
 
-    stream.packet_stats.update(packet.sequence_number());
 
-    const auto packet_sequence_number = wrapping_uint16(packet.sequence_number());
-    const auto dump_interval_packets = static_cast<uint16_t>(
-        k_dump_stats_interval_ms * selected_format_.sample_rate / stream.packet_time_frames / 1000
-    );
-
-    if (stream.last_stats_dump_ + dump_interval_packets < packet_sequence_number) {
-        RAV_TRACE(
-            "Stats for stream {}: {}", stream.session.to_string(), stream.packet_stats.get_total_counts().to_string()
-        );
-        stream.last_stats_dump_ = packet_sequence_number;
+    if (auto counters = stream.packet_stats.update(packet.sequence_number())) {
+        RAV_TRACE("Stats for stream {}: {}", stream.session.to_string(), counters->to_string());
     }
 
     if (const auto step = stream.seq.update(packet.sequence_number())) {

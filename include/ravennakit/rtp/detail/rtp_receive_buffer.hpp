@@ -117,7 +117,8 @@ class rtp_receive_buffer {
     }
 
     /**
-     * Fills the buffer with a value until (but not including) the given timestamp.
+     * Fills the buffer with a value until (but not including) the given timestamp. If given timestamp is older than the
+     * existing data nothing will happen - i.e. an older packet will not overwrite a newer packet.
      * @param at_timestamp The timestamp to fill until.
      * @returns true if any data was cleared, false if no data was cleared.
      */

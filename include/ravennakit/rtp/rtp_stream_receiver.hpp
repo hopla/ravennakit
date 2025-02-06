@@ -41,7 +41,16 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     ~rtp_stream_receiver() override;
 
     void update_sdp(const sdp::session_description& sdp);
+
+    /**
+     * Sets the delay nin samples.
+     * @param delay The delay in samples.
+     */
     void set_delay(uint32_t delay);
+
+    /**
+     * @return The delay in samples.
+     */
     [[nodiscard]] uint32_t get_delay() const;
 
     bool add_subscriber(subscriber* subscriber_to_add);
@@ -54,7 +63,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
      * @param buffer_size The size of the buffer in bytes.
      * @return true if buffer_size bytes were read, or false if buffer_size bytes couldn't be read.
      */
-    bool read_data(uint32_t at_timestamp, uint8_t* buffer, size_t buffer_size) const;
+    bool read_data(uint32_t at_timestamp, uint8_t* buffer, size_t buffer_size);
 
     // rtp_receiver::subscriber overrides
     void on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) override;
@@ -78,10 +87,16 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
 
     rtp_receiver& rtp_receiver_;
     audio_format selected_format_;
-    rtp_receive_buffer receiver_buffer_;
     std::vector<stream_info> streams_;
     uint32_t delay_ = 480;  // 100ms at 48KHz
     subscriber_list<subscriber> subscribers_;
+
+    struct {
+        rtp_receive_buffer receiver_buffer;
+        fifo_buffer<uint8_t, fifo::spsc> fifo;
+        std::optional<wrapping_uint32> first_packet_timestamp;
+        std::vector<uint8_t> buffer;
+    } realtime_context_;
 
     /// Restarts the streaming
     void restart();

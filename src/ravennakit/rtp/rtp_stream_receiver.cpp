@@ -221,8 +221,16 @@ bool rav::rtp_stream_receiver::remove_subscriber(subscriber* subscriber_to_remov
     return subscribers_.remove(subscriber_to_remove);
 }
 
-bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* buffer, const size_t buffer_size) const {
-    return receiver_buffer_.read(at_timestamp, buffer, buffer_size);
+bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* buffer, const size_t buffer_size) {
+    while (realtime_context_.fifo.read(realtime_context_.buffer.data(), realtime_context_.buffer.size())) {
+        const rtp_packet_view packet(realtime_context_.buffer.data(), realtime_context_.buffer.size());
+        realtime_context_.receiver_buffer.clear_until(packet.timestamp());
+        if (!realtime_context_.receiver_buffer.write(packet.timestamp(), packet.payload_data())) {
+            RAV_ERROR("Packet not written to buffer");
+        }
+    }
+
+    return realtime_context_.receiver_buffer.read(at_timestamp, buffer, buffer_size);
 }
 
 void rav::rtp_stream_receiver::restart() {
@@ -235,7 +243,9 @@ void rav::rtp_stream_receiver::restart() {
     const auto bytes_per_frame = selected_format_.bytes_per_frame();
     RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
-    receiver_buffer_.resize(std::max(1024u, delay_ * k_delay_multiplier), bytes_per_frame);
+    realtime_context_.receiver_buffer.resize(std::max(1024u, delay_ * k_delay_multiplier), bytes_per_frame);
+    realtime_context_.fifo.resize(delay_ * k_delay_multiplier * bytes_per_frame);
+    realtime_context_.buffer.resize(1500);  // MTU
 
     for (auto& stream : streams_) {
         rtp_receiver_.subscribe(*this, stream.session, stream.filter);
@@ -263,28 +273,15 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
     const wrapping_uint32 packet_timestamp(packet.timestamp());
 
     if (!stream.first_packet_timestamp.has_value()) {
-        receiver_buffer_.set_next_ts(packet.timestamp());
+        realtime_context_.receiver_buffer.set_next_ts(packet.timestamp());
         stream.seq = packet.sequence_number();
         stream.first_packet_timestamp = packet.timestamp();
     }
 
-    receiver_buffer_.clear_until(packet.timestamp());
-
-    // Discard packet if it's too old
-    if (packet_timestamp + stream.packet_time_frames < receiver_buffer_.next_ts() - delay_) {
-        // TODO: The age should be determined by the consuming side, not the producing side
-        RAV_WARNING(
-            "Dropping packet because it's too old (ts: {}, next_ts: {})", packet.timestamp(),
-            receiver_buffer_.next_ts().value()
-        );
+    if (!realtime_context_.fifo.write(packet.data(), packet.size())) {
+        RAV_WARNING("Failed to copy packet to FIFO");
         return;
     }
-
-    if (!receiver_buffer_.write(packet.timestamp(), packet.payload_data())) {
-        RAV_ERROR("Packet not written to buffer");
-    }
-
-    TRACY_PLOT("RTP Timestamp", static_cast<int64_t>(packet.timestamp()));
 
     if (const auto counters = stream.packet_stats.update(packet.sequence_number())) {
         if (auto v = stream.packet_stats_throttle.update(*counters)) {
@@ -292,8 +289,8 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
         }
     }
 
-    if (const auto step = stream.seq.update(packet.sequence_number())) {
-        if (step >= 1) {
+    if (const auto diff = stream.seq.update(packet.sequence_number())) {
+        if (diff >= 1) {
             if (packet_timestamp - delay_ >= *stream.first_packet_timestamp) {
                 for (const auto& s : subscribers_) {
                     s->on_data_available(packet_timestamp - delay_);
@@ -301,6 +298,25 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
             }
         }
     }
+
+    // realtime_context_.receiver_buffer.clear_until(packet.timestamp());
+    //
+    // // Discard packet if it's too old
+    // if (packet_timestamp + stream.packet_time_frames < realtime_context_.receiver_buffer.next_ts() - delay_) {
+    //     // TODO: The age should be determined by the consuming side, not the producing side
+    //     RAV_WARNING(
+    //         "Dropping packet because it's too old (ts: {}, next_ts: {})", packet.timestamp(),
+    //         realtime_context_.receiver_buffer.next_ts().value()
+    //     );
+    //     return;
+    // }
+    //
+    // if (!realtime_context_.receiver_buffer.write(packet.timestamp(), packet.payload_data())) {
+    //     RAV_ERROR("Packet not written to buffer");
+    // }
+    //
+    // TRACY_PLOT("RTP Timestamp", static_cast<int64_t>(packet.timestamp()));
+
 }
 
 void rav::rtp_stream_receiver::on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) {

@@ -195,7 +195,7 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         }
     }
 
-    void start() {
+    void run() {
         io_context_.run();
     }
 
@@ -327,7 +327,7 @@ int main(int const argc, char* argv[]) {
         receiver_example.stop();
     });
 
-    receiver_example.start();
+    receiver_example.run();
     cin_thread.join();
 
     return 0;

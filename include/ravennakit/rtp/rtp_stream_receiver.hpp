@@ -97,7 +97,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     struct intermediate_packet {
         uint32_t timestamp;
         uint16_t seq;
-        uint16_t len;
+        uint16_t data_len;
         uint16_t packet_time_frames;
         std::array<uint8_t, 1500> data;  // MTU
     };

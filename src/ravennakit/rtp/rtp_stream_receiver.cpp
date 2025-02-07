@@ -231,19 +231,10 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
     while (const auto packet = realtime_context_.fifo.pop()) {
         wrapping_uint32 packet_timestamp(packet->timestamp);
         if (!realtime_context_.first_packet_timestamp) {
-            realtime_context_.receiver_buffer.set_next_ts(packet->timestamp);
+            RAV_TRACE("First packet timestamp: {}", packet->timestamp);
             realtime_context_.first_packet_timestamp = packet_timestamp;
+            realtime_context_.receiver_buffer.set_next_ts(packet->timestamp);
             realtime_context_.next_ts = packet_timestamp;
-        }
-
-        if (packet_timestamp >= realtime_context_.next_ts) {
-            TRACY_PLOT(
-                "packet_timestamp", static_cast<double>((packet_timestamp - realtime_context_.next_ts.value()).value())
-            );
-        } else {
-            TRACY_PLOT(
-                "packet_timestamp", static_cast<double>((realtime_context_.next_ts - packet->timestamp).value() * -1u)
-            );
         }
 
         // Determine whether whole packet is too old
@@ -255,18 +246,32 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
 
         // Determine whether packet contains outdated data
         if (packet_timestamp < realtime_context_.next_ts) {
-            RAV_WARNING("Packet party too old: seq={}, ts={}", packet->seq, packet->timestamp);
+            RAV_WARNING("Packet partly too old: seq={}, ts={}", packet->seq, packet->timestamp);
             // TODO: Report back to receive thread
             // Still process the packet since it contains data that is not outdated
         }
 
         realtime_context_.receiver_buffer.clear_until(packet->timestamp);
-        if (!realtime_context_.receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->len})) {
+
+        if (!realtime_context_.receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->data_len})) {
             RAV_ERROR("Packet not written to buffer");
         }
     }
 
     realtime_context_.next_ts = at_timestamp + num_frames;
+
+    auto in = realtime_context_.receiver_buffer.next_ts();
+    auto out = realtime_context_.next_ts;
+
+    // TODO: Create something in wrapping_uint to get a difference between two values
+    // Something like: int32_t wrapping_uint<uint32_t>::diff(const wrapping_uint<uint32_t>& other) const)
+
+    if (in < out) {
+        in += (out - in.value()).value();
+        out += (out - in.value()).value();
+    }
+
+    TRACY_PLOT("available_frames", static_cast<double>((in - out.value()).value()));
     return realtime_context_.receiver_buffer.read(at_timestamp, buffer, buffer_size);
 }
 
@@ -328,9 +333,9 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
     intermediate_packet intermediate {};
     intermediate.timestamp = packet.timestamp();
     intermediate.seq = packet.sequence_number();
-    intermediate.len = static_cast<uint16_t>(payload.size_bytes());
+    intermediate.data_len = static_cast<uint16_t>(payload.size_bytes());
     intermediate.packet_time_frames = stream.packet_time_frames;
-    std::memcpy(intermediate.data.data(), payload.data(), intermediate.len);
+    std::memcpy(intermediate.data.data(), payload.data(), intermediate.data_len);
 
     if (!realtime_context_.fifo.push(intermediate)) {
         RAV_WARNING("Failed to push packet info FIFO");

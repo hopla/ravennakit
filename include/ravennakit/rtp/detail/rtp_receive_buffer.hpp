@@ -75,6 +75,7 @@ class rtp_receive_buffer {
 
         const auto end_ts =
             wrapping_uint32(at_timestamp) + static_cast<uint32_t>(payload.size_bytes() / bytes_per_frame_);
+
         if (end_ts > next_ts_) {
             next_ts_ = end_ts;
         }

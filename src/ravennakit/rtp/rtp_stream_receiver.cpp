@@ -240,6 +240,7 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
         // Determine whether whole packet is too old
         if (packet_timestamp + packet->packet_time_frames <= realtime_context_.next_ts) {
             RAV_WARNING("Packet too old: seq={}, ts={}", packet->seq, packet->timestamp);
+            TRACY_MESSAGE("Packet too old - skipping");
             // TODO: Report back to receive thread
             continue;
         }
@@ -247,6 +248,7 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
         // Determine whether packet contains outdated data
         if (packet_timestamp < realtime_context_.next_ts) {
             RAV_WARNING("Packet partly too old: seq={}, ts={}", packet->seq, packet->timestamp);
+            TRACY_MESSAGE("Packet partly too old - not skipping");
             // TODO: Report back to receive thread
             // Still process the packet since it contains data that is not outdated
         }
@@ -260,18 +262,10 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
 
     realtime_context_.next_ts = at_timestamp + num_frames;
 
-    auto in = realtime_context_.receiver_buffer.next_ts();
-    auto out = realtime_context_.next_ts;
+    const auto in = realtime_context_.receiver_buffer.next_ts();
+    const auto out = realtime_context_.next_ts;
+    TRACY_PLOT("available_frames", static_cast<int64_t>(out.diff(in)));
 
-    // TODO: Create something in wrapping_uint to get a difference between two values
-    // Something like: int32_t wrapping_uint<uint32_t>::diff(const wrapping_uint<uint32_t>& other) const)
-
-    if (in < out) {
-        in += (out - in.value()).value();
-        out += (out - in.value()).value();
-    }
-
-    TRACY_PLOT("available_frames", static_cast<double>((in - out.value()).value()));
     return realtime_context_.receiver_buffer.read(at_timestamp, buffer, buffer_size);
 }
 

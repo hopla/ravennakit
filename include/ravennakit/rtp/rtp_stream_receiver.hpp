@@ -132,6 +132,9 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     uint32_t delay_ = 480;  // 100ms at 48KHz
     subscriber_list<subscriber> subscribers_;
 
+    /// When active data is being consumed. When the FIFO is full, this will be set to false.
+    std::atomic_bool consumer_active_ = true;
+
     /**
      * Used for copying received packets to the realtime context.
      */

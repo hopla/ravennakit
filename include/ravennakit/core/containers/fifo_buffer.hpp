@@ -69,6 +69,15 @@ class fifo_buffer {
     }
 
     /**
+     * Convenience function to pop all available data. Thread safe when called from the consumer thread.
+     */
+    void pop_all() {
+        if (auto lock = fifo_.prepare_for_read(size())) {
+            lock.commit();
+        }
+    }
+
+    /**
      * Writes data to the buffer.
      * @param src The source data to write to the buffer.
      * @param number_of_elements The number of elements to write (not bytes).

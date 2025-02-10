@@ -228,6 +228,10 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
     const auto num_frames =
         static_cast<uint32_t>(buffer_size) / realtime_context_.selected_audio_format.bytes_per_frame();
 
+    if (consumer_active_.exchange(true) == false) {
+        realtime_context_.fifo.pop_all();
+    }
+
     while (const auto packet = realtime_context_.fifo.pop()) {
         wrapping_uint32 packet_timestamp(packet->timestamp);
         if (!realtime_context_.first_packet_timestamp) {
@@ -323,18 +327,19 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
         return;
     }
 
-    intermediate_packet intermediate {};
-    intermediate.timestamp = packet.timestamp();
-    intermediate.seq = packet.sequence_number();
-    intermediate.data_len = static_cast<uint16_t>(payload.size_bytes());
-    intermediate.packet_time_frames = stream.packet_time_frames;
-    std::memcpy(intermediate.data.data(), payload.data(), intermediate.data_len);
+    if (consumer_active_) {
+        intermediate_packet intermediate {};
+        intermediate.timestamp = packet.timestamp();
+        intermediate.seq = packet.sequence_number();
+        intermediate.data_len = static_cast<uint16_t>(payload.size_bytes());
+        intermediate.packet_time_frames = stream.packet_time_frames;
+        std::memcpy(intermediate.data.data(), payload.data(), intermediate.data_len);
 
-    if (!realtime_context_.fifo.push(intermediate)) {
-        RAV_TRACE("Failed to push packet info FIFO");
-        // TODO: This is not really an error, it just means the consuming side is not calling read_data (or hasn't even
-        // started yet). We should probably just ignore this.
-        return;
+        if (!realtime_context_.fifo.push(intermediate)) {
+            RAV_TRACE("Failed to push packet info FIFO, make receiver inactive");
+            consumer_active_ = false;
+            return;
+        }
     }
 
     if (const auto counters = stream.packet_stats.update(packet.sequence_number())) {

@@ -232,7 +232,7 @@ void test_wrapping_uint() {
     SECTION("Difference big negative") {
         rav::wrapping_uint<T> a(std::numeric_limits<T>::max() / 2);
         rav::wrapping_uint<T> b(0);
-        REQUIRE(a.diff(b) == -std::numeric_limits<T>::max() / 2);
+        REQUIRE(a.diff(b) == -static_cast<std::make_signed_t<T>>(std::numeric_limits<T>::max() / 2));
     }
 
     SECTION("Difference big negative") {

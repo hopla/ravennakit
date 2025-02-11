@@ -223,8 +223,6 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         most_recent_ready_timestamp_ = std::nullopt;
     }
 
-    void on_data_received(rav::wrapping_uint32 timestamp) override {}
-
     void on_data_ready(rav::wrapping_uint32 timestamp) override {
         most_recent_ready_timestamp_ = timestamp;
     }

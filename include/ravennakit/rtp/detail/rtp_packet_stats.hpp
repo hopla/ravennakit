@@ -31,8 +31,8 @@ class rtp_packet_stats {
         uint32_t dropped {};
         /// The number of packets which were too late for consumer.
         uint32_t too_late {};
-        /// The number of packets which were too old for the window.
-        uint32_t too_old {};
+        /// The number of packets which were outside the window.
+        uint32_t outside_window {};
 
         [[nodiscard]] auto tie() const {
             return std::tie(out_of_order, too_late, duplicates, dropped);
@@ -46,10 +46,20 @@ class rtp_packet_stats {
             return lhs.tie() != rhs.tie();
         }
 
+        counters operator+(const counters other) const {
+            counters result = *this;
+            result.out_of_order += other.out_of_order;
+            result.too_late += other.too_late;
+            result.duplicates += other.duplicates;
+            result.dropped += other.dropped;
+            result.outside_window += other.outside_window;
+            return result;
+        }
+
         std::string to_string() {
             return fmt::format(
-                "out_of_order: {}, duplicates: {}, dropped: {}, too_late: {}, too_old: {}", out_of_order, duplicates,
-                dropped, too_late, too_old
+                "out_of_order: {}, duplicates: {}, dropped: {}, too_late: {}, outside_window: {}", out_of_order,
+                duplicates, dropped, too_late, outside_window
             );
         }
     };
@@ -66,7 +76,7 @@ class rtp_packet_stats {
     /**
      * Updates the statistics with the given packet.
      * @param sequence_number
-     * @return Returns the total counts if changed.
+     * @return Returns the total counts.
      */
     std::optional<counters> update(const uint16_t sequence_number) {
         const auto packet_sequence_number = wrapping_uint16(sequence_number);
@@ -76,8 +86,11 @@ class rtp_packet_stats {
         }
 
         if (packet_sequence_number <= *most_recent_sequence_number_ - static_cast<uint16_t>(window_.size())) {
-            total_counts_.too_old++;  // Too old for the window
-            return total_counts_;
+            collected_total_counts_.outside_window++;  // Too old for the window
+            if (std::exchange(dirty_, false)) {
+                return collected_total_counts_ + get_window_counts();
+            }
+            return std::nullopt;
         }
 
         if (window_.capacity() == 0) {
@@ -85,14 +98,10 @@ class rtp_packet_stats {
             return {};
         }
 
-        bool should_return_total_counts = false;
-
         if (const auto diff = most_recent_sequence_number_->update(sequence_number)) {
             for (uint16_t i = 0; i < *diff; i++) {
                 if (window_.full()) {
-                    if (collect_packet()) {
-                        should_return_total_counts = true;
-                    }
+                    collect_oldest_packet();
                 }
                 std::ignore = window_.push_back({});
             }
@@ -103,7 +112,11 @@ class rtp_packet_stats {
             p.times_received++;
         }
 
-        return should_return_total_counts ? std::make_optional(total_counts_) : std::nullopt;
+        if (std::exchange(dirty_, false)) {
+            return collected_total_counts_ + get_window_counts();
+        }
+
+        return std::nullopt;
     }
 
     /**
@@ -133,10 +146,10 @@ class rtp_packet_stats {
     }
 
     /**
-     * @return The total counts. This will only contain the numbers of packets which are moved out of the window.
+     * @return The total counts. These are the collected numbers plus the ones in the window.
      */
     [[nodiscard]] counters get_total_counts() const {
-        return total_counts_;
+        return collected_total_counts_ + get_window_counts();
     }
 
     /**
@@ -155,6 +168,7 @@ class rtp_packet_stats {
         }
         auto& p = window_[window_.size() - 1 - (*most_recent_sequence_number_ - sequence_number).value()];
         p.times_too_late++;
+        dirty_ = true;
     }
 
     /**
@@ -177,7 +191,7 @@ class rtp_packet_stats {
             window_.reset(*window_size);
         }
         most_recent_sequence_number_ = {};
-        total_counts_ = {};
+        collected_total_counts_ = {};
     }
 
   private:
@@ -189,34 +203,29 @@ class rtp_packet_stats {
 
     std::optional<wrapping_uint16> most_recent_sequence_number_ {};
     ring_buffer<packet> window_ {};
-    counters total_counts_ {};
+    counters collected_total_counts_ {};
+    bool dirty_ {};
 
-    /**
-     * @return true if the statistics changed.
-     */
-    [[nodiscard]] bool collect_packet() {
+    void collect_oldest_packet() {
         const auto pkt = window_.pop_front();
         RAV_ASSERT(pkt.has_value(), "No packet to collect");
 
-        bool changed = false;
         if (pkt->times_received == 0) {
-            changed = true;
-            total_counts_.dropped++;
+            collected_total_counts_.dropped++;
+            dirty_ = true;
         }
         if (pkt->times_received > 1) {
-            changed = true;
-            total_counts_.duplicates += pkt->times_received - 1u;
+            collected_total_counts_.duplicates += pkt->times_received - 1u;
+            dirty_ = true;
         }
         if (pkt->times_out_of_order > 0) {
-            changed = true;
-            total_counts_.out_of_order += pkt->times_out_of_order;
+            collected_total_counts_.out_of_order += pkt->times_out_of_order;
+            dirty_ = true;
         }
         if (pkt->times_too_late > 0) {
-            changed = true;
-            total_counts_.too_late += pkt->times_too_late;
+            collected_total_counts_.too_late += pkt->times_too_late;
+            dirty_ = true;
         }
-
-        return changed;
     }
 };
 

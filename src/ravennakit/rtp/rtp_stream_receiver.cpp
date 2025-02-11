@@ -243,17 +243,17 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
 
         // Determine whether whole packet is too old
         if (packet_timestamp + packet->packet_time_frames <= realtime_context_.next_ts) {
-            RAV_WARNING("Packet too old: seq={}, ts={}", packet->seq, packet->timestamp);
-            TRACY_MESSAGE("Packet too old - skipping");
-            // TODO: Report back to receive thread
+            RAV_WARNING("Packet too late: seq={}, ts={}", packet->seq, packet->timestamp);
+            TRACY_MESSAGE("Packet too late - skipping");
+            realtime_context_.packets_too_old.push(packet->seq);
             continue;
         }
 
         // Determine whether packet contains outdated data
         if (packet_timestamp < realtime_context_.next_ts) {
-            RAV_WARNING("Packet partly too old: seq={}, ts={}", packet->seq, packet->timestamp);
-            TRACY_MESSAGE("Packet partly too old - not skipping");
-            // TODO: Report back to receive thread
+            RAV_WARNING("Packet partly too late: seq={}, ts={}", packet->seq, packet->timestamp);
+            TRACY_MESSAGE("Packet partly too late - not skipping");
+            realtime_context_.packets_too_old.push(packet->seq);
             // Still process the packet since it contains data that is not outdated
         }
 
@@ -283,7 +283,8 @@ void rav::rtp_stream_receiver::restart() {
     RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
     realtime_context_.receiver_buffer.resize(std::max(1024u, delay_ * k_delay_multiplier), bytes_per_frame);
-    realtime_context_.fifo.resize(delay_);  // TODO: Determine sensible size
+    realtime_context_.fifo.resize(delay_);  // TODO: Determine sensible size (maybe this is the sensible size)
+    realtime_context_.packets_too_old.resize(delay_);  // TODO: Determine sensible size
     realtime_context_.selected_audio_format = selected_format_;
 
     for (auto& stream : streams_) {
@@ -342,9 +343,13 @@ void rav::rtp_stream_receiver::handle_rtp_packet_for_stream(const rtp_packet_vie
         }
     }
 
-    if (const auto counters = stream.packet_stats.update(packet.sequence_number())) {
-        if (auto v = stream.packet_stats_throttle.update(*counters)) {
-            RAV_TRACE("Stats for stream {}: {}", stream.session.to_string(), v->to_string());
+    while (auto seq = realtime_context_.packets_too_old.pop()) {
+        stream.packet_stats.mark_packet_too_late(*seq);
+    }
+
+    if (const auto stats = stream.packet_stats.update(packet.sequence_number())) {
+        if (auto v = stream.packet_stats_throttle.update(*stats)) {
+            RAV_WARNING("Stats for stream {}: {}", stream.session.to_string(), v->to_string());
         }
     }
 

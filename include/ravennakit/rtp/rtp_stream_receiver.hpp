@@ -153,6 +153,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     struct {
         rtp_receive_buffer receiver_buffer;
         fifo_buffer<intermediate_packet, fifo::spsc> fifo;
+        fifo_buffer<uint16_t, fifo::spsc> packets_too_old;
         std::optional<wrapping_uint32> first_packet_timestamp;
         wrapping_uint32 next_ts;
         audio_format selected_audio_format;

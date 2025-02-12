@@ -119,7 +119,7 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
 
         RAV_WARNING("Unhandled RTSP request: {}", event.request.method);
     });
-    new_connection.client.on<rtsp_connection::response_event>([=, this](const auto& event) {
+    new_connection.client.on<rtsp_connection::response_event>([=](const auto& event) {
         RAV_TRACE("{}", event.response.to_debug_string(true));
 
         if (event.response.status_code != 200) {

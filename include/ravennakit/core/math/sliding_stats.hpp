@@ -35,8 +35,7 @@ class sliding_stats {
      */
     void add(const double value) {
         window_.push_back(value);
-        recalculate_average();
-        recalculate_median();
+        recalculate();
     }
 
     /**
@@ -128,23 +127,19 @@ class sliding_stats {
     double average_ {};  // Last average value
     double median_ {};   // Last median value
 
-    void recalculate_average() {
-        double sum = 0.0;
-        for (const auto& e : window_) {
-            sum += e;
-        }
-        average_ = sum / static_cast<double>(window_.size());
-    }
-
-    void recalculate_median() {
-        sorted_data_.clear();
-        for (auto& e : window_) {
-            sorted_data_.push_back(e);
-        }
-        if (sorted_data_.empty()) {
+    void recalculate() {
+        if (window_.empty()) {
             median_ = 0.0;
+            average_ = 0.0;
             return;
         }
+        double sum = 0.0;
+        sorted_data_.clear();
+        for (auto& e : window_) {
+            sum += e;
+            sorted_data_.push_back(e);
+        }
+        average_ = sum / static_cast<double>(window_.size());
         std::sort(sorted_data_.begin(), sorted_data_.end());
         const size_t n = sorted_data_.size();
         if (n % 2 == 1) {

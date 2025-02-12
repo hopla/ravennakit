@@ -248,7 +248,7 @@ void rav::dnssd::bonjour_browser::browse_for(const std::string& service) {
 
     if (browsers_.find(service) != browsers_.end()) {
         // Already browsing for this service
-        RAV_THROW_EXCEPTION("Already browsing for service \"" + service + "\"");
+        RAV_THROW_EXCEPTION("Already browsing for service \"{}\"", service);
     }
 
     DNSSD_THROW_IF_ERROR(

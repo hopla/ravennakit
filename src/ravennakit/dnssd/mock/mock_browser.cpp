@@ -17,9 +17,9 @@ rav::dnssd::mock_browser::mock_browser(asio::io_context& io_context) : io_contex
 void rav::dnssd::mock_browser::mock_discovering_service(
     const std::string& fullname, const std::string& name, const std::string& reg_type, const std::string& domain
 ) {
-    asio::dispatch(io_context_, [=] {
+    asio::dispatch(io_context_, [=, this] {
         if (browsers_.find(reg_type) == browsers_.end()) {
-            RAV_THROW_EXCEPTION("Not browsing for reg_type: " + reg_type);
+            RAV_THROW_EXCEPTION("Not browsing for reg_type: {}", reg_type);
         }
         dnssd::service_description service;
         service.fullname = fullname;
@@ -34,10 +34,10 @@ void rav::dnssd::mock_browser::mock_discovering_service(
 void rav::dnssd::mock_browser::mock_resolved_service(
     const std::string& fullname, const std::string& host_target, const uint16_t port, const txt_record& txt_record
 ) {
-    asio::dispatch(io_context_, [=] {
+    asio::dispatch(io_context_, [=, this] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {
-            RAV_THROW_EXCEPTION("Service not discovered: " + fullname);
+            RAV_THROW_EXCEPTION("Service not discovered: {}", fullname);
         }
         it->second.host_target = host_target;
         it->second.port = port;
@@ -49,10 +49,10 @@ void rav::dnssd::mock_browser::mock_resolved_service(
 void rav::dnssd::mock_browser::mock_adding_address(
     const std::string& fullname, const std::string& address, const uint32_t interface_index
 ) {
-    asio::dispatch(io_context_, [=] {
+    asio::dispatch(io_context_, [=, this] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {
-            RAV_THROW_EXCEPTION("Service not discovered: " + fullname);
+            RAV_THROW_EXCEPTION("Service not discovered: {}", fullname);
         }
         it->second.interfaces[interface_index].insert(address);
         emit(address_added {it->second, address, interface_index});
@@ -62,18 +62,18 @@ void rav::dnssd::mock_browser::mock_adding_address(
 void rav::dnssd::mock_browser::mock_removing_address(
     const std::string& fullname, const std::string& address, uint32_t interface_index
 ) {
-    asio::dispatch(io_context_, [=] {
+    asio::dispatch(io_context_, [=, this] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {
-            RAV_THROW_EXCEPTION("Service not discovered: " + fullname);
+            RAV_THROW_EXCEPTION("Service not discovered: {}", fullname);
         }
         const auto iface = it->second.interfaces.find(interface_index);
         if (iface == it->second.interfaces.end()) {
-            RAV_THROW_EXCEPTION("Interface not found: " + std::to_string(interface_index));
+            RAV_THROW_EXCEPTION("Interface not found: {}", std::to_string(interface_index));
         }
         const auto addr = iface->second.find(address);
         if (addr == iface->second.end()) {
-            RAV_THROW_EXCEPTION("Address not found: " + address);
+            RAV_THROW_EXCEPTION("Address not found: {}", address);
         }
         iface->second.erase(addr);
         if (iface->second.empty()) {
@@ -84,10 +84,10 @@ void rav::dnssd::mock_browser::mock_removing_address(
 }
 
 void rav::dnssd::mock_browser::mock_removing_service(const std::string& fullname) {
-    asio::dispatch(io_context_, [=] {
+    asio::dispatch(io_context_, [=, this] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {
-            RAV_THROW_EXCEPTION("Service not discovered: " + fullname);
+            RAV_THROW_EXCEPTION("Service not discovered: {}", fullname);
         }
         emit(service_removed {it->second});
         services_.erase(it);
@@ -97,7 +97,7 @@ void rav::dnssd::mock_browser::mock_removing_service(const std::string& fullname
 void rav::dnssd::mock_browser::browse_for(const std::string& service_type) {
     auto [it, inserted] = browsers_.insert(service_type);
     if (!inserted) {
-        RAV_THROW_EXCEPTION("Service type already being browsed for: " + service_type);
+        RAV_THROW_EXCEPTION("Service type already being browsed for: {}", service_type);
     }
 }
 

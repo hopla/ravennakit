@@ -349,4 +349,68 @@ TEST_CASE("rtp_packet_stats") {
         REQUIRE(c.dropped == 6);
         REQUIRE(c.too_late == 8);
     }
+
+    SECTION("Test packet drop expiry") {
+        SECTION("A packet can arrive during half the window") {
+            rav::rtp_packet_stats stats;
+            stats.update(10);
+            // Progress half a window, use uint32_t to allow for wrap around
+            for (uint32_t i = 12; i < 0xffff / 2 + 12; i++) {
+                stats.update(static_cast<uint16_t>(i));
+            }
+            auto totals = stats.get_total_counts();
+            REQUIRE(totals.dropped == 1);
+            REQUIRE(totals.out_of_order == 0);
+            stats.update(11);  // Since 11 is still within the window, it should be considered out of order
+            totals = stats.get_total_counts();
+            REQUIRE(totals.dropped == 0);
+            REQUIRE(totals.out_of_order == 1);
+        }
+
+        SECTION("But after that a packet is considered newer and will be discarded") {
+            rav::rtp_packet_stats stats;
+            stats.update(10);
+            // Progress half a window, use uint32_t to allow for wrap around
+            for (uint32_t i = 12; i < 0xffff / 2 + 13; i++) {
+                stats.update(static_cast<uint16_t>(i));
+            }
+            auto totals = stats.get_total_counts();
+            REQUIRE(totals.dropped == 1);
+            REQUIRE(totals.out_of_order == 0);
+            stats.update(11);  // Since 11 is now considered newer, a LOT of packets are dropped
+            totals = stats.get_total_counts();
+            REQUIRE(totals.dropped == 32768);
+            REQUIRE(totals.out_of_order == 0);
+        }
+    }
+
+    SECTION("Test marking packet too late expiry") {
+        SECTION("Within the window") {
+            rav::rtp_packet_stats stats;
+            stats.update(10);
+            // Progress half a window, use uint32_t to allow for wrap around
+            for (uint32_t i = 12; i < 0xffff / 2 + 12; i++) {
+                stats.update(static_cast<uint16_t>(i));
+            }
+            auto totals = stats.get_total_counts();
+            REQUIRE(totals.too_late == 0);
+            stats.mark_packet_too_late(11);  // Since 11 is still within the window, it should be considered too late
+            totals = stats.get_total_counts();
+            REQUIRE(totals.too_late == 1);
+        }
+
+        SECTION("Outside the window") {
+            rav::rtp_packet_stats stats;
+            stats.update(10);
+            // Progress half a window, use uint32_t to allow for wrap around
+            for (uint32_t i = 12; i < 0xffff / 2 + 13; i++) {
+                stats.update(static_cast<uint16_t>(i));
+            }
+            auto totals = stats.get_total_counts();
+            REQUIRE(totals.too_late == 0);
+            stats.mark_packet_too_late(11);  // Since 11 is now considered newer, it should not be considered too late
+            totals = stats.get_total_counts();
+            REQUIRE(totals.too_late == 0);
+        }
+    }
 }

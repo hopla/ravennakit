@@ -77,6 +77,7 @@ def build_windows(args, arch, build_config: Config, subfolder: str, spdlog: bool
     cmake.option('VCPKG_OVERLAY_TRIPLETS', 'triplets')
     cmake.option('VCPKG_TARGET_TRIPLET', 'windows-' + arch)
     cmake.option('BUILD_NUMBER', args.build_number)
+    cmake.option('RAV_WINDOWS_VERSION', args.windows_version)
 
     if spdlog:
         cmake.option('RAV_ENABLE_SPDLOG', 'ON')
@@ -297,6 +298,9 @@ def main():
         parser.add_argument("--windows-code-sign-identity",
                             help="Specify the code signing identity (Windows only)",
                             default="431e889eeb203c2db5dd01da91d56186b20d1880")  # GlobalSign cert
+        parser.add_argument("--windows-version",
+                            help="Specify the minimum supported version of Windows",
+                            default="0x0A00") # Windows 10
 
     build(parser.parse_args())
 

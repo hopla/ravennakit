@@ -19,6 +19,7 @@ option(RAV_EXAMPLES "Build the examples" ON)
 option(RAV_TESTS "Build the tests" ON)
 
 set(RAV_TRACY_PATH "C:/tracy-0.11.1" CACHE STRING "Path to Tracy")
+set(RAV_WINDOWS_VERSION "0x0A00" CACHE STRING "The minimum supported version of Windows")
 
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     set(RAV_EXAMPLES OFF)
@@ -61,34 +62,13 @@ find_package(portaudio CONFIG REQUIRED)
 find_package(asio CONFIG REQUIRED)
 target_compile_definitions(asio::asio INTERFACE ASIO_NO_DEPRECATED ASIO_NO_DYNAMIC_BUFFER_V1)
 
-################
-# _WIN32_WINNT #
-################
+#######################
+# Set Windows version #
+#######################
 
 if (WIN32)
-    # Sets the correct _WIN32_WINNT version based on the OS version
-    # Borrowed from: https://stackoverflow.com/a/40217291
-
-    macro(get_WIN32_WINNT version)
-        if (CMAKE_SYSTEM_VERSION)
-            set(ver ${CMAKE_SYSTEM_VERSION})
-            string(REGEX MATCH "^([0-9]+).([0-9])" ver ${ver})
-            string(REGEX MATCH "^([0-9]+)" verMajor ${ver})
-            # Check for Windows 10, b/c we'll need to convert to hex 'A'.
-            if ("${verMajor}" MATCHES "10")
-                set(verMajor "A")
-                string(REGEX REPLACE "^([0-9]+)" ${verMajor} ver ${ver})
-            endif ()
-            # Remove all remaining '.' characters.
-            string(REPLACE "." "" ver ${ver})
-            # Prepend each digit with a zero.
-            string(REGEX REPLACE "([0-9A-Z])" "0\\1" ver ${ver})
-            set(${version} "0x${ver}")
-        endif ()
-    endmacro()
-
-    get_WIN32_WINNT(ver)
-    add_definitions(-D_WIN32_WINNT=${ver})
+    add_compile_definitions(WINVER=${RAV_WINDOWS_VERSION})
+    add_compile_definitions(_WIN32_WINNT=${RAV_WINDOWS_VERSION})
 endif ()
 
 #########

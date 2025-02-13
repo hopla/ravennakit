@@ -29,26 +29,19 @@ endif ()
 ##########################
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_VISIBILITY_PRESET hidden)
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
-
-set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
-set(CMAKE_XCODE_ATTRIBUTE_DEPLOYMENT_POSTPROCESSING[variant=Release] "YES")
-set(CMAKE_XCODE_ATTRIBUTE_DEPLOYMENT_POSTPROCESSING[variant=RelWithDebInfo] "YES")
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE INTERNAL "")
 endif ()
 
 if (RAV_WITH_ADDRESS_SANITIZER)
-    message("-- -DWITH_ADDRESS_SANITIZER=ON argument was specified: Enabling Clang's Address Sanitizer")
+    message("-- -DRAV_WITH_ADDRESS_SANITIZER=ON argument was specified: Enabling Clang's Address Sanitizer")
     add_compile_options(-fsanitize=address,undefined -g)
     link_libraries(-fsanitize=address,undefined)
 endif ()
 
 if (RAV_WITH_THREAD_SANITIZER)
-    message("-- -DWITH_THREAD_SANITIZER=ON argument was specified: Enabling Clang's Thread Sanitizer")
+    message("-- -DRAV_WITH_THREAD_SANITIZER=ON argument was specified: Enabling Clang's Thread Sanitizer")
     add_compile_options(-fsanitize=thread -g)
     link_libraries(-fsanitize=thread)
 endif ()
@@ -157,6 +150,10 @@ target_compile_definitions(ravennakit
 if (RAV_TRACY_ENABLE)
     target_link_libraries(ravennakit PUBLIC tracy)
 endif ()
+
+#################
+# Apple Bonjour #
+#################
 
 if (WIN32)
     target_include_directories(ravennakit PUBLIC "C:/Program Files/Bonjour SDK/Include")

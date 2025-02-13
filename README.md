@@ -117,7 +117,8 @@ Note: change the triplet to match your cpu architecture.
 |-------------------------------------|------------------------------------------------------|
 | -DRAV_WITH_ADDRESS_SANITIZER=ON/OFF | When enabled, the address sanitizer will be engaged. |
 | -DRAV_WITH_THREAD_SANITIZER=ON/OFF  | When enabled, the thread sanitizer will be engaged.  |
-| -DBUILD_EXAMPLES=ON/OFF             | When ON (default), examples will be build            |
+| -DRAV_EXAMPLES=ON/OFF               | When ON (default), examples will be build            |
+| -DRAV_TESTS=ON/OFF                  | When ON (default), tests will be build               |
 
 ## Build and CMake options
 

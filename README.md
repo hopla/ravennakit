@@ -124,7 +124,7 @@ Note: change the triplet to match your cpu architecture.
 | Compile option    | CMake option               | Description                                                                             |
 |-------------------|----------------------------|-----------------------------------------------------------------------------------------|
 | RAV_ENABLE_SPDLOG | -DRAV_ENABLE_SPDLOG=ON/OFF | When enabled, spdlog will be used for logging otherwise logs will be written to stdout. |
-| TRACY_ENABLE      | -DTRACY_ENABLE=ON/OFF      | When enabled, Tracy will be compiled into the library.                                  |
+| TRACY_ENABLE      | -DRAV_TRACY_ENABLE=ON/OFF  | When enabled, Tracy will be compiled into the library.                                  |
 
 ## Environment variables
 

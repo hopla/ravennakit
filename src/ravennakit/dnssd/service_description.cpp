@@ -12,7 +12,7 @@
 
 #include <sstream>
 
-std::string rav::dnssd::service_description::description() const noexcept {
+std::string rav::dnssd::service_description::to_string() const noexcept {
     std::string txtRecordDescription;
 
     for (auto& kv : txt)
@@ -41,7 +41,7 @@ std::string rav::dnssd::service_description::description() const noexcept {
     std::stringstream output;
 
     output << "fullname: " << fullname << ", name: " << name << ", type: " << reg_type << ", domain: " << domain
-           << ", hostTarget: " << host_target << ", port: " << port << ", txtRecord: " << txtRecordDescription
+           << ", host_target: " << host_target << ", port: " << port << ", txt_record: " << txtRecordDescription
            << "addresses: " << addressesDescription;
 
     return output.str();

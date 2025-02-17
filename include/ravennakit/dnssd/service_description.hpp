@@ -41,7 +41,7 @@ struct service_description
     std::map<uint32_t, std::set<std::string>> interfaces; // interfaceIndex, addresses
 
     /// Returns a description of this struct, which might be handy for debugging or logging purposes.
-    [[nodiscard]] std::string description() const noexcept;
+    [[nodiscard]] std::string to_string() const noexcept;
 };
 
 } // namespace dnssd

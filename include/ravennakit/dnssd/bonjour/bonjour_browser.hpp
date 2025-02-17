@@ -144,7 +144,7 @@ class bonjour_browser: public dnssd_browser {
     );
 
     /**
-     * Emits fiven event to all subscribers.
+     * Emits given event to all subscribers.
      * @tparam T The type of the event.
      * @param event The event to emit.
      */

@@ -52,13 +52,11 @@ TEST_CASE("event_emitter") {
     }
 
     SECTION("Subscribing without storing the handle should not call the handler") {
-        int times_called = 0;
         rav::event_emitter<std::string> emitter;
         // By not keeping the slot, the subscription is removed immediately
-        std::ignore = emitter.subscribe([&times_called](const std::string&) {
-            times_called++;
+        std::ignore = emitter.subscribe([](const std::string&) {
+            FAIL("This should not be called");
         });
         emitter.emit("Hello, world!");
-        REQUIRE(times_called == 0);
     }
 }

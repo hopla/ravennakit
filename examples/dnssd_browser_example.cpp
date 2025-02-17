@@ -27,23 +27,23 @@ int main(const int argc, char* argv[]) {
     rav::dnssd::dnssd_browser::subscriber subscriber;
 
     subscriber->on<rav::dnssd::dnssd_browser::service_discovered>([](const auto& event) {
-        RAV_INFO("Service discovered: {}", event.description.description());
+        RAV_INFO("Service discovered: {}", event.description.to_string());
     });
 
     subscriber->on<rav::dnssd::dnssd_browser::service_removed>([](const auto& event) {
-        RAV_INFO("Service removed: {}", event.description.description());
+        RAV_INFO("Service removed: {}", event.description.to_string());
     });
 
     subscriber->on<rav::dnssd::dnssd_browser::service_resolved>([](const auto& event) {
-        RAV_INFO("Service resolved: {}", event.description.description());
+        RAV_INFO("Service resolved: {}", event.description.to_string());
     });
 
     subscriber->on<rav::dnssd::dnssd_browser::address_added>([](const auto& event) {
-        RAV_INFO("Address added ({}): {}", event.address, event.description.description());
+        RAV_INFO("Address added ({}): {}", event.address, event.description.to_string());
     });
 
     subscriber->on<rav::dnssd::dnssd_browser::address_removed>([](const auto& event) {
-        RAV_INFO("Address removed ({}): {}", event.address, event.description.description());
+        RAV_INFO("Address removed ({}): {}", event.address, event.description.to_string());
     });
 
     subscriber->on<rav::dnssd::dnssd_browser::browse_error>([](const auto& event) {

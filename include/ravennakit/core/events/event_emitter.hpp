@@ -26,7 +26,7 @@ using event_slot = linked_node<std::function<void(Args...)>>;
  * goes out of scope it will unsubscribe itself from the event emitter (by removing itself from the internal linked
  * list) and when the event_emitter goes out of scope while there are existing event_slots, it removes itself from the
  * list after which it cannot be dereferenced anymore. Another advantage of this class is having the ability to
- * subscribe to events without inheritance.
+ * subscribe to events while avoiding inheritance.
  * @tparam Args List of arguments to be emitted.
  */
 template<typename... Args>
@@ -40,6 +40,14 @@ class event_emitter {
      */
     void operator()(Args... args) {
         emit(args...);
+    }
+
+    /**
+     * Connects a handle to the event emitter. The handle will be automatically removed when it goes out of scope.
+     * @param h The handle to connect.
+     */
+    void connect(handle& h) {
+        subscribers_.push_back(h);
     }
 
     /**
@@ -69,7 +77,7 @@ class event_emitter {
     }
 
   private:
-    linked_node<std::function<void(Args...)>> subscribers_;
+    handle subscribers_;
 };
 
 }  // namespace rav

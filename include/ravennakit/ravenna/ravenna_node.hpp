@@ -63,6 +63,13 @@ class ravenna_node {
      */
     [[nodiscard]] std::future<void> unsubscribe(subscriber* subscriber);
 
+    /**
+     * Get the packet statistics for the given stream, if the stream for the given ID exists.
+     * @param stream_id The ID of the stream to get the packet statistics for.
+     * @return The packet statistics for the stream, or an empty structure if the stream doesn't exist.
+     */
+    std::future<rtp_packet_stats::counters> get_packet_stats_for_stream(id stream_id);
+
   private:
     asio::io_context io_context_;
     std::thread maintenance_thread_;

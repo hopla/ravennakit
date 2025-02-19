@@ -53,3 +53,14 @@ std::future<void> rav::ravenna_node::unsubscribe(subscriber* subscriber) {
                               }
                           }));
 }
+
+std::future<rav::rtp_packet_stats::counters> rav::ravenna_node::get_packet_stats_for_stream(id stream_id) {
+    return asio::dispatch(io_context_, asio::use_future([this, stream_id] {
+                              for (const auto& receiver : receivers_) {
+                                  if (receiver->get_id() == stream_id) {
+                                      return receiver->get_packet_stats();
+                                  }
+                              }
+                              return rtp_packet_stats::counters{};
+                          }));
+}

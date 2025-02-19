@@ -264,10 +264,20 @@ bool rav::rtp_stream_receiver::read_data(const uint32_t at_timestamp, uint8_t* b
         }
     }
 
-    TRACY_PLOT("available_frames", static_cast<int64_t>(realtime_context_.next_ts.diff(realtime_context_.receiver_buffer.next_ts())));
+    TRACY_PLOT(
+        "available_frames",
+        static_cast<int64_t>(realtime_context_.next_ts.diff(realtime_context_.receiver_buffer.next_ts()))
+    );
 
     realtime_context_.next_ts = at_timestamp + num_frames;
     return realtime_context_.receiver_buffer.read(at_timestamp, buffer, buffer_size);
+}
+
+rav::rtp_packet_stats::counters rav::rtp_stream_receiver::get_packet_stats() const {
+    if (streams_.empty()) {
+        return {};
+    }
+    return streams_.front().packet_stats.get_total_counts();
 }
 
 void rav::rtp_stream_receiver::restart() {

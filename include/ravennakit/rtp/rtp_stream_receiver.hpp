@@ -115,6 +115,11 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
      */
     bool read_data(uint32_t at_timestamp, uint8_t* buffer, size_t buffer_size);
 
+    /**
+     * @return The packet statistics for the first stream, if it exists, otherwise an empty structure.
+     */
+    rtp_packet_stats::counters get_packet_stats() const;
+
     // rtp_receiver::subscriber overrides
     void on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) override;
     void on_rtcp_packet(const rtp_receiver::rtcp_packet_event& rtcp_event) override;

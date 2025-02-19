@@ -36,14 +36,20 @@ std::future<rav::id> rav::ravenna_node::create_receiver(const std::string& sessi
     );
 }
 
-std::future<void> rav::ravenna_node::subscribe_to_browser(ravenna_browser::subscriber* subscriber) {
+std::future<void> rav::ravenna_node::subscribe(subscriber* subscriber) {
     return asio::dispatch(io_context_, asio::use_future([this, subscriber] {
+                              if (!subscribers_.add(subscriber)) {
+                                  RAV_WARNING("Already subscribed");
+                              }
                               browser_.subscribe(subscriber);
                           }));
 }
 
-std::future<void> rav::ravenna_node::unsubscribe_from_browser(ravenna_browser::subscriber* subscriber) {
+std::future<void> rav::ravenna_node::unsubscribe(subscriber* subscriber) {
     return asio::dispatch(io_context_, asio::use_future([this, subscriber] {
                               browser_.unsubscribe(subscriber);
+                              if (!subscribers_.remove(subscriber)) {
+                                  RAV_WARNING("Not subscribed");
+                              }
                           }));
 }

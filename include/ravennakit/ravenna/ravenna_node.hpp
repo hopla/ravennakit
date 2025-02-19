@@ -28,12 +28,12 @@ class ravenna_node {
     /**
      * Base class for classes which want to receive updates from the ravenna node.
      */
-    class subscriber {
+    class subscriber : public ravenna_browser::subscriber {
       public:
-        virtual ~subscriber() = default;
+        ~subscriber() override = default;
 
         /**
-         * Calles when received with id was updated.
+         * Called when received with id was updated.
          * @param receiver_id The id of the receiver.
          */
         virtual void on_receiver_updated([[maybe_unused]] id receiver_id) {}
@@ -50,18 +50,18 @@ class ravenna_node {
     [[nodiscard]] std::future<id> create_receiver(const std::string& session_name);
 
     /**
-     * Adds a subscriber to the browser.
+     * Adds a subscriber to the node.
      * This method can be called from any thread, and will wait until the operation is complete.
      * @param subscriber The subscriber to add.
      */
-    [[nodiscard]] std::future<void> subscribe_to_browser(ravenna_browser::subscriber* subscriber);
+    [[nodiscard]] std::future<void> subscribe(subscriber* subscriber);
 
     /**
-     * Removes a subscriber from the browser.
+     * Removes a subscriber from the node.
      * This method can be called from any thread, and will wait until the operation is complete.
      * @param subscriber The subscriber to remove.
      */
-    [[nodiscard]] std::future<void> unsubscribe_from_browser(ravenna_browser::subscriber* subscriber);
+    [[nodiscard]] std::future<void> unsubscribe(subscriber* subscriber);
 
   private:
     asio::io_context io_context_;

@@ -39,7 +39,7 @@ class ravenna_node {
         virtual void on_receiver_updated([[maybe_unused]] const ravenna_receiver& receiver) {}
     };
 
-    ravenna_node();
+    ravenna_node(rtp_receiver::configuration config);
     ~ravenna_node();
 
     /**
@@ -97,10 +97,11 @@ class ravenna_node {
   private:
     asio::io_context io_context_;
     std::thread maintenance_thread_;
+    asio::ip::address interface_address;
 
     ravenna_browser browser_ {io_context_};
     ravenna_rtsp_client rtsp_client_ {io_context_, browser_};
-    rtp_receiver rtp_receiver_ {io_context_, rtp_receiver::configuration {}};  // TODO: Make configuration configurable.
+    std::unique_ptr<rtp_receiver> rtp_receiver_;
 
     std::vector<std::unique_ptr<ravenna_receiver>> receivers_;
     subscriber_list<subscriber> subscribers_;

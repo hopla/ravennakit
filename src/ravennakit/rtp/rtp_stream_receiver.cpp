@@ -448,7 +448,6 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
             RAV_TRACE("Failed to push packet info FIFO, make receiver inactive");
             realtime_context_.consumer_active_ = false;
             set_state(receiver_state::inactive);
-            return;
         }
     }
 

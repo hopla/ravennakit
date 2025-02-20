@@ -66,7 +66,7 @@ class rtp_packet_stats {
     /**
      * Updates the statistics with the given packet.
      * @param sequence_number
-     * @return Returns the total counts.
+     * @return Returns the total counts if changed.
      */
     std::optional<counters> update(const uint16_t sequence_number) {
         const auto packet_sequence_number = wrapping_uint16(sequence_number);

@@ -10,7 +10,9 @@
 
 #include "ravennakit/ravenna/ravenna_node.hpp"
 
-rav::ravenna_node::ravenna_node() {
+rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
+    rtp_receiver_ = std::make_unique<rtp_receiver>(io_context_, std::move(config));
+
     maintenance_thread_ = std::thread([this] {
         io_context_.run();
     });
@@ -25,7 +27,7 @@ rav::ravenna_node::~ravenna_node() {
 
 std::future<rav::id> rav::ravenna_node::create_receiver(const std::string& session_name) {
     auto work = [this, session_name]() mutable {
-        const auto& it = receivers_.emplace_back(std::make_unique<ravenna_receiver>(rtsp_client_, rtp_receiver_));
+        const auto& it = receivers_.emplace_back(std::make_unique<ravenna_receiver>(rtsp_client_, *rtp_receiver_));
         it->set_session_name(session_name);
         for (const auto& s : subscribers_) {
             s->on_receiver_updated(*it);

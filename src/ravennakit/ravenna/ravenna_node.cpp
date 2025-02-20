@@ -41,6 +41,9 @@ std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber) {
             RAV_WARNING("Already subscribed");
         }
         browser_.subscribe(subscriber);
+        for (const auto& receiver : receivers_) {
+            subscriber->on_receiver_updated(*receiver);
+        }
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }

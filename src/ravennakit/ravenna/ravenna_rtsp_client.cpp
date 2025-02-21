@@ -73,7 +73,7 @@ rav::ravenna_rtsp_client::~ravenna_rtsp_client() {
 }
 
 void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) {
-    RAV_TRACE("RAVENNA Stream resolved: {}", event.description.name);
+    RAV_TRACE("RAVENNA session resolved: {}", event.description.to_string());
     for (auto& session : sessions_) {
         if (event.description.name == session.session_name) {
             update_session_with_service(session, event.description);

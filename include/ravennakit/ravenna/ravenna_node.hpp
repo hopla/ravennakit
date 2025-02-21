@@ -10,6 +10,12 @@
 
 #pragma once
 
+/**
+ * This example demonstrates how to set up a ravenna_node. This the most high level class available for implementing
+ * RAVENNA and will eventually support everything needed to implement a RAVENNA node. At this stage the node is capable
+ * of receiving streams.
+ */
+
 #include "ravenna_browser.hpp"
 #include "ravenna_rtsp_client.hpp"
 #include "ravenna_receiver.hpp"
@@ -39,7 +45,7 @@ class ravenna_node {
         virtual void on_receiver_updated([[maybe_unused]] const ravenna_receiver& receiver) {}
     };
 
-    ravenna_node(rtp_receiver::configuration config);
+    explicit ravenna_node(rtp_receiver::configuration config);
     ~ravenna_node();
 
     /**

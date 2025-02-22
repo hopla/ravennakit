@@ -113,6 +113,21 @@ class ravenna_node {
      */
     std::future<bool> get_receiver(id receiver_id, std::function<void(ravenna_receiver&)> update_function);
 
+    /**
+     * Get the SDP for the receiver with the given id.
+     * @param receiver_id The id of the receiver to get the SDP for.
+     * @return The SDP for the receiver.
+     */
+    std::future<std::optional<sdp::session_description>> get_sdp_for_receiver(id receiver_id);
+
+    /**
+     * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
+     * and might contain things which haven't been parsed into the session_description.
+     * @param receiver_id The id of the receiver to get the SDP text for.
+     * @return The SDP text for the receiver.
+     */
+    std::future<std::optional<std::string>> get_sdp_text_for_receiver(id receiver_id);
+
   private:
     asio::io_context io_context_;
     std::thread maintenance_thread_;

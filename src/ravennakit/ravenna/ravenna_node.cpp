@@ -133,3 +133,28 @@ rav::ravenna_node::get_receiver(id receiver_id, std::function<void(ravenna_recei
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }
+
+std::future<std::optional<rav::sdp::session_description>> rav::ravenna_node::get_sdp_for_receiver(id receiver_id) {
+    auto work = [this, receiver_id]() -> std::optional<sdp::session_description> {
+        for (const auto& receiver : receivers_) {
+            if (receiver->get_id() == receiver_id) {
+                return receiver->get_sdp();
+            }
+        }
+        return std::nullopt;
+    };
+    return asio::dispatch(io_context_, asio::use_future(work));
+}
+
+std::future<std::optional<std::string>> rav::ravenna_node::get_sdp_text_for_receiver(id receiver_id) {
+    TRACY_ZONE_SCOPED;
+    auto work = [this, receiver_id]() -> std::optional<std::string> {
+        for (const auto& receiver : receivers_) {
+            if (receiver->get_id() == receiver_id) {
+                return receiver->get_sdp_text();
+            }
+        }
+        return std::nullopt;
+    };
+    return asio::dispatch(io_context_, asio::use_future(work));
+}

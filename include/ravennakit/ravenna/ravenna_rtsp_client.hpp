@@ -69,6 +69,22 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
     void ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) override;
 
     /**
+     * Tries to find the SDP for the given session.
+     * @param session_name The name of the session to get the SDP for.
+     * @return The SDP for the session, if it exists, otherwise an empty optional.
+     */
+    [[nodiscard]] std::optional<sdp::session_description> get_sdp_for_session(const std::string& session_name) const;
+
+    /**
+     * Tries to find the SDP text for the given session. The difference between this and get_sdp_for_session is that the
+     * return value will contain the original SDP text, including things which might not be parsed into the
+     * session_description.
+     * @param session_name The name of the session to get the SDP text for.
+     * @return The SDP text for the session, if it exists, otherwise an empty optional.
+     */
+    [[nodiscard]] std::optional<std::string> get_sdp_text_for_session(const std::string& session_name) const;
+
+    /**
      * @return The io_context used by this client.
      */
     [[nodiscard]] asio::io_context& get_io_context() const;
@@ -78,6 +94,7 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
         std::string session_name;
         linked_node<std::pair<subscriber*, ravenna_rtsp_client*>> subscribers;
         std::optional<sdp::session_description> sdp_;
+        std::optional<std::string> sdp_text_;
         std::string host_target;
         uint16_t port {};
     };

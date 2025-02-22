@@ -45,6 +45,17 @@ class ravenna_receiver: public rtp_stream_receiver, ravenna_rtsp_client::subscri
      */
     [[nodiscard]] std::string get_session_name() const;
 
+    /**
+     * @return The SDP for the session.
+     */
+    std::optional<sdp::session_description> get_sdp() const;
+
+    /**
+     * @return The SDP text for the session. This is the original SDP text as receiver from the server potentially
+     * including things which haven't been parsed into the session_description.
+     */
+    [[nodiscard]] std::optional<std::string> get_sdp_text() const;
+
   private:
     ravenna_rtsp_client& rtsp_client_;
     std::string session_name_;

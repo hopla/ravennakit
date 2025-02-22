@@ -42,3 +42,11 @@ void rav::ravenna_receiver::set_session_name(std::string session_name) {
 std::string rav::ravenna_receiver::get_session_name() const {
     return session_name_;
 }
+
+std::optional<rav::sdp::session_description> rav::ravenna_receiver::get_sdp() const {
+    return rtsp_client_.get_sdp_for_session(session_name_);
+}
+
+std::optional<std::string> rav::ravenna_receiver::get_sdp_text() const {
+    return rtsp_client_.get_sdp_text_for_session(session_name_);
+}

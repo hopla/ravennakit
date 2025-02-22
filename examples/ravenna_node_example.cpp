@@ -45,7 +45,7 @@ struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_strea
     }
 
     void stream_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
-        RAV_INFO("Stream changed: {}", event.to_string());
+        RAV_INFO("Stream updated: {}", event.to_string());
     }
 
     rav::ravenna_node node;
@@ -59,7 +59,7 @@ int main(int const argc, char* argv[]) {
     argv = app.ensure_utf8(argv);
 
     std::vector<std::string> stream_names;
-    app.add_option("stream_name", stream_names, "The name of the stream to receive")->required();
+    app.add_option("stream_names", stream_names, "The name of the streams to receive (at least one)")->required();
 
     std::string interface_address = "0.0.0.0";
     app.add_option("--interface-addr", interface_address, "The interface address");

@@ -81,6 +81,25 @@ void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_bro
     }
 }
 
+std::optional<rav::sdp::session_description>
+rav::ravenna_rtsp_client::get_sdp_for_session(const std::string& session_name) const {
+    for (auto& session : sessions_) {
+        if (session.session_name == session_name) {
+            return session.sdp_;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> rav::ravenna_rtsp_client::get_sdp_text_for_session(const std::string& session_name) const {
+    for (auto& session : sessions_) {
+        if (session.session_name == session_name) {
+            return session.sdp_text_;
+        }
+    }
+    return std::nullopt;
+}
+
 asio::io_context& rav::ravenna_rtsp_client::get_io_context() const {
     return io_context_;
 }
@@ -209,6 +228,7 @@ void rav::ravenna_rtsp_client::handle_incoming_sdp(const std::string& sdp_text) 
     for (auto& session : sessions_) {
         if (session.session_name == sdp.session_name()) {
             session.sdp_ = sdp;
+            session.sdp_text_ = sdp_text;
             session.subscribers.foreach ([&](auto& node) {
                 if (auto* s = node->first) {
                     s->on_announced(announced_event {session.session_name, sdp});

@@ -15,6 +15,8 @@
 #include "ravennakit/core/util/wrapping_uint.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 
+#include <utility>
+
 namespace rav {
 
 /**

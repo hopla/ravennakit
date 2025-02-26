@@ -143,6 +143,7 @@ def build_linux(args, arch, build_config: Config, subfolder: str, spdlog: bool =
     cmake.path_to_build(path_to_build)
     cmake.path_to_source(script_dir)
     cmake.build_config(build_config)
+    cmake.generator('Ninja')
     cmake.parallel(multiprocessing.cpu_count())
 
     cmake.option('CMAKE_TOOLCHAIN_FILE', 'submodules/vcpkg/scripts/buildsystems/vcpkg.cmake')

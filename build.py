@@ -205,6 +205,9 @@ def build_dist(args):
     path_to_dist = Path(args.path_to_build) / 'dist'
     path_to_dist.mkdir(parents=True, exist_ok=True)
 
+    # Generate html docs
+    subprocess.run(['doxygen', 'Doxyfile'], cwd=Path('docs'), check=True)
+
     # Manually choose the files to copy to prevent accidental leaking of files when the repo changes or is not clean.
 
     shutil.copytree('cmake', path_to_dist / 'cmake', dirs_exist_ok=True)
@@ -244,14 +247,19 @@ def build_dist(args):
         file.write(f'set(GIT_VERSION_PATCH {match.group(3)})\n')
         file.write(f'set(BUILD_NUMBER {args.build_number})\n')
 
-    # Create ZIP from archive
+    # Create docs zip
+    archive_path = args.path_to_build + '/ravennakit-' + git_version + '-' + args.build_number + '-docs'
+    zip_path = Path(archive_path + '.zip')
+    zip_path.unlink(missing_ok=True)
+    shutil.make_archive(archive_path, 'zip', path_to_dist / 'docs' / 'html')
+
+    # Create dist zip
     archive_path = args.path_to_build + '/ravennakit-' + git_version + '-' + args.build_number + '-dist'
     zip_path = Path(archive_path + '.zip')
     zip_path.unlink(missing_ok=True)
-
     shutil.make_archive(archive_path, 'zip', path_to_dist)
 
-    return zip_path
+    return zip_path # Only returning the dist package since that is the one we want to upload
 
 
 def build(args):

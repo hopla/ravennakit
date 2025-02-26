@@ -73,7 +73,7 @@ def build_macos(args, build_config: Config, subfolder: str, spdlog: bool = False
     cmake.path_to_build(path_to_build)
     cmake.path_to_source(script_dir)
     cmake.build_config(build_config)
-    cmake.generator('Xcode')
+    cmake.generator('Ninja')
     cmake.parallel(multiprocessing.cpu_count())
 
     cmake.option('CMAKE_TOOLCHAIN_FILE', 'submodules/vcpkg/scripts/buildsystems/vcpkg.cmake')
@@ -143,6 +143,7 @@ def build_linux(args, arch, build_config: Config, subfolder: str, spdlog: bool =
     cmake.path_to_build(path_to_build)
     cmake.path_to_source(script_dir)
     cmake.build_config(build_config)
+    cmake.generator('Ninja')
     cmake.parallel(multiprocessing.cpu_count())
 
     cmake.option('CMAKE_TOOLCHAIN_FILE', 'submodules/vcpkg/scripts/buildsystems/vcpkg.cmake')
@@ -298,15 +299,15 @@ def build(args):
             path_to_build = build_android(args, 'x86', build_config, 'android_x86_spdlog', spdlog=True)
         else:
             path_to_build = build_macos(args, build_config, 'macos_universal')
-            run_test(path_to_build / build_config.value / ravennakit_tests_target, 'macos_universal')
+            run_test(path_to_build / ravennakit_tests_target, 'macos_universal')
 
             if args.asan:
                 path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_asan', spdlog=True, asan=True)
-                run_test(path_to_build / build_config.value / ravennakit_tests_target, 'macos_universal_spdlog_asan')
+                run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_asan')
 
             if args.tsan:
                 path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_tsan', spdlog=True, tsan=True)
-                run_test(path_to_build / build_config.value / ravennakit_tests_target, 'macos_universal_spdlog_tsan')
+                run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_tsan')
 
     elif platform.system() == 'Windows':
         path_to_build = build_windows(args, 'x64', build_config, 'windows_x64')

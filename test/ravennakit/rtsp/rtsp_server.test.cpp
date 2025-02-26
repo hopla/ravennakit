@@ -32,8 +32,8 @@ TEST_CASE("rtsp_server", "[rtsp_server]") {
         }
 
         SECTION("Specific port") {
-            rav::rtsp_server server(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 555));
-            REQUIRE(server.port() == 555);
+            rav::rtsp_server server(io_context, asio::ip::tcp::endpoint(asio::ip::tcp::v6(), 5555));
+            REQUIRE(server.port() == 5555);
             server.stop();
         }
 

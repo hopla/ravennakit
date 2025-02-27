@@ -73,25 +73,36 @@ std::optional<rav::audio_format> rav::wav_audio_format::fmt_chunk::to_audio_form
     switch (format) {
         case format_code::pcm: {
             if (bits_per_sample == 8) {
-                return audio_format {audio_format::byte_order::le, audio_encoding::pcm_u8, sample_rate, num_channels};
+                return audio_format {
+                    audio_format::byte_order::le, audio_encoding::pcm_u8, sample_rate, num_channels,
+                    audio_format::channel_ordering::interleaved
+                };
             }
             if (bits_per_sample == 16) {
-                return audio_format {audio_format::byte_order::le, audio_encoding::pcm_s16, sample_rate, num_channels};
+                return audio_format {
+                    audio_format::byte_order::le, audio_encoding::pcm_s16, sample_rate, num_channels,
+                    audio_format::channel_ordering::interleaved
+                };
             }
             if (bits_per_sample == 24) {
-                return audio_format {audio_format::byte_order::le, audio_encoding::pcm_s24, sample_rate, num_channels};
+                return audio_format {
+                    audio_format::byte_order::le, audio_encoding::pcm_s24, sample_rate, num_channels,
+                    audio_format::channel_ordering::interleaved
+                };
             }
             break;
         }
         case format_code::ieee_float: {
             if (bits_per_sample == 32) {
                 return audio_format {
-                    audio_format::byte_order::le, audio_encoding::pcm_float, sample_rate, num_channels
+                    audio_format::byte_order::le, audio_encoding::pcm_float, sample_rate, num_channels,
+                    audio_format::channel_ordering::interleaved
                 };
             }
             if (bits_per_sample == 64) {
                 return audio_format {
-                    audio_format::byte_order::le, audio_encoding::pcm_double, sample_rate, num_channels
+                    audio_format::byte_order::le, audio_encoding::pcm_double, sample_rate, num_channels,
+                    audio_format::channel_ordering::interleaved
                 };
             }
             break;

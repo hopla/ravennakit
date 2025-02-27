@@ -24,10 +24,16 @@ struct audio_format {
         be,
     };
 
+    enum class channel_ordering : uint8_t {
+        interleaved,
+        noninterleaved,
+    };
+
     byte_order byte_order {byte_order::le};
     audio_encoding encoding {};
     uint32_t sample_rate {};
     uint32_t num_channels {};
+    channel_ordering ordering {channel_ordering::interleaved};
 
     [[nodiscard]] uint8_t bytes_per_sample() const {
         return audio_encoding_bytes_per_sample(encoding);

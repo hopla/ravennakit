@@ -13,6 +13,7 @@ from pathlib import Path
 import boto3
 import pygit2
 
+from ravennakit.docs import generate
 from submodules.build_tools.cmake import Config, CMake
 
 test_report_folder = Path('test-reports')
@@ -208,6 +209,8 @@ def build_dist(args):
 
     # Generate html docs
     subprocess.run(['doxygen', 'Doxyfile'], cwd=Path('docs'), check=True)
+
+    generate.doxygen_docs()
 
     # Manually choose the files to copy to prevent accidental leaking of files when the repo changes or is not clean.
 

@@ -46,26 +46,22 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
          */
         virtual void on_announced([[maybe_unused]] const announced_event& event) {}
 
-      protected:
         /**
-         * Subscribes this subscriber to the ravenna_rtsp_client.
-         * @param client The ravenna_rtsp_client to subscribe to.
+         * Sets the ravenna_rtsp_client for this subscriber, unsubscribing from the previous client if it exists and
+         * subscribing to the new client.
+         * @param rtsp_client The ravenna_rtsp_client to set.
          * @param session_name The name of the session to subscribe to.
          */
-        void subscribe_to_ravenna_rtsp_client(ravenna_rtsp_client& client, const std::string& session_name);
-
-        /**
-         * Unsubscribes this subscriber from the ravenna_rtsp_client.
-         */
-        void unsubscribe_from_ravenna_rtsp_client();
+        void set_ravenna_rtsp_client(ravenna_rtsp_client* rtsp_client, const std::string& session_name);
 
       private:
-        linked_node<std::pair<subscriber*, ravenna_rtsp_client*>> node_;
+        ravenna_rtsp_client* rtsp_client_ {};
     };
 
     explicit ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser);
     ~ravenna_rtsp_client() override;
 
+    // ravenna_browser::subscriber overrides
     void ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) override;
 
     /**
@@ -92,7 +88,7 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
   private:
     struct session_context {
         std::string session_name;
-        linked_node<std::pair<subscriber*, ravenna_rtsp_client*>> subscribers;
+        subscriber_list<subscriber> subscribers;
         std::optional<sdp::session_description> sdp_;
         std::optional<std::string> sdp_text_;
         std::string host_target;

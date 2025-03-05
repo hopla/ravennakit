@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include "assert.hpp"
+
 #include <functional>
 #include <vector>
 
@@ -25,6 +27,13 @@ template<class T, class C = void>
 class subscriber_list {
   public:
     subscriber_list() = default;
+
+    ~subscriber_list() {
+        RAV_ASSERT(
+            subscribers_.empty(),
+            "Subscriber list must be empty before destruction, if not it's a strong indication that the lifetime of the subscriber is longer than the list"
+        );
+    }
 
     subscriber_list(const subscriber_list&) = delete;
     subscriber_list& operator=(const subscriber_list&) = delete;
@@ -195,6 +204,13 @@ template<class T>
 class subscriber_list<T, void> {
   public:
     subscriber_list() = default;
+
+    ~subscriber_list() {
+        RAV_ASSERT(
+            subscribers_.empty(),
+            "Subscriber list must be empty before destruction, if not it's a strong indication that the lifetime of the subscriber is longer than the list"
+        );
+    }
 
     subscriber_list(const subscriber_list&) = delete;
     subscriber_list& operator=(const subscriber_list&) = delete;

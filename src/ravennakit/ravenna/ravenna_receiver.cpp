@@ -31,12 +31,12 @@ void rav::ravenna_receiver::on_announced(const ravenna_rtsp_client::announced_ev
 }
 
 void rav::ravenna_receiver::stop() {
-    unsubscribe_from_ravenna_rtsp_client();
+    set_ravenna_rtsp_client(nullptr, {});
 }
 
 void rav::ravenna_receiver::set_session_name(std::string session_name) {
     session_name_ = std::move(session_name);
-    subscribe_to_ravenna_rtsp_client(rtsp_client_, session_name_);
+    set_ravenna_rtsp_client(&rtsp_client_, session_name_);
 }
 
 std::string rav::ravenna_receiver::get_session_name() const {

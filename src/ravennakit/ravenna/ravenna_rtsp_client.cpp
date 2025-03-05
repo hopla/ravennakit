@@ -14,38 +14,43 @@ rav::ravenna_rtsp_client::subscriber::~subscriber() {
     RAV_ASSERT(rtsp_client_ == nullptr, "Please call set_ravenna_rtsp_client(nullptr) before destruction");
 }
 
-void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
-    ravenna_rtsp_client* rtsp_client, const std::string& session_name
-) {
+void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(ravenna_rtsp_client* rtsp_client) {
     if (rtsp_client_ == rtsp_client) {
         return;
     }
 
-    if (rtsp_client_) {
-        for (auto& session : rtsp_client_->sessions_) {
-            if (!session.subscribers.remove(this)) {
-                RAV_WARNING("Not subscribed");
-            }
-        }
-        rtsp_client_->do_maintenance();
-    }
-
+    unsubscribe_from_session();
     rtsp_client_ = rtsp_client;
+    subscribe_to_session();
+}
 
-    if (rtsp_client_ == nullptr) {
+void rav::ravenna_rtsp_client::subscriber::subscribe_to_session(std::string session_name) {
+    if (session_name_ == session_name) {
         return;
     }
 
-    RAV_ASSERT(!session_name.empty(), "session_name must be empty when setting an rtsp_client");
+    unsubscribe_from_session();
+    session_name_ = std::move(session_name);
+    subscribe_to_session();
+}
+
+const std::string& rav::ravenna_rtsp_client::subscriber::get_session_name() const {
+    return session_name_;
+}
+
+void rav::ravenna_rtsp_client::subscriber::subscribe_to_session() {
+    if (rtsp_client_ == nullptr || session_name_.empty()) {
+        return;
+    }
 
     // Subscribe to existing session
     for (auto& session : rtsp_client_->sessions_) {
-        if (session.session_name == session_name) {
+        if (session.session_name == session_name_) {
             if (!session.subscribers.add(this)) {
                 RAV_WARNING("Already subscribed");
             }
             if (session.sdp_.has_value()) {
-                on_announced(announced_event {session_name, *session.sdp_});
+                on_announced(announced_event {session_name_, *session.sdp_});
             }
             return;
         }
@@ -53,17 +58,30 @@ void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
 
     // Create new session
     auto& new_session = rtsp_client_->sessions_.emplace_back();
-    new_session.session_name = session_name;
+    new_session.session_name = session_name_;
     if (!new_session.subscribers.add(this)) {
         RAV_WARNING("Already subscribed");
     }
 
     // Get things going if a session is already available
-    if (auto* service = rtsp_client_->browser_.find_session(session_name)) {
+    if (auto* service = rtsp_client_->browser_.find_session(session_name_)) {
         if (service->resolved()) {
             rtsp_client_->update_session_with_service(new_session, *service);
         }
     }
+}
+
+void rav::ravenna_rtsp_client::subscriber::unsubscribe_from_session() {
+    if (rtsp_client_ == nullptr || session_name_.empty()) {
+        return;
+    }
+
+    for (auto& session : rtsp_client_->sessions_) {
+        if (!session.subscribers.remove(this)) {
+            RAV_WARNING("Not subscribed");
+        }
+    }
+    rtsp_client_->do_maintenance();
 }
 
 rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser) :

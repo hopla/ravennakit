@@ -34,17 +34,6 @@ class ravenna_receiver: public rtp_stream_receiver, public ravenna_rtsp_client::
     void stop();
 
     /**
-     * Sets the name of the RAVENNA session to receive.
-     * @param session_name
-     */
-    void set_session_name(std::string session_name);
-
-    /**
-     * @return The name of the RAVENNA session to receive.
-     */
-    [[nodiscard]] std::string get_session_name() const;
-
-    /**
      * @return The SDP for the session.
      */
     std::optional<sdp::session_description> get_sdp() const;
@@ -60,7 +49,6 @@ class ravenna_receiver: public rtp_stream_receiver, public ravenna_rtsp_client::
 
   private:
     ravenna_rtsp_client& rtsp_client_;
-    std::string session_name_;
 };
 
 }  // namespace rav

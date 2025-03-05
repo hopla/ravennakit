@@ -50,12 +50,26 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
          * Sets the ravenna_rtsp_client for this subscriber, unsubscribing from the previous client if it exists and
          * subscribing to the new client.
          * @param rtsp_client The ravenna_rtsp_client to set.
-         * @param session_name The name of the session to subscribe to.
          */
-        void set_ravenna_rtsp_client(ravenna_rtsp_client* rtsp_client, const std::string& session_name);
+        void set_ravenna_rtsp_client(ravenna_rtsp_client* rtsp_client);
+
+        /**
+         * Sets the session name for this subscriber.
+         * @param session_name The session name to set.
+         */
+        void subscribe_to_session(std::string session_name);
+
+        /**
+         * @return The session name for this subscriber.
+         */
+        [[nodiscard]] const std::string& get_session_name() const;
 
       private:
         ravenna_rtsp_client* rtsp_client_ {};
+        std::string session_name_;
+
+        void subscribe_to_session();
+        void unsubscribe_from_session();
     };
 
     explicit ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser);

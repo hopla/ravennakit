@@ -115,7 +115,7 @@ class ravenna_recorder_example {
     void add_stream(const std::string& stream_name) {
         auto receiver = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
         receiver->set_delay(480);  // 10ms @ 48kHz
-        receiver->set_session_name(stream_name);
+        receiver->subscribe_to_session(stream_name);
         recorders_.emplace_back(std::make_unique<stream_recorder>(std::move(receiver)));
     }
 

@@ -14,6 +14,9 @@ rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
     rtp_receiver_ = std::make_unique<rtp_receiver>(io_context_, std::move(config));
 
     maintenance_thread_ = std::thread([this] {
+#if RAV_POSIX
+        pthread_setname_np("ravenna_node_maintenance");
+#endif
         try {
             io_context_.run();
         } catch (const std::exception& e) {
@@ -108,7 +111,6 @@ rav::ravenna_node::remove_receiver_subscriber(id receiver_id, rtp_stream_receive
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }
-
 
 std::future<void>
 rav::ravenna_node::add_receiver_data_callback(id receiver_id, rtp_stream_receiver::data_callback* callback) {

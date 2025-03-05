@@ -13,7 +13,10 @@
 rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
     rtp_receiver_ = std::make_unique<rtp_receiver>(io_context_, std::move(config));
 
-    maintenance_thread_ = std::thread([this] {
+    std::promise<std::thread::id> promise;
+    auto f = promise.get_future();
+    maintenance_thread_ = std::thread([this, p = std::move(promise)]() mutable {
+        p.set_value(std::this_thread::get_id());
 #if RAV_APPLE
         pthread_setname_np("ravenna_node_maintenance");
 #endif
@@ -23,6 +26,7 @@ rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
             RAV_ERROR("Exception in maintenance thread: {}", e.what());
         }
     });
+    maintenance_thread_id_ = f.get();
 }
 
 rav::ravenna_node::~ravenna_node() {
@@ -207,4 +211,12 @@ bool rav::ravenna_node::realtime_read_data(
         }
     }
     return false;
+}
+
+bool rav::ravenna_node::is_maintenance_thread() const {
+    return maintenance_thread_id_ == std::this_thread::get_id();
+}
+
+void rav::ravenna_node::assert_maintenance_thread() const {
+    RAV_ASSERT(is_maintenance_thread(), "Not on maintenance thread");
 }

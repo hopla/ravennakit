@@ -155,9 +155,20 @@ class ravenna_node {
      */
     bool realtime_read_data(id receiver_id, uint32_t at_timestamp, uint8_t* buffer, size_t buffer_size);
 
+    /**
+     * @return True if this method is called on the maintenance thread, false otherwise.
+     */
+    [[nodiscard]] bool is_maintenance_thread() const;
+
+    /**
+     * Asserts that this method is called on the maintenance thread.
+     */
+    void assert_maintenance_thread() const;
+
   private:
     asio::io_context io_context_;
     std::thread maintenance_thread_;
+    std::thread::id maintenance_thread_id_;
     asio::ip::address interface_address;
 
     ravenna_browser browser_ {io_context_};

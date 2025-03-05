@@ -57,11 +57,12 @@ std::future<void> rav::ravenna_node::remove_receiver(id receiver_id) {
 }
 
 std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber) {
+    RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber] {
         if (!subscribers_.add(subscriber)) {
             RAV_WARNING("Already subscribed");
         }
-        browser_.add_subscriber(subscriber);
+        subscriber->set_ravenna_browser(&browser_);
         for (const auto& receiver : receivers_) {
             subscriber->ravenna_receiver_added(*receiver);
         }
@@ -70,8 +71,9 @@ std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber) {
 }
 
 std::future<void> rav::ravenna_node::remove_subscriber(subscriber* subscriber) {
+    RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber] {
-        browser_.remove_subscriber(subscriber);
+        subscriber->set_ravenna_browser(nullptr);
         if (!subscribers_.remove(subscriber)) {
             RAV_WARNING("Not subscribed");
         }

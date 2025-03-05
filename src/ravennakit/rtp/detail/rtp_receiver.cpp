@@ -73,7 +73,7 @@ void rav::rtp_receiver::subscriber::set_rtp_receiver(
 
     RAV_ASSERT(context != nullptr, "Expecting valid session at this point");
 
-    context->subscribers.add_or_update_context(this, subscriber_context {filter});
+    std::ignore = context->subscribers.add_or_update_context(this, subscriber_context {filter});
 }
 
 rav::rtp_receiver::rtp_receiver(asio::io_context& io_context, configuration config) :

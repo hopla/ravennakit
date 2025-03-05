@@ -23,7 +23,9 @@ void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
 
     if (rtsp_client_) {
         for (auto& session : rtsp_client_->sessions_) {
-            session.subscribers.remove(this);
+            if (!session.subscribers.remove(this)) {
+                RAV_WARNING("Not subscribed");
+            }
         }
         rtsp_client_->do_maintenance();
     }
@@ -39,7 +41,9 @@ void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
     // Subscribe to existing session
     for (auto& session : rtsp_client_->sessions_) {
         if (session.session_name == session_name) {
-            session.subscribers.add(this);
+            if (!session.subscribers.add(this)) {
+                RAV_WARNING("Already subscribed");
+            }
             if (session.sdp_.has_value()) {
                 on_announced(announced_event {session_name, *session.sdp_});
             }
@@ -50,7 +54,9 @@ void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
     // Create new session
     auto& new_session = rtsp_client_->sessions_.emplace_back();
     new_session.session_name = session_name;
-    new_session.subscribers.add(this);
+    if (!new_session.subscribers.add(this)) {
+        RAV_WARNING("Already subscribed");
+    }
 
     // Get things going if a session is already available
     if (auto* service = rtsp_client_->browser_.find_session(session_name)) {
@@ -62,11 +68,11 @@ void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(
 
 rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser) :
     io_context_(io_context), browser_(browser) {
-    browser_.add_subscriber(this);
+    set_ravenna_browser(&browser_);
 }
 
 rav::ravenna_rtsp_client::~ravenna_rtsp_client() {
-    browser_.remove_subscriber(this);
+    set_ravenna_browser(nullptr);
 }
 
 void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) {

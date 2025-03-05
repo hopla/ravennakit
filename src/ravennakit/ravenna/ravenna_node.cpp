@@ -14,7 +14,7 @@ rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
     rtp_receiver_ = std::make_unique<rtp_receiver>(io_context_, std::move(config));
 
     maintenance_thread_ = std::thread([this] {
-#if RAV_POSIX
+#if RAV_APPLE
         pthread_setname_np("ravenna_node_maintenance");
 #endif
         try {

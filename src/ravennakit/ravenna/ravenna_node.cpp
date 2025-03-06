@@ -216,7 +216,3 @@ bool rav::ravenna_node::realtime_read_data(
 bool rav::ravenna_node::is_maintenance_thread() const {
     return maintenance_thread_id_ == std::this_thread::get_id();
 }
-
-void rav::ravenna_node::assert_maintenance_thread() const {
-    RAV_ASSERT(is_maintenance_thread(), "Not on maintenance thread");
-}

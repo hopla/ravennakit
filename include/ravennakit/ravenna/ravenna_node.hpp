@@ -24,6 +24,14 @@
 
 #include <string>
 
+/**
+ * Little helper macro to assert that the current thread is the maintenance thread of given node.
+ * Done as macro to keep the location information.
+ * @param node The node to check the maintenance thread for.
+ */
+#define RAV_ASSERT_NODE_MAINTENANCE_THREAD(node) \
+    RAV_ASSERT(node.is_maintenance_thread(), "Not on maintenance thread")
+
 namespace rav {
 
 /**
@@ -159,11 +167,6 @@ class ravenna_node {
      * @return True if this method is called on the maintenance thread, false otherwise.
      */
     [[nodiscard]] bool is_maintenance_thread() const;
-
-    /**
-     * Asserts that this method is called on the maintenance thread.
-     */
-    void assert_maintenance_thread() const;
 
     /**
      * Schedules some work on the maintenance thread using asio::dispatch. This is useful for synchronizing with

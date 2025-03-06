@@ -39,6 +39,10 @@ void rav::ravenna_browser::subscriber::set_ravenna_browser(ravenna_browser* brow
     RAV_ASSERT(browser_->node_browser_ != nullptr, "Invalid node browser");
     RAV_ASSERT(browser_->session_browser_ != nullptr, "Invalid session browser");
 
+    if (!browser_->subscribers_.add(this)) {
+        RAV_WARNING("Already subscribed");
+    }
+
     for (auto& s : browser_->node_browser_->get_services()) {
         if (s.host_target.empty()) {
             continue; // Only consider resolved services

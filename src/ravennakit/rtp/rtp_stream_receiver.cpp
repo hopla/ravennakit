@@ -543,7 +543,9 @@ void rav::rtp_stream_receiver::do_realtime_maintenance() {
         if (packet_timestamp + packet->packet_time_frames <= realtime_context_.next_ts) {
             RAV_WARNING("Packet too late: seq={}, ts={}", packet->seq, packet->timestamp);
             TRACY_MESSAGE("Packet too late - skipping");
-            realtime_context_.packets_too_old.push(packet->seq);
+            if (!realtime_context_.packets_too_old.push(packet->seq)) {
+                RAV_ERROR("Packet not enqueued to packets_too_old");
+            }
             continue;
         }
 
@@ -551,7 +553,9 @@ void rav::rtp_stream_receiver::do_realtime_maintenance() {
         if (packet_timestamp < realtime_context_.next_ts) {
             RAV_WARNING("Packet partly too late: seq={}, ts={}", packet->seq, packet->timestamp);
             TRACY_MESSAGE("Packet partly too late - not skipping");
-            realtime_context_.packets_too_old.push(packet->seq);
+            if (!realtime_context_.packets_too_old.push(packet->seq)) {
+                RAV_ERROR("Packet not enqueued to packets_too_old");
+            }
             // Still process the packet since it contains data that is not outdated
         }
 

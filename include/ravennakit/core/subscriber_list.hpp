@@ -29,9 +29,9 @@ class subscriber_list {
     subscriber_list() = default;
 
     ~subscriber_list() {
-        RAV_ASSERT(
+        RAV_ASSERT_NO_THROW(
             subscribers_.empty(),
-            "Subscriber list must be empty before destruction, if not it's a strong indication that the lifetime of the subscriber is longer than the list"
+            "Subscriber list is not empty, this is a strong indication that the lifetime of the subscriber is longer than the list"
         );
     }
 

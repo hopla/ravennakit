@@ -13,7 +13,7 @@
 #include "ravennakit/core/log.hpp"
 
 rav::ravenna_browser::subscriber::~subscriber() {
-    RAV_ASSERT(browser_ == nullptr, "Please call set_ravenna_browser(nullptr) before destruction");
+    RAV_ASSERT_NO_THROW(browser_ == nullptr, "Please call set_ravenna_browser(nullptr) before destruction");
 }
 
 void rav::ravenna_browser::subscriber::set_ravenna_browser(ravenna_browser* browser) {
@@ -45,14 +45,14 @@ void rav::ravenna_browser::subscriber::set_ravenna_browser(ravenna_browser* brow
 
     for (auto& s : browser_->node_browser_->get_services()) {
         if (s.host_target.empty()) {
-            continue; // Only consider resolved services
+            continue;  // Only consider resolved services
         }
         ravenna_node_discovered({s});
     }
 
     for (auto& s : browser_->session_browser_->get_services()) {
         if (s.host_target.empty()) {
-            continue; // Only consider resolved services
+            continue;  // Only consider resolved services
         }
         ravenna_session_discovered({s});
     }

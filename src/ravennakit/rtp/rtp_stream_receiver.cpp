@@ -64,7 +64,7 @@ std::string rav::rtp_stream_receiver::stream_updated_event::to_string() const {
 }
 
 rav::rtp_stream_receiver::subscriber::~subscriber() {
-    RAV_ASSERT(receiver_ == nullptr, "Please call set_rtp_stream_receiver(nullptr) before destruction");
+    RAV_ASSERT_NO_THROW(receiver_ == nullptr, "Please call set_rtp_stream_receiver(nullptr) before destruction");
 }
 
 void rav::rtp_stream_receiver::subscriber::set_rtp_stream_receiver(rtp_stream_receiver* receiver) {
@@ -449,7 +449,7 @@ void rav::rtp_stream_receiver::restart() {
     const auto bytes_per_frame = selected_format->bytes_per_frame();
     RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
-    const auto buffer_size_frames = std::max(selected_format->sample_rate * k_buffer_size_ms / 1000, 1024ul);
+    const auto buffer_size_frames = std::max(selected_format->sample_rate * k_buffer_size_ms / 1000, 1024u);
     realtime_context_.receiver_buffer.resize(selected_format->sample_rate * k_buffer_size_ms / 1000, bytes_per_frame);
     realtime_context_.read_buffer.resize(buffer_size_frames * bytes_per_frame);
     const auto buffer_size_packets = buffer_size_frames / packet_time_frames;

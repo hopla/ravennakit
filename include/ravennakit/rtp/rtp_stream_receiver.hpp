@@ -35,7 +35,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     /// The length of the receiver buffer in milliseconds.
     /// AES67 specifies at least 20 ms or 20 times the packet time, whichever is smaller, but since we're on desktop
     /// systems we go a bit higher. Note that this number is not the same as the delay or added latency.
-    static constexpr size_t k_buffer_size_ms = 200;
+    static constexpr uint32_t k_buffer_size_ms = 200;
 
     /**
      * The state of the stream.

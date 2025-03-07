@@ -36,7 +36,7 @@ typedef BOOL(PASCAL* LPFN_WSARECVMSG)(
 #endif
 
 rav::rtp_receiver::subscriber::~subscriber() {
-    RAV_ASSERT(
+    RAV_ASSERT_NO_THROW(
         rtp_receiver_ == nullptr, "Please call set_rtp_receiver(nullptr, {}, {}) before destroying the subscriber"
     );
 }

@@ -11,7 +11,7 @@
 #include "ravennakit/ravenna/ravenna_rtsp_client.hpp"
 
 rav::ravenna_rtsp_client::subscriber::~subscriber() {
-    RAV_ASSERT(rtsp_client_ == nullptr, "Please call set_ravenna_rtsp_client(nullptr) before destruction");
+    RAV_ASSERT_NO_THROW(rtsp_client_ == nullptr, "Please call set_ravenna_rtsp_client(nullptr) before destruction");
 }
 
 void rav::ravenna_rtsp_client::subscriber::set_ravenna_rtsp_client(ravenna_rtsp_client* rtsp_client) {

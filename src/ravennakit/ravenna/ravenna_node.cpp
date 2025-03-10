@@ -63,25 +63,25 @@ std::future<void> rav::ravenna_node::remove_receiver(id receiver_id) {
     return asio::dispatch(io_context_, asio::use_future(work));
 }
 
-std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber) {
-    RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
-    auto work = [this, subscriber] {
-        if (!subscribers_.add(subscriber)) {
+std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber_to_add) {
+    RAV_ASSERT(subscriber_to_add != nullptr, "Subscriber must be valid");
+    auto work = [this, subscriber_to_add] {
+        if (!subscribers_.add(subscriber_to_add)) {
             RAV_WARNING("Already subscribed");
         }
-        subscriber->set_ravenna_browser(&browser_);
+        subscriber_to_add->set_ravenna_browser(&browser_);
         for (const auto& receiver : receivers_) {
-            subscriber->ravenna_receiver_added(*receiver);
+            subscriber_to_add->ravenna_receiver_added(*receiver);
         }
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }
 
-std::future<void> rav::ravenna_node::remove_subscriber(subscriber* subscriber) {
-    RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
-    auto work = [this, subscriber] {
-        subscriber->set_ravenna_browser(nullptr);
-        if (!subscribers_.remove(subscriber)) {
+std::future<void> rav::ravenna_node::remove_subscriber(subscriber* subscriber_to_remove) {
+    RAV_ASSERT(subscriber_to_remove != nullptr, "Subscriber must be valid");
+    auto work = [this, subscriber_to_remove] {
+        subscriber_to_remove->set_ravenna_browser(nullptr);
+        if (!subscribers_.remove(subscriber_to_remove)) {
             RAV_WARNING("Not subscribed");
         }
     };
@@ -89,11 +89,11 @@ std::future<void> rav::ravenna_node::remove_subscriber(subscriber* subscriber) {
 }
 
 std::future<void>
-rav::ravenna_node::add_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber) {
-    auto work = [this, receiver_id, subscriber] {
+rav::ravenna_node::add_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_add) {
+    auto work = [this, receiver_id, subscriber_to_add] {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
-                subscriber->set_rtp_stream_receiver(receiver.get());
+                subscriber_to_add->set_rtp_stream_receiver(receiver.get());
                 return;
             }
         }
@@ -103,11 +103,11 @@ rav::ravenna_node::add_receiver_subscriber(id receiver_id, rtp_stream_receiver::
 }
 
 std::future<void>
-rav::ravenna_node::remove_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber) {
-    auto work = [this, receiver_id, subscriber] {
+rav::ravenna_node::remove_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_remove) {
+    auto work = [this, receiver_id, subscriber_to_remove] {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
-                subscriber->set_rtp_stream_receiver(nullptr);
+                subscriber_to_remove->set_rtp_stream_receiver(nullptr);
                 return;
             }
         }

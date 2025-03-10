@@ -217,8 +217,8 @@ class rcu {
     std::vector<reader*> readers_;
 
     bool has_reader_using_object(const T* object) const {
-        for (const auto* reader : readers_) {
-            if (reader->reader_value_.load() == object) {
+        for (const auto* r : readers_) {
+            if (r->reader_value_.load() == object) {
                 return true;
             }
         }

@@ -79,32 +79,32 @@ class ravenna_node {
     /**
      * Adds a subscriber to the node.
      * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to add.
+     * @param subscriber_to_add The subscriber to add.
      */
-    [[nodiscard]] std::future<void> add_subscriber(subscriber* subscriber);
+    [[nodiscard]] std::future<void> add_subscriber(subscriber* subscriber_to_add);
 
     /**
      * Removes a subscriber from the node.
      * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to remove.
+     * @param subscriber_to_remove The subscriber to remove.
      */
-    [[nodiscard]] std::future<void> remove_subscriber(subscriber* subscriber);
+    [[nodiscard]] std::future<void> remove_subscriber(subscriber* subscriber_to_remove);
 
     /**
      * Adds a subscriber to the receiver with the given id.
      * @param receiver_id The id of the stream to add the subscriber to.
-     * @param subscriber The subscriber to add.
+     * @param subscriber_to_add The subscriber to add.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> add_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber);
+    std::future<void> add_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_add);
 
     /**
      * Removes a subscriber from the receiver with the given id.
      * @param receiver_id The id of the stream to remove the subscriber from.
-     * @param subscriber The subscriber to remove.
+     * @param subscriber_to_remove The subscriber to remove.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> remove_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber);
+    std::future<void> remove_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_remove);
 
     /**
      * Adds a data callback to the receiver with the given id.

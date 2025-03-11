@@ -56,23 +56,20 @@ class rcu {
              * All methods are real-time safe (wait-free), but not thread safe.
              * @param parent_reader The reader to associate this lock with.
              */
-            explicit read_lock(reader& parent_reader) : reader_(parent_reader) {
-                if (reader_.num_locks_ >= 1) {
-                    value_ = reader_.reader_value_;
+            explicit read_lock(reader& parent_reader) : reader_(&parent_reader) {
+                if (reader_->num_locks_ >= 1) {
+                    value_ = reader_->reader_value_;
                 } else {
-                    RAV_ASSERT(reader_.reader_value_ == nullptr, "Reader value should be nullptr");
-                    reader_.reader_value_.store(reader_.owner_.most_recent_value_.load());
-                    value_ = reader_.reader_value_;
+                    RAV_ASSERT(reader_->reader_value_ == nullptr, "Reader value should be nullptr");
+                    auto most_recent = reader_->owner_.most_recent_value_.load();
+                    value_ = most_recent;
+                    reader_->reader_value_.store(most_recent);
                 }
-                reader_.num_locks_ += 1;
+                ++reader_->num_locks_;
             }
 
             ~read_lock() {
-                if (value_ && reader_.num_locks_ == 1) {
-                    reader_.reader_value_.store(nullptr);
-                }
-                reader_.num_locks_ -= 1;
-                RAV_ASSERT_NO_THROW(reader_.num_locks_ >= 0, "Number of locks should be non-negative");
+                reset();
             }
 
             /**
@@ -110,8 +107,24 @@ class rcu {
                 return value_;
             }
 
+            /**
+             * Resets this lock, releasing the value.
+             */
+            void reset() {
+                if (reader_ == nullptr) {
+                    return;
+                }
+                if (value_ && reader_->num_locks_ == 1) {
+                    reader_->reader_value_.store(nullptr);
+                    value_ = nullptr;
+                }
+                reader_->num_locks_ -= 1;
+                RAV_ASSERT_NO_THROW(reader_->num_locks_ >= 0, "Number of locks should be non-negative");
+                reader_ = nullptr;
+            }
+
           private:
-            reader& reader_;
+            reader* reader_ {nullptr};
             T* value_ {nullptr};
         };
 
@@ -144,10 +157,21 @@ class rcu {
         }
 
       private:
+        friend class rcu;
         rcu& owner_;
         std::atomic<T*> reader_value_ {nullptr};
         int64_t num_locks_ {0};
     };
+
+    rcu() = default;
+
+    explicit rcu(std::unique_ptr<T> new_value) {
+        update(std::move(new_value));
+    }
+
+    explicit rcu(T value) {
+        update(std::make_unique<T>(std::move(value)));
+    }
 
     /**
      * @return A reader object which uses this rcu object.
@@ -175,12 +199,16 @@ class rcu {
      * @param new_value New value to set.
      */
     void update(std::unique_ptr<T> new_value) {
-        if (new_value == nullptr) {
-            return;
-        }
         std::lock_guard lock(values_mutex_);
-        values_.push_back(std::move(new_value));
-        most_recent_value_ = values_.back().get();
+        auto* added = values_.emplace_back(std::move(new_value)).get();
+        most_recent_value_.store(added);
+    }
+
+    /**
+     * Clears the current value.
+     */
+    void clear() {
+        update(std::unique_ptr<T>());
     }
 
     /**
@@ -217,7 +245,8 @@ class rcu {
     // Holds the readers.
     std::vector<reader*> readers_;
 
-    bool has_reader_using_object(const T* object) const {
+    bool has_reader_using_object(const T* object) {
+        std::lock_guard lock(readers_mutex_);
         for (const auto* r : readers_) {
             if (r->reader_value_.load() == object) {
                 return true;

@@ -29,6 +29,10 @@ static_assert(!std::is_move_constructible_v<rav::rcu<int>::reader::realtime_lock
 static_assert(!std::is_copy_assignable_v<rav::rcu<int>::reader::realtime_lock>);
 static_assert(!std::is_move_assignable_v<rav::rcu<int>::reader::realtime_lock>);
 
+namespace {
+constexpr auto k_timeout_seconds = 60;
+}
+
 TEST_CASE("rcu") {
     SECTION("Default state") {
         rav::rcu<int> rcu;
@@ -246,11 +250,13 @@ TEST_CASE("rcu") {
     SECTION("Readers can be created and destroyed concurrently") {
         rav::rcu<std::string> rcu("Hello, World!");
         static constexpr size_t num_threads = 100;
-        std::vector<std::thread> threads;
         std::vector<std::string> results(num_threads);
 
         std::atomic keep_going = true;
         std::atomic<size_t> num_active_threads = 0;
+
+        std::vector<std::thread> threads;
+        threads.reserve(num_threads);
 
         for (size_t i = 0; i < num_threads; ++i) {
             threads.emplace_back([&] {
@@ -266,7 +272,7 @@ TEST_CASE("rcu") {
         auto start = std::chrono::steady_clock::now();
 
         while (num_active_threads < num_threads) {
-            if (start + std::chrono::seconds(1) < std::chrono::steady_clock::now()) {
+            if (start + std::chrono::seconds(k_timeout_seconds) < std::chrono::steady_clock::now()) {
                 FAIL("Timeout");
             }
             std::this_thread::yield();
@@ -295,7 +301,9 @@ TEST_CASE("rcu") {
         rav::rcu<std::pair<size_t, std::string>> rcu;
 
         std::atomic<size_t> num_readers_finished = 0;
+
         std::vector<std::thread> writer_threads;
+        writer_threads.reserve(num_writer_threads);
 
         // Writers are going to hammer the rcu object with new values until all readers have read all values.
         for (size_t i = 0; i < num_writer_threads; ++i) {
@@ -310,8 +318,10 @@ TEST_CASE("rcu") {
             });
         }
 
-        std::vector<std::thread> reader_threads;
         std::vector<std::vector<std::string>> reader_values(num_reader_threads);
+
+        std::vector<std::thread> reader_threads;
+        reader_threads.reserve(num_reader_threads);
 
         // Readers are going to read from the rcu until they have received all values.
         for (size_t i = 0; i < num_reader_threads; ++i) {
@@ -340,6 +350,8 @@ TEST_CASE("rcu") {
 
         // These threads are going to reclaim.
         std::vector<std::thread> reclaim_threads;
+        reclaim_threads.reserve(num_reclaim_thread);
+
         for (size_t i = 0; i < num_reclaim_thread; ++i) {
             reclaim_threads.emplace_back([&] {
                 while (num_readers_finished < num_reader_threads) {

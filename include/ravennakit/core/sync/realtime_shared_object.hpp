@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ravennakit/core/assert.hpp"
+#include "ravennakit/core/constants.hpp"
 
 #include <memory>
 #include <mutex>
@@ -125,7 +126,7 @@ class realtime_shared_object {
      * Real-time safe: yes, wait-free
      * Thread safe: no.
      */
-    realtime_lock lock_realtime() {
+    [[nodiscard]] realtime_lock lock_realtime() {
         return realtime_lock(*this);
     }
 
@@ -135,10 +136,11 @@ class realtime_shared_object {
      * Thread safe: yes.
      * @tparam Args
      * @param args
+     * @return True if the value was successfully updated, false if the value could not be updated.
      */
     template<class... Args>
-    void update(Args&&... args) {
-        update(std::make_unique<T>(std::forward<Args>(args)...));
+    [[nodiscard]] bool update(Args&&... args) {
+        return update(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
     /**
@@ -146,20 +148,27 @@ class realtime_shared_object {
      * Real-time safe: no.
      * Thread safe: yes.
      * @param new_value New value to set.
+     * @return True if the value was successfully updated, false if the value could not be updated.
      */
-    void update(std::unique_ptr<T> new_value) {
+    [[nodiscard]] bool update(std::unique_ptr<T> new_value) {
         if (new_value == nullptr) {
-            return;
+            return false;
         }
 
         std::lock_guard lock(mutex_);
 
-        for (auto* expected = storage_.get(); !ptr_.compare_exchange_strong(expected, new_value.get());
-             expected = storage_.get()) {
-            std::this_thread::yield();
+        auto* expected = storage_.get();
+
+        for (size_t i = 0; i < RAV_LOOP_UPPER_BOUND; ++i) {
+            if (ptr_.compare_exchange_strong(expected, new_value.get())) {
+                storage_ = std::move(new_value);
+                return true;
+            }
+            expected = storage_.get();
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
 
-        storage_ = std::move(new_value);
+        return false;
     }
 
   private:

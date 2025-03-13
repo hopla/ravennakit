@@ -71,7 +71,7 @@ TEST_CASE("realtime_shared_object") {
                 // Writers are going to hammer the object with new values until the reader has read all values.
                 while (keep_going) {
                     for (size_t j = 0; j < num_values; ++j) {
-                        obj.update(j, std::to_string(j + 1));
+                        std::ignore = obj.update(j, std::to_string(j + 1));
                         std::this_thread::yield();
                     }
                 }

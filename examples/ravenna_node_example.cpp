@@ -17,11 +17,11 @@
 
 struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
     explicit ravenna_node_example(const rav::rtp_receiver::configuration& config) : node(config) {
-        node.add_subscriber(this).wait();
+        node.subscribe(this).wait();
     }
 
     ~ravenna_node_example() override {
-        node.remove_subscriber(this).wait();
+        node.unsubscribe(this).wait();
     }
 
     void ravenna_node_discovered(const rav::dnssd::dnssd_browser::service_resolved& event) override {
@@ -42,12 +42,9 @@ struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_strea
 
     void ravenna_receiver_added(const rav::ravenna_receiver& receiver) override {
         RAV_INFO("RAVENNA receiver added for: {}", receiver.get_session_name());
-
-        TODO("Add receiver subscriber");
-        // node.add_receiver_subscriber(receiver.get_id(), this); TODO: Replace
     }
 
-    void stream_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
         RAV_INFO("Stream updated: {}", event.to_string());
     }
 

@@ -30,20 +30,21 @@
 /**
  * A class that is a subscriber to a rtp_stream_receiver and writes the audio data to a wav file.
  */
-class stream_recorder: public rav::rtp_stream_receiver::subscriber, public rav::rtp_stream_receiver::data_callback {
+class stream_recorder: public rav::rtp_stream_receiver::subscriber {
   public:
     explicit stream_recorder(std::unique_ptr<rav::ravenna_receiver> sink) : receiver_(std::move(sink)) {
         if (receiver_) {
-            receiver_->add_data_callback(this);
-            set_rtp_stream_receiver(receiver_.get());
+            if (!receiver_->subscribe(this)) {
+                RAV_WARNING("Failed to add subscriber");
+            }
         }
     }
 
     ~stream_recorder() override {
-        set_rtp_stream_receiver(nullptr);
         if (receiver_) {
-            receiver_->remove_data_callback(this);
-            receiver_->set_ravenna_rtsp_client(nullptr);
+            if (!receiver_->unsubscribe(this)) {
+                RAV_WARNING("Failed to remove subscriber");
+            }
         }
         close();
     }
@@ -60,7 +61,7 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber, public rav::
         }
     }
 
-    void stream_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
         close();
 
         if (receiver_ == nullptr) {
@@ -115,7 +116,10 @@ class ravenna_recorder_example {
     void add_stream(const std::string& stream_name) {
         auto receiver = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
         receiver->set_delay(480);  // 10ms @ 48kHz
-        receiver->subscribe_to_session(stream_name);
+        if (!receiver->subscribe_to_session(stream_name)) {
+            RAV_ERROR("Failed to subscribe to session");
+            return;
+        }
         recorders_.emplace_back(std::make_unique<stream_recorder>(std::move(receiver)));
     }
 

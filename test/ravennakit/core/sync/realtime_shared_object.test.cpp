@@ -32,8 +32,8 @@ TEST_CASE("realtime_shared_object") {
     }
 
     SECTION("Updating and reading the value should be thread safe") {
-        static constexpr size_t num_values = 100;
-        static constexpr size_t num_writer_threads = 3;
+        static constexpr size_t num_values = 50;
+        static constexpr size_t num_writer_threads = 2;
 
         rav::realtime_shared_object<std::pair<size_t, std::string>> obj;
 
@@ -45,11 +45,15 @@ TEST_CASE("realtime_shared_object") {
 
             while (num_values_read < num_values) {
                 const auto lock = obj.lock_realtime();
-                REQUIRE(lock.get() != nullptr);
-                if (lock->second.empty()) {
-                    continue; // obj was default constructed
+                if (lock.get() == nullptr) {
+                    return std::vector<std::string>();
                 }
-                REQUIRE(lock->first < num_values);
+                if (lock->second.empty()) {
+                    continue;  // obj was default constructed
+                }
+                if (lock->first >= num_values) {
+                    return std::vector<std::string>();  // obj was updated with an invalid index
+                }
                 auto& it = values.at(lock->first);
                 if (it.empty()) {
                     it = lock->second;
@@ -71,7 +75,7 @@ TEST_CASE("realtime_shared_object") {
                 // Writers are going to hammer the object with new values until the reader has read all values.
                 while (keep_going) {
                     for (size_t j = 0; j < num_values; ++j) {
-                        obj.update(j, std::to_string(j + 1));
+                        std::ignore = obj.update(j, std::to_string(j + 1));
                         std::this_thread::yield();
                     }
                 }

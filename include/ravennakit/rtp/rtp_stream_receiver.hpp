@@ -17,6 +17,7 @@
 #include "ravennakit/core/exclusive_access_guard.hpp"
 #include "ravennakit/core/audio/audio_buffer_view.hpp"
 #include "ravennakit/core/math/sliding_stats.hpp"
+#include "ravennakit/core/sync/rcu.hpp"
 #include "ravennakit/core/util/id.hpp"
 #include "ravennakit/core/util/throttle.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
@@ -78,33 +79,17 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
      */
     class subscriber {
       public:
-        virtual ~subscriber();
+        virtual ~subscriber() = default;
 
         /**
          * Called when the stream has changed.
+         *
+         * Note: this will be called from the maintenance thread, so you might have to synchronize access to shared
+         * data.
+         *
          * @param event The event.
          */
-        virtual void stream_updated([[maybe_unused]] const stream_updated_event& event) {}
-
-        /**
-         * Set the rtp stream receiver, subscribing to the receiver.
-         * @param receiver The receiver to set.
-         */
-        void set_rtp_stream_receiver(rtp_stream_receiver* receiver);
-
-      private:
-        rtp_stream_receiver* receiver_ {nullptr};
-    };
-
-    /**
-     * Baseclass for other classes which want to receive data from the stream receiver.
-     * Callbacks are called from the network receive thread, which might need to be synchronized.
-     * Using this callback class is not mandatory as the rtp_stream_receiver allow to pull data from the buffer using
-     * the `read_data` method.
-     */
-    class data_callback {
-      public:
-        virtual ~data_callback() = default;
+        virtual void rtp_stream_receiver_updated([[maybe_unused]] const stream_updated_event& event) {}
 
         /**
          * Called when new data has been received.
@@ -122,7 +107,9 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
          * Called when data is ready to be consumed.
          *
          * The timestamp will be the timestamp of the packet which triggered this event, minus the delay. This makes it
-         * convenient for consumers to read data from the buffer when the delay has passed.
+         * convenient for consumers to read data from the buffer when the delay has passed. There will be no gaps in
+         * timestamp as newer packets will trigger this event for lost packets, and out of order packet (which are
+         * basically lost, not lost but late packets) will be ignored.
          *
          * Note: this is called from the network receive thread. You might have to synchronize access to shared data.
          *
@@ -169,18 +156,18 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     [[nodiscard]] uint32_t get_delay() const;
 
     /**
-     * Adds a callback to the receiver.
-     * @param callback The callback to add.
-     * @return true if the callback was added, or false if it was already added.
+     * Adds a subscriber to the receiver.
+     * @param subscriber The subscriber to add.
+     * @return true if the subscriber was added, or false if it was already in the list.
      */
-    bool add_data_callback(data_callback* callback);
+    [[nodiscard]] bool subscribe(subscriber* subscriber);
 
     /**
-     * Removes a data callback from the receiver.
-     * @param callback The callback to remove.
-     * @return true if the callback was removed, or false if it wasn't found.
+     * Removes a subscriber from the receiver.
+     * @param subscriber The subscriber to remove.
+     * @return true if the subscriber was removed, or false if it wasn't found.
      */
-    bool remove_data_callback(data_callback* callback);
+    [[nodiscard]] bool unsubscribe(subscriber* subscriber);
 
     /**
      * Reads data from the buffer at the given timestamp.
@@ -193,7 +180,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
      * be used for the first read and after that the timestamp will be incremented by the packet time.
      * @return The timestamp at which the data was read, or std::nullopt if an error occurred.
      */
-    std::optional<uint32_t>
+    [[nodiscard]] std::optional<uint32_t>
     read_data_realtime(uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp);
 
     /**
@@ -206,23 +193,23 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
      * be used for the first read and after that the timestamp will be incremented by the packet time.
      * @return The timestamp at which the data was read, or std::nullopt if an error occurred.
      */
-    std::optional<uint32_t>
+    [[nodiscard]] std::optional<uint32_t>
     read_audio_data_realtime(audio_buffer_view<float> output_buffer, std::optional<uint32_t> at_timestamp);
 
     /**
      * @return The packet statistics for the first stream, if it exists, otherwise an empty structure.
      */
-    stream_stats get_session_stats() const;
+    [[nodiscard]] stream_stats get_session_stats() const;
 
     /**
      * @return The packet statistics for the first stream, if it exists, otherwise an empty structure.
      */
-    rtp_packet_stats::counters get_packet_stats() const;
+    [[nodiscard]] rtp_packet_stats::counters get_packet_stats() const;
 
     /**
      * @return The packet interval statistics for the first stream, if it exists, otherwise an empty structure.
      */
-    sliding_stats::stats get_packet_interval_stats() const;
+    [[nodiscard]] sliding_stats::stats get_packet_interval_stats() const;
 
     // rtp_receiver::subscriber overrides
     void on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) override;
@@ -254,7 +241,6 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
     receiver_state state_ {receiver_state::idle};
     std::vector<media_stream> media_streams_;
     subscriber_list<subscriber> subscribers_;
-    subscriber_list<data_callback> data_callbacks_;
     asio::steady_timer maintenance_timer_;
     exclusive_access_guard realtime_access_guard_;
 
@@ -269,10 +255,7 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
         std::array<uint8_t, 1500> data;  // MTU
     };
 
-    /**
-     * Bundles variables which will be accessed by a call to read_data, potentially from a realtime thread.
-     */
-    struct {
+    struct shared_state {
         rtp_receive_buffer receiver_buffer;
         std::vector<uint8_t> read_buffer;
         fifo_buffer<intermediate_packet, fifo::spsc> fifo;
@@ -281,8 +264,12 @@ class rtp_stream_receiver: public rtp_receiver::subscriber {
         wrapping_uint32 next_ts;
         audio_format selected_audio_format;
         /// Whether data is being consumed. When the FIFO is full, this will be set to false.
-        std::atomic_bool consumer_active_ = false;
-    } realtime_context_;
+        std::atomic_bool consumer_active {false};
+    };
+
+    rcu<shared_state> shared_state_;
+    rcu<shared_state>::reader audio_thread_reader_ {shared_state_.create_reader()};
+    rcu<shared_state>::reader network_thread_reader_ {shared_state_.create_reader()};
 
     /**
      * Restarts the stream if it is running, otherwise does nothing.

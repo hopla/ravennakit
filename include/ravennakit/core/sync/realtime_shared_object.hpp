@@ -11,6 +11,7 @@
 #pragma once
 
 #include "ravennakit/core/assert.hpp"
+#include "ravennakit/core/constants.hpp"
 
 #include <memory>
 #include <mutex>
@@ -22,8 +23,10 @@ namespace rav {
  * This class provides a real-time safe way to share objects among a single reader. The writer side is protected by a
  * mutex. Internally a CAS loop is used to update the value in a thread-safe manner.
  * @tparam T The type of the object to share.
+ * @tparam loop_upper_bound The maximum number of iterations to perform in the CAS loop. If the loop doesn't succeed in
+ * the specified number of iterations, the operation is considered failed. Default is 100'000.
  */
-template<class T>
+template<class T, size_t loop_upper_bound = 100'000>
 class realtime_shared_object {
   public:
     /**
@@ -125,7 +128,7 @@ class realtime_shared_object {
      * Real-time safe: yes, wait-free
      * Thread safe: no.
      */
-    realtime_lock lock_realtime() {
+    [[nodiscard]] realtime_lock lock_realtime() {
         return realtime_lock(*this);
     }
 
@@ -135,10 +138,11 @@ class realtime_shared_object {
      * Thread safe: yes.
      * @tparam Args
      * @param args
+     * @return True if the value was successfully updated, false if the value could not be updated.
      */
     template<class... Args>
-    void update(Args&&... args) {
-        update(std::make_unique<T>(std::forward<Args>(args)...));
+    [[nodiscard]] bool update(Args&&... args) {
+        return update(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
     /**
@@ -146,20 +150,29 @@ class realtime_shared_object {
      * Real-time safe: no.
      * Thread safe: yes.
      * @param new_value New value to set.
+     * @return True if the value was successfully updated, false if the value could not be updated (when
+     * loop_upper_bound was exceeded).
      */
-    void update(std::unique_ptr<T> new_value) {
+    [[nodiscard]] bool update(std::unique_ptr<T> new_value) {
         if (new_value == nullptr) {
-            return;
+            RAV_ASSERT_FALSE("New value must not be nullptr");
+            return false;
         }
 
         std::lock_guard lock(mutex_);
 
-        for (auto* expected = storage_.get(); !ptr_.compare_exchange_strong(expected, new_value.get());
-             expected = storage_.get()) {
-            std::this_thread::yield();
+        auto* expected = storage_.get();
+
+        for (size_t i = 0; i < loop_upper_bound; ++i) {
+            if (ptr_.compare_exchange_strong(expected, new_value.get())) {
+                storage_ = std::move(new_value);
+                return true;
+            }
+            expected = storage_.get();
+            std::this_thread::sleep_for(std::chrono::microseconds(100));
         }
 
-        storage_ = std::move(new_value);
+        return false;
     }
 
   private:

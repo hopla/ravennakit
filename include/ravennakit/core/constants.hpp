@@ -11,8 +11,8 @@
 #pragma once
 
 /**
- * Defines an upper bound for loops, whenever a loop hits this number the program should assert.
+ * Defines an upper bound for loops, whenever a loop hits this number the program should assert or return an error
  */
 #ifndef RAV_LOOP_UPPER_BOUND
-#define RAV_LOOP_UPPER_BOUND 65535
+#define RAV_LOOP_UPPER_BOUND 100'000
 #endif

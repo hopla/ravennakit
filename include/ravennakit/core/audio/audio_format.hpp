@@ -30,7 +30,7 @@ struct audio_format {
         noninterleaved,
     };
 
-    byte_order byte_order {byte_order::le};
+    byte_order byte_order {little_endian ? byte_order::le : byte_order::be};
     audio_encoding encoding {};
     channel_ordering ordering {channel_ordering::interleaved};
     uint32_t sample_rate {};

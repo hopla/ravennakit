@@ -20,6 +20,7 @@
 #include "ravenna_rtsp_client.hpp"
 #include "ravenna_receiver.hpp"
 #include "ravennakit/core/audio/audio_buffer_view.hpp"
+#include "ravennakit/core/sync/realtime_shared_object.hpp"
 #include "ravennakit/core/util/id.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
 
@@ -48,12 +49,14 @@ class ravenna_node {
 
         /**
          * Called when a receiver is added to the node, or when subscribing.
+         * Called from the maintenance thread.
          * @param receiver The id of the receiver.
          */
         virtual void ravenna_receiver_added([[maybe_unused]] const ravenna_receiver& receiver) {}
 
         /**
          * Called when a receiver is removed from the node.
+         * Called from the maintenance thread.
          * @param receiver_id The id of the receiver.
          */
         virtual void ravenna_receiver_removed([[maybe_unused]] id receiver_id) {}
@@ -74,21 +77,30 @@ class ravenna_node {
      * @param receiver_id The id of the receiver to remove.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> remove_receiver(id receiver_id);
+    [[nodiscard]] std::future<void> remove_receiver(id receiver_id);
+
+    /**
+     * Sets the delay for the receiver with the given id.
+     * @param receiver_id The id of the receiver to set the delay for.
+     * @param delay_samples The delay in samples.
+     * @return A future that will be set when the operation is complete. True if the delay was set, false if the
+     * receiver was not found.
+     */
+    [[nodiscard]] std::future<bool> set_receiver_delay(id receiver_id, uint32_t delay_samples);
 
     /**
      * Adds a subscriber to the node.
      * This method can be called from any thread, and will wait until the operation is complete.
      * @param subscriber_to_add The subscriber to add.
      */
-    [[nodiscard]] std::future<void> add_subscriber(subscriber* subscriber_to_add);
+    [[nodiscard]] std::future<void> subscribe(subscriber* subscriber_to_add);
 
     /**
      * Removes a subscriber from the node.
      * This method can be called from any thread, and will wait until the operation is complete.
      * @param subscriber_to_remove The subscriber to remove.
      */
-    [[nodiscard]] std::future<void> remove_subscriber(subscriber* subscriber_to_remove);
+    [[nodiscard]] std::future<void> unsubscribe(subscriber* subscriber_to_remove);
 
     /**
      * Adds a subscriber to the receiver with the given id.
@@ -96,7 +108,8 @@ class ravenna_node {
      * @param subscriber_to_add The subscriber to add.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> add_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_add);
+    [[nodiscard]] std::future<void>
+    subscribe_to_receiver(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_add);
 
     /**
      * Removes a subscriber from the receiver with the given id.
@@ -104,30 +117,15 @@ class ravenna_node {
      * @param subscriber_to_remove The subscriber to remove.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> remove_receiver_subscriber(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_remove);
-
-    /**
-     * Adds a data callback to the receiver with the given id.
-     * @param receiver_id The id of the receiver to add the callback to.
-     * @param callback The callback to add.
-     * @return A future that will be set when the operation is complete.
-     */
-    std::future<void> add_receiver_data_callback(id receiver_id, rtp_stream_receiver::data_callback* callback);
-
-    /**
-     * Removes a data callback from the receiver with the given id.
-     * @param receiver_id The id of the receiver to remove the callback from.
-     * @param callback The callback to remove.
-     * @return A future that will be set when the operation is complete.
-     */
-    std::future<void> remove_receiver_data_callback(id receiver_id, rtp_stream_receiver::data_callback* callback);
+    [[nodiscard]] std::future<void>
+    unsubscribe_from_receiver(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_remove);
 
     /**
      * Get the packet statistics for the given stream, if the stream for the given ID exists.
      * @param receiver_id The ID of the stream to get the packet statistics for.
      * @return The packet statistics for the stream, or an empty structure if the stream doesn't exist.
      */
-    std::future<rtp_stream_receiver::stream_stats> get_stats_for_receiver(id receiver_id);
+    [[nodiscard]] std::future<rtp_stream_receiver::stream_stats> get_stats_for_receiver(id receiver_id);
 
     /**
      * Calls back with the ravenna receiver for the given receiver id. If the stream is not found, the callback will not
@@ -135,14 +133,15 @@ class ravenna_node {
      * @param receiver_id The id of the receiver to get the receiver for.
      * @param update_function The function to call with the receiver.
      */
-    std::future<bool> get_receiver(id receiver_id, std::function<void(ravenna_receiver&)> update_function);
+    [[nodiscard]] std::future<bool>
+    get_receiver(id receiver_id, std::function<void(ravenna_receiver&)> update_function);
 
     /**
      * Get the SDP for the receiver with the given id.
      * @param receiver_id The id of the receiver to get the SDP for.
      * @return The SDP for the receiver.
      */
-    std::future<std::optional<sdp::session_description>> get_sdp_for_receiver(id receiver_id);
+    [[nodiscard]] std::future<std::optional<sdp::session_description>> get_sdp_for_receiver(id receiver_id);
 
     /**
      * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
@@ -150,7 +149,7 @@ class ravenna_node {
      * @param receiver_id The id of the receiver to get the SDP text for.
      * @return The SDP text for the receiver.
      */
-    std::future<std::optional<std::string>> get_sdp_text_for_receiver(id receiver_id);
+    [[nodiscard]] std::future<std::optional<std::string>> get_sdp_text_for_receiver(id receiver_id);
 
     /**
      * Reads the data from the receiver with the given id.
@@ -162,7 +161,7 @@ class ravenna_node {
      * @return The timestamp at which the data was read, or std::nullopt if an error occurred.
      */
     [[nodiscard]] std::optional<uint32_t>
-    read_data_realtime(id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp) const;
+    read_data_realtime(id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp);
 
     /**
      * Reads the data from the receiver with the given id.
@@ -174,7 +173,7 @@ class ravenna_node {
      */
     [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
         id receiver_id, const audio_buffer_view<float>& output_buffer, std::optional<uint32_t> at_timestamp
-    ) const;
+    );
 
     /**
      * @return True if this method is called on the maintenance thread, false otherwise.
@@ -220,6 +219,10 @@ class ravenna_node {
     }
 
   private:
+    struct realtime_shared_context {
+        std::vector<ravenna_receiver*> receivers;
+    };
+
     asio::io_context io_context_;
     std::thread maintenance_thread_;
     std::thread::id maintenance_thread_id_;
@@ -231,6 +234,10 @@ class ravenna_node {
 
     std::vector<std::unique_ptr<ravenna_receiver>> receivers_;
     subscriber_list<subscriber> subscribers_;
+
+    realtime_shared_object<realtime_shared_context> realtime_shared_context_;
+
+    [[nodiscard]] bool update_realtime_shared_context();
 };
 
 }  // namespace rav

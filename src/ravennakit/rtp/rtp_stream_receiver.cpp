@@ -67,7 +67,9 @@ rav::rtp_stream_receiver::rtp_stream_receiver(rtp_receiver& receiver) :
     rtp_receiver_(receiver), maintenance_timer_(receiver.get_io_context()) {}
 
 rav::rtp_stream_receiver::~rtp_stream_receiver() {
-    set_rtp_receiver(nullptr, {}, {});
+    if (!rtp_receiver_.remove_subscriber(this)) {
+        RAV_ERROR("Failed to remove subscriber");
+    }
     maintenance_timer_.cancel();
 }
 
@@ -403,7 +405,7 @@ rav::sliding_stats::stats rav::rtp_stream_receiver::get_packet_interval_stats() 
 }
 
 void rav::rtp_stream_receiver::restart() {
-    set_rtp_receiver(nullptr, {}, {});  // This unsubscribes from all sessions
+    rtp_receiver_.remove_subscriber(this); // This unsubscribes from all sessions
 
     if (media_streams_.empty()) {
         set_state(receiver_state::idle, true);
@@ -451,7 +453,9 @@ void rav::rtp_stream_receiver::restart() {
     for (auto& stream : media_streams_) {
         stream.first_packet_timestamp.reset();
         stream.packet_stats.reset();
-        set_rtp_receiver(&rtp_receiver_, stream.session, stream.filter);
+        if (!rtp_receiver_.add_subscriber(this, stream.session, stream.filter)) {
+            RAV_ERROR("Failed to add subscriber");
+        }
     }
 
     do_maintenance();

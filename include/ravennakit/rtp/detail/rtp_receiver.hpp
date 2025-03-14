@@ -54,7 +54,7 @@ class rtp_receiver {
     class subscriber {
       public:
         subscriber() = default;
-        virtual ~subscriber();
+        virtual ~subscriber() = default;
 
         subscriber(const subscriber&) = delete;
         subscriber& operator=(const subscriber&) = delete;
@@ -73,18 +73,6 @@ class rtp_receiver {
          * @param rtcp_event The RTCP packet event.
          */
         virtual void on_rtcp_packet([[maybe_unused]] const rtcp_packet_event& rtcp_event) {}
-
-        /**
-         * Sets the RTP receiver for this subscriber, unsubscribing from the current one if it exists, and subscribing
-         * to the new one. Pass nullptr to unsubscribe.
-         * @param rtp_receiver The RTP receiver to subscribe to.
-         * @param session The session to subscribe to.
-         * @param filter The filter to use.
-         */
-        void set_rtp_receiver(rtp_receiver* rtp_receiver, const rtp_session& session, const rtp_filter& filter);
-
-      private:
-        rtp_receiver* rtp_receiver_ {};
     };
 
     rtp_receiver() = delete;
@@ -104,9 +92,25 @@ class rtp_receiver {
     rtp_receiver& operator=(rtp_receiver&&) = delete;
 
     /**
-     * @return The io_context used by this receiver.
+     * @return The io_context associated with this receiver.
      */
     [[nodiscard]] asio::io_context& get_io_context() const;
+
+    /**
+     * Adds a subscriber to the receiver.
+     * @param subscriber_to_add The subscriber to add
+     * @param session The session to subscribe to.
+     * @param filter The filter to apply to the session.
+     * @return true if the subscriber was added, or false if it was already in the list.
+     */
+    bool add_subscriber(subscriber* subscriber_to_add, const rtp_session& session, const rtp_filter& filter);
+
+    /**
+     * Removes a subscriber from all sessions of the receiver.
+     * @param subscriber_to_remove The subscriber to remove.
+     * @return true if the subscriber was removed, or false if it wasn't found.
+     */
+    bool remove_subscriber(const subscriber* subscriber_to_remove);
 
   private:
     struct subscriber_context {

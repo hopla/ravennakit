@@ -90,9 +90,11 @@ std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber_to_ad
     RAV_ASSERT(subscriber_to_add != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber_to_add] {
         if (!subscribers_.add(subscriber_to_add)) {
-            RAV_WARNING("Already subscribed");
+            RAV_WARNING("Failed to add subscriber to node");
         }
-        subscriber_to_add->set_ravenna_browser(&browser_);
+        if (!browser_.add_subscriber(subscriber_to_add)) {
+            RAV_WARNING("Failed to add subscriber to browser");
+        }
         for (const auto& receiver : receivers_) {
             subscriber_to_add->ravenna_receiver_added(*receiver);
         }
@@ -103,9 +105,11 @@ std::future<void> rav::ravenna_node::add_subscriber(subscriber* subscriber_to_ad
 std::future<void> rav::ravenna_node::remove_subscriber(subscriber* subscriber_to_remove) {
     RAV_ASSERT(subscriber_to_remove != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber_to_remove] {
-        subscriber_to_remove->set_ravenna_browser(nullptr);
+        if (!browser_.remove_subscriber(subscriber_to_remove)) {
+            RAV_WARNING("Failed to remove subscriber from browser");
+        }
         if (!subscribers_.remove(subscriber_to_remove)) {
-            RAV_WARNING("Not subscribed");
+            RAV_WARNING("Failed to remove subscriber from node");
         }
     };
     return asio::dispatch(io_context_, asio::use_future(work));

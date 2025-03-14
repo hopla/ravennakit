@@ -86,11 +86,15 @@ void rav::ravenna_rtsp_client::subscriber::unsubscribe_from_session() {
 
 rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser) :
     io_context_(io_context), browser_(browser) {
-    set_ravenna_browser(&browser_);
+    if (!browser_.add_subscriber(this)) {
+        RAV_WARNING("Failed to add subscriber to browser");
+    }
 }
 
 rav::ravenna_rtsp_client::~ravenna_rtsp_client() {
-    set_ravenna_browser(nullptr);
+    if (!browser_.remove_subscriber(this)) {
+        RAV_WARNING("Failed to remove subscriber from browser");
+    }
 }
 
 void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) {

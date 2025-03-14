@@ -12,52 +12,6 @@
 #include "ravennakit/core/exception.hpp"
 #include "ravennakit/core/log.hpp"
 
-rav::ravenna_browser::subscriber::~subscriber() {
-    RAV_ASSERT_NO_THROW(browser_ == nullptr, "Please call set_ravenna_browser(nullptr) before destruction");
-}
-
-void rav::ravenna_browser::subscriber::set_ravenna_browser(ravenna_browser* browser) {
-    if (browser == browser_) {
-        return;
-    }
-
-    if (browser_ != nullptr) {
-        RAV_ASSERT(browser_->node_browser_ != nullptr, "Invalid node browser");
-        RAV_ASSERT(browser_->session_browser_ != nullptr, "Invalid session browser");
-
-        if (!browser_->subscribers_.remove(this)) {
-            RAV_WARNING("Not subscribed");
-        }
-    }
-
-    browser_ = browser;
-
-    if (browser_ == nullptr) {
-        return;
-    }
-
-    RAV_ASSERT(browser_->node_browser_ != nullptr, "Invalid node browser");
-    RAV_ASSERT(browser_->session_browser_ != nullptr, "Invalid session browser");
-
-    if (!browser_->subscribers_.add(this)) {
-        RAV_WARNING("Already subscribed");
-    }
-
-    for (auto& s : browser_->node_browser_->get_services()) {
-        if (s.host_target.empty()) {
-            continue;  // Only consider resolved services
-        }
-        ravenna_node_discovered({s});
-    }
-
-    for (auto& s : browser_->session_browser_->get_services()) {
-        if (s.host_target.empty()) {
-            continue;  // Only consider resolved services
-        }
-        ravenna_session_discovered({s});
-    }
-}
-
 rav::ravenna_browser::ravenna_browser(asio::io_context& io_context) {
     node_browser_ = dnssd::dnssd_browser::create(io_context);
 
@@ -109,4 +63,28 @@ const rav::dnssd::service_description* rav::ravenna_browser::find_node(const std
     RAV_ASSERT(node_browser_ != nullptr, "Invalid node browser");
     RAV_ASSERT(session_browser_ != nullptr, "Invalid session browser");
     return node_browser_->find_service(node_name);
+}
+
+bool rav::ravenna_browser::add_subscriber(subscriber* subscriber_to_add) {
+    if (subscribers_.add(subscriber_to_add)) {
+        for (auto& s : node_browser_->get_services()) {
+            if (s.host_target.empty()) {
+                continue;  // Only consider resolved services
+            }
+            subscriber_to_add->ravenna_node_discovered({s});
+        }
+
+        for (auto& s : session_browser_->get_services()) {
+            if (s.host_target.empty()) {
+                continue;  // Only consider resolved services
+            }
+            subscriber_to_add->ravenna_session_discovered({s});
+        }
+        return true;
+    }
+    return false;
+}
+
+bool rav::ravenna_browser::remove_subscriber(subscriber* subscriber_to_remove) {
+    return subscribers_.remove(subscriber_to_remove);
 }

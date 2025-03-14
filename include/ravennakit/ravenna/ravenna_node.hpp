@@ -49,12 +49,14 @@ class ravenna_node {
 
         /**
          * Called when a receiver is added to the node, or when subscribing.
+         * Called from the maintenance thread.
          * @param receiver The id of the receiver.
          */
         virtual void ravenna_receiver_added([[maybe_unused]] const ravenna_receiver& receiver) {}
 
         /**
          * Called when a receiver is removed from the node.
+         * Called from the maintenance thread.
          * @param receiver_id The id of the receiver.
          */
         virtual void ravenna_receiver_removed([[maybe_unused]] id receiver_id) {}

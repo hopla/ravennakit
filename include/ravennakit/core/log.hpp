@@ -125,7 +125,7 @@ namespace rav {
  * @param env_var The environment variable to read the log level from.
  */
 inline void set_log_level_from_env(const char* env_var = "RAV_LOG_LEVEL") {
-    if (const auto env_value = rav::env::get(env_var)) {
+    if (const auto env_value = rav::get_env(env_var)) {
 #if RAV_ENABLE_SPDLOG
         if (string_compare_case_insensitive(*env_value, "TRACE")) {
             spdlog::set_level(spdlog::level::trace);

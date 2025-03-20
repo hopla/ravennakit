@@ -21,11 +21,11 @@ namespace rav::aes67 {
 /**
  * Represents packet time as specified in AES67-2023 Section 7.2.
  */
-class aes67_packet_time {
+class PacketTime {
   public:
-    aes67_packet_time() = default;
+    PacketTime() = default;
 
-    aes67_packet_time(const uint8_t numerator, const uint8_t denominator) : fraction_ {numerator, denominator} {}
+    PacketTime(const uint8_t numerator, const uint8_t denominator) : fraction_ {numerator, denominator} {}
 
     /**
      * @param sample_rate The sample rate of the audio.
@@ -61,43 +61,43 @@ class aes67_packet_time {
     /**
      * @return A packet time of 125 microseconds.
      */
-    static aes67_packet_time us_125() {
-        return aes67_packet_time {1, 8};
+    static PacketTime us_125() {
+        return PacketTime {1, 8};
     }
 
     /**
      * @return A packet time of 250 microseconds.
      */
-    static aes67_packet_time us_250() {
-        return aes67_packet_time {1, 4};
+    static PacketTime us_250() {
+        return PacketTime {1, 4};
     }
 
     /**
      * @return A packet time of 333 microseconds.
      */
-    static aes67_packet_time us_333() {
-        return aes67_packet_time {1, 3};
+    static PacketTime us_333() {
+        return PacketTime {1, 3};
     }
 
     /**
      * @return A packet time of 1 millisecond.
      */
-    static aes67_packet_time ms_1() {
-        return aes67_packet_time {1, 1};
+    static PacketTime ms_1() {
+        return PacketTime {1, 1};
     }
 
     /**
      * @return A packet time of 4 milliseconds.
      */
-    static aes67_packet_time ms_4() {
-        return aes67_packet_time {4, 1};
+    static PacketTime ms_4() {
+        return PacketTime {4, 1};
     }
 
-    friend bool operator==(const aes67_packet_time& lhs, const aes67_packet_time& rhs) {
+    friend bool operator==(const PacketTime& lhs, const PacketTime& rhs) {
         return lhs.fraction_ == rhs.fraction_;
     }
 
-    friend bool operator!=(const aes67_packet_time& lhs, const aes67_packet_time& rhs) {
+    friend bool operator!=(const PacketTime& lhs, const PacketTime& rhs) {
         return !(lhs == rhs);
     }
 

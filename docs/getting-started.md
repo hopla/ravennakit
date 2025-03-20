@@ -11,10 +11,10 @@ required:
 3. Call add_subdirectory() in your CMakeLists.txt file.:
 
 ```cmake
-add_subdirectory(ravennakit)
+add_subdirectory(path/to/ravennakit)
 ``` 
 
-4. Then call target_link_libraries() to link against the RAVENNAKIT library:
+Then call target_link_libraries() to link against the RAVENNAKIT library:
 
 ```cmake
 target_link_libraries(your_target PRIVATE ravennakit)
@@ -22,27 +22,22 @@ target_link_libraries(your_target PRIVATE ravennakit)
 
 ## Manually integrating RAVENNAKIT
 
-If you can't use CMake, you can manually integrate RAVENNAKIT into your project. The following steps are required:
+If you can't or don't want to use CMake, it's possible to manually integrate RAVENNAKIT into your project. This requires more steps and is not as easy as the CMake approach:
 
 1. Copy the RAVENNAKIT source code into the source tree of your project.
-2. Make the dependencies available to your project. This can be done by copying the dependencies into your project or
-   linking against them.
-3. Add the RAVENNAKIT source files to your project (include/ and src/)
-4. Add the dependencies to your project.
-
-RAVENNAKIT needs a C++17 compliant compiler, access to `std` and a few other dependencies. See [building](building.md)
-for more details.
+2. Add the RAVENNAKIT source files to your project (path/to/ravennakit/include/** and path/to/ravennakit/src/**)
+3. Link the required dependencies to your project. Visit the [building](building.md) documentation for more details.
 
 ## Build configurations and options
 
-To influence how RAVENNAKIT is built, you can set several variables. Head over to the [building](building.md)
+To influence how RAVENNAKIT is built, several variables can be set. Head over to the [building](building.md)
 documentation for more details.
 
 ## Setting up a ravenna_node
 
-The easiest way to get started is to use the `rav::ravenna_node` class. This class is the highest available abstraction
-of a RAVENNA node and provides a simple API to set up streams and to configure the node. It basically acts like a
-virtual RAVENNA device. Using this class also makes it easier to cross thread boundaries.
+The easiest way to get started is to use the `rav::ravenna_node` class. This class offers the highest available 
+abstraction of a RAVENNA node and provides a simple API to set up streams and to configure the node. It basically acts 
+like a virtual RAVENNA node. Using this class also makes it easier to deal with cross thread boundaries.
 
 The following code snippet shows how to set up a RAVENNA node:
 
@@ -96,6 +91,6 @@ int main() {
 }
 ``` 
 
-## Examples
+For a more detailed example on how to set up a RAVENNA node, see [ravenna_node_example.cpp](#ravenna_node_example.cpp).
 
-For more detailed examples, see the [examples](../examples) directory.
+Next you might want to read about [building](building.md) the SDK.

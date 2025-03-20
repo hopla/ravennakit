@@ -15,12 +15,14 @@
 
 #include <CLI/App.hpp>
 
-struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
-    explicit ravenna_node_example(const rav::rtp_receiver::configuration& config) : node(config) {
+namespace examples {
+
+struct ravenna_node final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
+    explicit ravenna_node(const rav::rtp_receiver::configuration& config) : node(config) {
         node.subscribe(this).wait();
     }
 
-    ~ravenna_node_example() override {
+    ~ravenna_node() override {
         node.unsubscribe(this).wait();
     }
 
@@ -51,6 +53,8 @@ struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_strea
     rav::ravenna_node node;
 };
 
+}  // namespace examples
+
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
@@ -69,7 +73,7 @@ int main(int const argc, char* argv[]) {
     rav::rtp_receiver::configuration config;
     config.interface_address = asio::ip::make_address(interface_address);
 
-    ravenna_node_example node_example(config);
+    examples::ravenna_node node_example(config);
 
     for (auto& session : stream_names) {
         node_example.node.create_receiver(session).wait();

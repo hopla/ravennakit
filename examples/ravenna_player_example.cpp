@@ -8,11 +8,6 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-/**
- * This examples demonstrates how to create a source and send audio onto the network. It does this by reading audio from
- * a wav file on disk and sending it as multicast audio packets.
- */
-
 #include "ravennakit/core/file.hpp"
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
@@ -26,6 +21,7 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
+namespace examples {
 /**
  * Holds the logic for transmitting a wav file over the network.
  */
@@ -92,6 +88,12 @@ class wav_file_player {
     std::unique_ptr<rav::ravenna_transmitter> transmitter_;
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to create a source and send audio onto the network. It does this by reading audio from
+ * a wav file on disk and sending it as multicast audio packets.
+ */
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
@@ -111,7 +113,7 @@ int main(int const argc, char* argv[]) {
 
     asio::io_context io_context;
 
-    std::vector<std::unique_ptr<wav_file_player>> wav_file_players;
+    std::vector<std::unique_ptr<examples::wav_file_player>> wav_file_players;
 
     auto advertiser = rav::dnssd::dnssd_advertiser::create(io_context);
     rav::rtsp::server rtsp_server(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005));
@@ -142,7 +144,7 @@ int main(int const argc, char* argv[]) {
         const auto file_session_name = file.path().filename().string();
 
         wav_file_players.emplace_back(
-            std::make_unique<wav_file_player>(
+            std::make_unique<examples::wav_file_player>(
                 io_context, *advertiser, rtsp_server, ptp_instance, rtp_transmitter, id_generator, interface_address,
                 file, file_session_name + " " + std::to_string(wav_file_players.size() + 1)
             )

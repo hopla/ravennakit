@@ -8,12 +8,6 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-/**
- * This example subscribes to a RAVENNA stream, reads the audio data, and writes it back to the network as a different
- * stream. The purpose of this example is to show (and test) how low the latency can be when using the RAVENNA API and
- * to demonstrate how the playback is sample-sync (although you'll have to measure than on a real device).
- */
-
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
@@ -25,9 +19,10 @@
 
 #include <CLI/App.hpp>
 
-class loopback_example: public rav::rtp_stream_receiver::subscriber{
+namespace examples {
+class loopback: public rav::rtp_stream_receiver::subscriber {
   public:
-    explicit loopback_example(std::string stream_name, const asio::ip::address_v4& interface_addr) :
+    explicit loopback(std::string stream_name, const asio::ip::address_v4& interface_addr) :
         stream_name_(std::move(stream_name)) {
         rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
         auto config = rav::rtp_receiver::configuration {interface_addr};
@@ -45,8 +40,9 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
             RAV_THROW_EXCEPTION("No dnssd advertiser available");
         }
 
-        rtsp_server_ =
-            std::make_unique<rav::rtsp::server>(io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005));
+        rtsp_server_ = std::make_unique<rav::rtsp::server>(
+            io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005)
+        );
 
         rtp_transmitter_ = std::make_unique<rav::rtp_transmitter>(io_context_, interface_addr);
 
@@ -75,7 +71,7 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
         });
     }
 
-    ~loopback_example() override {
+    ~loopback() override {
         if (ravenna_receiver_ != nullptr) {
             if (!ravenna_receiver_->unsubscribe(this)) {
                 RAV_WARNING("Failed to remove subscriber");
@@ -132,6 +128,14 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
     }
 };
 
+}  // namespace examples
+
+/**
+ * This example subscribes to a RAVENNA stream, reads the audio data, and writes it back to the network as a different
+ * stream. The purpose of this example is to show (and test) how low the latency can be when using the RAVENNA API and
+ * to demonstrate how the playback is sample-sync (although you'll have to measure than on a real device).
+ */
+
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
@@ -150,7 +154,7 @@ int main(int const argc, char* argv[]) {
     const auto interface_address = asio::ip::make_address_v4(interface_address_string);
 
     // Receiving side
-    loopback_example example(stream_name, interface_address);
+    examples::loopback example(stream_name, interface_address);
     example.run();
 
     return 0;

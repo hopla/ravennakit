@@ -21,12 +21,7 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
-/**
- * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
- * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
- * Separate files for each stream are created and existing files will be overwritten.
- */
-
+namespace examples {
 /**
  * A class that is a subscriber to a rtp_stream_receiver and writes the audio data to a wav file.
  */
@@ -101,9 +96,9 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
     std::optional<rav::wrapping_uint32> stream_ts_;
 };
 
-class ravenna_recorder_example {
+class ravenna_recorder {
   public:
-    explicit ravenna_recorder_example(const std::string& interface_address) {
+    explicit ravenna_recorder(const std::string& interface_address) {
         rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
 
         rav::rtp_receiver::configuration config;
@@ -111,7 +106,7 @@ class ravenna_recorder_example {
         rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
     }
 
-    ~ravenna_recorder_example() = default;
+    ~ravenna_recorder() = default;
 
     void add_stream(const std::string& stream_name) {
         auto receiver = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
@@ -139,6 +134,13 @@ class ravenna_recorder_example {
     std::vector<std::unique_ptr<stream_recorder>> recorders_;
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
+ * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
+ * Separate files for each stream are created and existing files will be overwritten.
+ */
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
@@ -154,7 +156,7 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    ravenna_recorder_example recorder_example(interface_address);
+    examples::ravenna_recorder recorder_example(interface_address);
 
     for (auto& stream_name : stream_names) {
         recorder_example.add_stream(stream_name);

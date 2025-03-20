@@ -20,14 +20,7 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
-/**
- * This examples demonstrates how to receive audio streams from a RAVENNA device. It sets up a RAVENNA sink that listens
- * for announcements from a RAVENNA device and starts receiving audio data. It will play the audio to the selected audio
- * device using portaudio.
- * Warning! No drift correction is done between the sender and receiver. At some point buffers will overflow or
- * underflow.
- */
-
+namespace examples {
 constexpr int k_block_size = 256;
 
 class portaudio {
@@ -166,9 +159,9 @@ class portaudio_stream {
     }
 };
 
-class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
+class ravenna_receiver: public rav::rtp_stream_receiver::subscriber {
   public:
-    explicit ravenna_receiver_example(
+    explicit ravenna_receiver(
         const std::string& stream_name, std::string audio_device_name, const std::string& interface_address
     ) :
         audio_device_name_(std::move(audio_device_name)) {
@@ -186,7 +179,7 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         std::ignore = ravenna_receiver_->subscribe_to_session(stream_name);
     }
 
-    ~ravenna_receiver_example() override {
+    ~ravenna_receiver() override {
         if (ravenna_receiver_) {
             if (!ravenna_receiver_->unsubscribe(this)) {
                 RAV_WARNING("Failed to remove subscriber");
@@ -216,7 +209,7 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         }
         portaudio_stream_.open_output_stream(
             audio_device_name_, audio_format_.sample_rate, static_cast<int>(audio_format_.num_channels), *sample_format,
-            &ravenna_receiver_example::stream_callback, this
+            &ravenna_receiver::stream_callback, this
         );
     }
 
@@ -261,7 +254,7 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         const void* input, void* output, const unsigned long frameCount, const PaStreamCallbackTimeInfo* timeInfo,
         const PaStreamCallbackFlags statusFlags, void* userData
     ) {
-        return static_cast<ravenna_receiver_example*>(userData)->stream_callback(
+        return static_cast<ravenna_receiver*>(userData)->stream_callback(
             input, output, frameCount, timeInfo, statusFlags
         );
     }
@@ -283,6 +276,15 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
     }
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to receive audio streams from a RAVENNA device. It sets up a RAVENNA sink that listens
+ * for announcements from a RAVENNA device and starts receiving audio data. It will play the audio to the selected audio
+ * device using portaudio.
+ * Warning! No drift correction is done between the sender and receiver. At some point buffers will overflow or
+ * underflow.
+ */
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
@@ -301,9 +303,9 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    portaudio_stream::print_devices();
+    examples::portaudio_stream::print_devices();
 
-    ravenna_receiver_example receiver_example(stream_name, audio_output_device, interface_address);
+    examples::ravenna_receiver receiver_example(stream_name, audio_output_device, interface_address);
 
     std::thread cin_thread([&receiver_example] {
         fmt::println("Press return key to stop...");

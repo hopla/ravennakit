@@ -9,6 +9,8 @@
 #include <asio/post.hpp>
 #include <thread>
 
+namespace examples {
+
 static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::string& string_value) {
     if (string_value.empty())
         return false;
@@ -21,6 +23,8 @@ static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::stri
 
     return true;
 }
+
+}  // namespace examples
 
 int main(int const argc, char* argv[]) {
     rav::log::set_level_from_env();
@@ -51,7 +55,7 @@ int main(int const argc, char* argv[]) {
     // Parse remaining arguments as TxtRecord
     rav::dnssd::txt_record txt_record;
     for (auto it = args.begin() + 2; it != args.end(); ++it) {
-        parse_txt_record(txt_record, *it);
+        examples::parse_txt_record(txt_record, *it);
     }
 
     asio::io_context io_context;
@@ -100,7 +104,7 @@ int main(int const argc, char* argv[]) {
             continue;
         }
         try {
-            if (parse_txt_record(txt_record, cmd)) {
+            if (examples::parse_txt_record(txt_record, cmd)) {
                 // Schedule the updates on the io_context thread because the advertiser is not thread-safe.
                 asio::post(io_context, [=, &advertiser] {
                     advertiser->update_txt_record(service_id2, txt_record);

@@ -41,7 +41,7 @@ class StreamReceiver: public Receiver::Subscriber {
     /**
      * The state of the stream.
      */
-    enum class receiver_state {
+    enum class ReceiverState {
         /// The stream is idle and is expected to because no SDP has been set.
         idle,
         /// An SDP has been set and the stream is waiting for the first data.
@@ -57,19 +57,19 @@ class StreamReceiver: public Receiver::Subscriber {
     /**
      * @return A string representation of the state.
      */
-    [[nodiscard]] static const char* to_string(receiver_state state);
+    [[nodiscard]] static const char* to_string(ReceiverState state);
 
     /**
      * Event for when this receiver changed in some way, containing the updated parameters.
      */
-    struct stream_updated_event {
+    struct StreamUpdatedEvent {
         Id receiver_id;
         Session session;
         Filter filter;
         AudioFormat selected_audio_format;
         uint16_t packet_time_frames = 0;
         uint32_t delay_samples = 0;
-        receiver_state state = receiver_state::idle;
+        ReceiverState state = ReceiverState::idle;
 
         [[nodiscard]] std::string to_string() const;
     };
@@ -89,7 +89,7 @@ class StreamReceiver: public Receiver::Subscriber {
          *
          * @param event The event.
          */
-        virtual void rtp_stream_receiver_updated([[maybe_unused]] const stream_updated_event& event) {}
+        virtual void rtp_stream_receiver_updated([[maybe_unused]] const StreamUpdatedEvent& event) {}
 
         /**
          * Called when new data has been received.
@@ -238,7 +238,7 @@ class StreamReceiver: public Receiver::Subscriber {
     Receiver& rtp_receiver_;
     Id id_ {Id::next_process_wide_unique_id()};
     std::atomic<uint32_t> delay_ = 480;  // 100ms at 48KHz
-    receiver_state state_ {receiver_state::idle};
+    ReceiverState state_ {ReceiverState::idle};
     std::vector<MediaStream> media_streams_;
     SubscriberList<Subscriber> subscribers_;
     asio::steady_timer maintenance_timer_;
@@ -278,8 +278,8 @@ class StreamReceiver: public Receiver::Subscriber {
 
     std::pair<MediaStream*, bool> find_or_create_media_stream(const Session& session);
     void handle_rtp_packet_event_for_session(const Receiver::RtpPacketEvent& event, MediaStream& stream);
-    void set_state(receiver_state new_state, bool notify_subscribers);
-    stream_updated_event make_updated_event() const;
+    void set_state(ReceiverState new_state, bool notify_subscribers);
+    StreamUpdatedEvent make_updated_event() const;
     void do_maintenance();
     void do_realtime_maintenance();
 };

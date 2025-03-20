@@ -38,24 +38,24 @@ bool is_connection_info_valid(const rav::sdp::ConnectionInfoField& conn) {
 
 }  // namespace
 
-const char* rav::rtp::StreamReceiver::to_string(const receiver_state state) {
+const char* rav::rtp::StreamReceiver::to_string(const ReceiverState state) {
     switch (state) {
-        case receiver_state::idle:
+        case ReceiverState::idle:
             return "idle";
-        case receiver_state::waiting_for_data:
+        case ReceiverState::waiting_for_data:
             return "waiting_for_data";
-        case receiver_state::ok:
+        case ReceiverState::ok:
             return "ok";
-        case receiver_state::ok_no_consumer:
+        case ReceiverState::ok_no_consumer:
             return "ok_no_consumer";
-        case receiver_state::inactive:
+        case ReceiverState::inactive:
             return "inactive";
         default:
             return "unknown";
     }
 }
 
-std::string rav::rtp::StreamReceiver::stream_updated_event::to_string() const {
+std::string rav::rtp::StreamReceiver::StreamUpdatedEvent::to_string() const {
     return fmt::format(
         "id={}, session={}, selected_audio_format={}, packet_time_frames={}, delay_samples={}, state={}",
         receiver_id.value(), session.to_string(), selected_audio_format.to_string(), packet_time_frames, delay_samples,
@@ -234,7 +234,7 @@ void rav::rtp::StreamReceiver::update_sdp(const sdp::SessionDescription& sdp) {
 
     if (should_restart) {
         restart();
-        set_state(receiver_state::waiting_for_data, false);
+        set_state(ReceiverState::waiting_for_data, false);
     }
 
     if (should_restart || was_changed) {
@@ -408,7 +408,7 @@ void rav::rtp::StreamReceiver::restart() {
     rtp_receiver_.unsubscribe(this); // This unsubscribes from all sessions
 
     if (media_streams_.empty()) {
-        set_state(receiver_state::idle, true);
+        set_state(ReceiverState::idle, true);
         return;
     }
 
@@ -519,12 +519,12 @@ void rav::rtp::StreamReceiver::handle_rtp_packet_event_for_session(
             if (!state->fifo.push(intermediate)) {
                 RAV_TRACE("Failed to push packet info FIFO, make receiver inactive");
                 state->consumer_active = false;
-                set_state(receiver_state::ok_no_consumer, true);
+                set_state(ReceiverState::ok_no_consumer, true);
             } else {
-                set_state(receiver_state::ok, true);
+                set_state(ReceiverState::ok, true);
             }
         } else {
-            set_state(receiver_state::ok_no_consumer, true);
+            set_state(ReceiverState::ok_no_consumer, true);
         }
 
         while (auto seq = state->packets_too_old.pop()) {
@@ -557,7 +557,7 @@ void rav::rtp::StreamReceiver::handle_rtp_packet_event_for_session(
     }
 }
 
-void rav::rtp::StreamReceiver::set_state(const receiver_state new_state, const bool notify_subscribers) {
+void rav::rtp::StreamReceiver::set_state(const ReceiverState new_state, const bool notify_subscribers) {
     // TODO: Schedule this on the maintenance thread
     if (state_ == new_state) {
         return;
@@ -571,8 +571,8 @@ void rav::rtp::StreamReceiver::set_state(const receiver_state new_state, const b
     }
 }
 
-rav::rtp::StreamReceiver::stream_updated_event rav::rtp::StreamReceiver::make_updated_event() const {
-    stream_updated_event event;
+rav::rtp::StreamReceiver::StreamUpdatedEvent rav::rtp::StreamReceiver::make_updated_event() const {
+    StreamUpdatedEvent event;
     event.receiver_id = id_;
     event.state = state_;
     event.delay_samples = delay_;
@@ -591,11 +591,11 @@ rav::rtp::StreamReceiver::stream_updated_event rav::rtp::StreamReceiver::make_up
 
 void rav::rtp::StreamReceiver::do_maintenance() {
     // Check if streams became are no longer receiving data
-    if (state_ == receiver_state::ok || state_ == receiver_state::ok_no_consumer) {
+    if (state_ == ReceiverState::ok || state_ == ReceiverState::ok_no_consumer) {
         const auto now = HighResolutionClock::now();
         for (const auto& stream : media_streams_) {
             if ((stream.last_packet_time_ns + k_receive_timeout_ms * 1'000'000).value() < now) {
-                set_state(receiver_state::inactive, true);
+                set_state(ReceiverState::inactive, true);
             }
         }
     }

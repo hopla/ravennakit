@@ -27,10 +27,10 @@ TEST_CASE("rtsp_parser | parse responses in multiple chunks", "[rtsp_parser]") {
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
         REQUIRE(response.reason_phrase == "OK");
-        REQUIRE(response.headers.size() == 3);
-        REQUIRE(response.headers.get_or_default("CSeq") == "2");
-        REQUIRE(response.headers.get_or_default("Content-Type") == "application/sdp");
-        REQUIRE(response.headers.get_or_default("Content-Length") == std::to_string(sdp.size()));
+        REQUIRE(response.rtsp_headers.size() == 3);
+        REQUIRE(response.rtsp_headers.get_or_default("CSeq") == "2");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Type") == "application/sdp");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Length") == std::to_string(sdp.size()));
         REQUIRE(response.data == sdp);
         response_count++;
     });
@@ -55,10 +55,10 @@ TEST_CASE("rtsp_parser | parse responses in multiple chunks", "[rtsp_parser]") {
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 400);
         REQUIRE(response.reason_phrase == "Bad Request");
-        REQUIRE(response.headers.size() == 3);
-        REQUIRE(response.headers.get_or_default("CSeq") == "4");
-        REQUIRE(response.headers.get_or_default("Content-Type") == "text/plain");
-        REQUIRE(response.headers.get_or_default("Content-Length") == "22");
+        REQUIRE(response.rtsp_headers.size() == 3);
+        REQUIRE(response.rtsp_headers.get_or_default("CSeq") == "4");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Type") == "text/plain");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Length") == "22");
         REQUIRE(response.data == "Invalid header format.");
         response_count++;
     });
@@ -85,14 +85,14 @@ TEST_CASE("rtsp_parser | Parse ok response without data", "[rtsp_parser]") {
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
         REQUIRE(response.reason_phrase == "OK");
-        REQUIRE(response.headers.size() == 4);
-        REQUIRE(response.headers.get_or_default("CSeq") == "3");
+        REQUIRE(response.rtsp_headers.size() == 4);
+        REQUIRE(response.rtsp_headers.get_or_default("CSeq") == "3");
         REQUIRE(
-            response.headers.get_or_default("Transport")
+            response.rtsp_headers.get_or_default("Transport")
             == "RTP/AVP;unicast;client_port=8000-8001;server_port=9000-9001"
         );
-        REQUIRE(response.headers.get_or_default("Session") == "12345678");
-        REQUIRE(response.headers.get_or_default("Content-Length") == "0");
+        REQUIRE(response.rtsp_headers.get_or_default("Session") == "12345678");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Length") == "0");
         REQUIRE(response.data.empty());
         response_count++;
     });
@@ -117,14 +117,14 @@ TEST_CASE("rtsp_parser | Parse ok response with data", "[rtsp_parser]") {
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
         REQUIRE(response.reason_phrase == "OK");
-        REQUIRE(response.headers.size() == 4);
-        REQUIRE(response.headers.get_or_default("CSeq") == "3");
+        REQUIRE(response.rtsp_headers.size() == 4);
+        REQUIRE(response.rtsp_headers.get_or_default("CSeq") == "3");
         REQUIRE(
-            response.headers.get_or_default("Transport")
+            response.rtsp_headers.get_or_default("Transport")
             == "RTP/AVP;unicast;client_port=8000-8001;server_port=9000-9001"
         );
-        REQUIRE(response.headers.get_or_default("Session") == "12345678");
-        REQUIRE(response.headers.get_or_default("Content-Length") == "18");
+        REQUIRE(response.rtsp_headers.get_or_default("Session") == "12345678");
+        REQUIRE(response.rtsp_headers.get_or_default("Content-Length") == "18");
         REQUIRE(response.data.size() == 18);
         REQUIRE(response.data == "rtsp_response_data");
         response_count++;
@@ -151,9 +151,9 @@ TEST_CASE("rtsp_parser | Parse response from Anubis", "[rtsp_parser]") {
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
         REQUIRE(response.reason_phrase == "OK");
-        REQUIRE(response.headers.size() == 2);
-        REQUIRE(response.headers.get_or_default("content-length") == "516");
-        REQUIRE(response.headers.get_or_default("content-type") == "application/sdp; charset=utf-8");
+        REQUIRE(response.rtsp_headers.size() == 2);
+        REQUIRE(response.rtsp_headers.get_or_default("content-length") == "516");
+        REQUIRE(response.rtsp_headers.get_or_default("content-type") == "application/sdp; charset=utf-8");
         REQUIRE(response.data.size() == data.size());
         REQUIRE(response.data == data);
         response_count++;
@@ -177,7 +177,7 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
             REQUIRE(request.rtsp_version_minor == 0);
-            REQUIRE(request.headers.empty());
+            REQUIRE(request.rtsp_headers.empty());
             REQUIRE(request.data.empty());
             request_count++;
         });
@@ -200,9 +200,9 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
             REQUIRE(request.rtsp_version_minor == 0);
-            REQUIRE(request.headers.size() == 2);
-            REQUIRE(request.headers.get_or_default("CSeq") == "312");
-            REQUIRE(request.headers.get_or_default("Accept") == "application/sdp, application/rtsl, application/mheg");
+            REQUIRE(request.rtsp_headers.size() == 2);
+            REQUIRE(request.rtsp_headers.get_or_default("CSeq") == "312");
+            REQUIRE(request.rtsp_headers.get_or_default("Accept") == "application/sdp, application/rtsl, application/mheg");
             REQUIRE(request.data.empty());
             request_count++;
         });
@@ -225,8 +225,8 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
             REQUIRE(request.rtsp_version_minor == 0);
-            REQUIRE(request.headers.size() == 1);
-            if (auto length = request.headers.get_content_length()) {
+            REQUIRE(request.rtsp_headers.size() == 1);
+            if (auto length = request.rtsp_headers.get_content_length()) {
                 REQUIRE(length.value() == 28);
             } else {
                 FAIL("Content-Length header not found");
@@ -259,9 +259,9 @@ TEST_CASE("rtsp_parser | Parse some requests", "[rtsp_parser]") {
             REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
             REQUIRE(request.rtsp_version_major == 1);
             REQUIRE(request.rtsp_version_minor == 0);
-            REQUIRE(request.headers.size() == 2);
-            REQUIRE(request.headers.get_or_default("CSeq") == "312");
-            REQUIRE(request.headers.get_or_default("Accept") == "application/sdp, application/rtsl, application/mheg");
+            REQUIRE(request.rtsp_headers.size() == 2);
+            REQUIRE(request.rtsp_headers.get_or_default("CSeq") == "312");
+            REQUIRE(request.rtsp_headers.get_or_default("Accept") == "application/sdp, application/rtsl, application/mheg");
             REQUIRE(request.data.empty());
             request_count++;
         });
@@ -280,8 +280,8 @@ TEST_CASE("rtsp_parser | Parse some requests in chunks", "[rtsp_parser]") {
         REQUIRE(request.uri == "rtsp://server.example.com/fizzle/foo");
         REQUIRE(request.rtsp_version_major == 1);
         REQUIRE(request.rtsp_version_minor == 0);
-        REQUIRE(request.headers.size() == 1);
-        REQUIRE(request.headers.get_or_default("Content-Length") == "28");
+        REQUIRE(request.rtsp_headers.size() == 1);
+        REQUIRE(request.rtsp_headers.get_or_default("Content-Length") == "28");
         REQUIRE(request.data == "this_is_the_part_called_data");
         request_count++;
     });
@@ -305,8 +305,8 @@ TEST_CASE("rtsp_parser | Parse some requests in chunks", "[rtsp_parser]") {
         REQUIRE(request.uri == "rtsp://server2.example.com/fizzle/foo");
         REQUIRE(request.rtsp_version_major == 1);
         REQUIRE(request.rtsp_version_minor == 0);
-        REQUIRE(request.headers.size() == 1);
-        REQUIRE(request.headers.get_or_default("Content-Length") == "5");
+        REQUIRE(request.rtsp_headers.size() == 1);
+        REQUIRE(request.rtsp_headers.get_or_default("Content-Length") == "5");
         REQUIRE(request.data == "data2");
         request_count++;
     });
@@ -333,9 +333,9 @@ TEST_CASE("rtsp_parser | Parse Anubis ANNOUNCE request", "[rtsp_parser]") {
         REQUIRE(request.uri.empty());
         REQUIRE(request.rtsp_version_major == 1);
         REQUIRE(request.rtsp_version_minor == 0);
-        REQUIRE(request.headers.size() == 2);
-        REQUIRE(request.headers.get_or_default("content-length") == "516");
-        REQUIRE(request.headers.get_or_default("connection") == "Keep-Alive");
+        REQUIRE(request.rtsp_headers.size() == 2);
+        REQUIRE(request.rtsp_headers.get_or_default("content-length") == "516");
+        REQUIRE(request.rtsp_headers.get_or_default("connection") == "Keep-Alive");
         REQUIRE(request.data == sdp);
         request_count++;
     });
@@ -365,9 +365,9 @@ TEST_CASE("rtsp_parser | Parse Anubis DESCRIBE response and ANNOUNCE request", "
         REQUIRE(response.rtsp_version_minor == 0);
         REQUIRE(response.status_code == 200);
         REQUIRE(response.reason_phrase == "OK");
-        REQUIRE(response.headers.size() == 2);
-        REQUIRE(response.headers.get_or_default("content-length") == "516");
-        REQUIRE(response.headers.get_or_default("content-type") == "application/sdp; charset=utf-8");
+        REQUIRE(response.rtsp_headers.size() == 2);
+        REQUIRE(response.rtsp_headers.get_or_default("content-length") == "516");
+        REQUIRE(response.rtsp_headers.get_or_default("content-type") == "application/sdp; charset=utf-8");
         REQUIRE(response.data.size() == sdp.size());
         REQUIRE(response.data == sdp);
         response_count++;
@@ -378,9 +378,9 @@ TEST_CASE("rtsp_parser | Parse Anubis DESCRIBE response and ANNOUNCE request", "
         REQUIRE(request.uri.empty());
         REQUIRE(request.rtsp_version_major == 1);
         REQUIRE(request.rtsp_version_minor == 0);
-        REQUIRE(request.headers.size() == 2);
-        REQUIRE(request.headers.get_or_default("content-length") == "516");
-        REQUIRE(request.headers.get_or_default("connection") == "Keep-Alive");
+        REQUIRE(request.rtsp_headers.size() == 2);
+        REQUIRE(request.rtsp_headers.get_or_default("content-length") == "516");
+        REQUIRE(request.rtsp_headers.get_or_default("connection") == "Keep-Alive");
         REQUIRE(request.data == sdp);
         request_count++;
     });

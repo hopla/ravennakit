@@ -24,7 +24,7 @@ struct response {
     std::string reason_phrase;
     int rtsp_version_major {1};
     int rtsp_version_minor {0};
-    headers headers;
+    headers rtsp_headers;
     std::string data;
 
     response() = default;
@@ -39,7 +39,7 @@ struct response {
         reason_phrase.clear();
         rtsp_version_major = {};
         rtsp_version_minor = {};
-        headers.clear();
+        rtsp_headers.clear();
         data.clear();
     }
 

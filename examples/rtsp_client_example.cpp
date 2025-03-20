@@ -47,12 +47,12 @@ int main(int const argc, char* argv[]) {
     });
 
     client.on<rav::rtsp::connection::request_event>([](const rav::rtsp::connection::request_event& event) {
-        RAV_INFO("{}\n{}", event.request.to_debug_string(true), rav::string_replace(event.request.data, "\r\n", "\n"));
+        RAV_INFO("{}\n{}", event.rtsp_request.to_debug_string(true), rav::string_replace(event.rtsp_request.data, "\r\n", "\n"));
     });
 
     client.on<rav::rtsp::connection::response_event>([](const rav::rtsp::connection::response_event& event) {
         RAV_INFO(
-            "{}\n{}", event.response.to_debug_string(true), rav::string_replace(event.response.data, "\r\n", "\n")
+            "{}\n{}", event.rtsp_response.to_debug_string(true), rav::string_replace(event.rtsp_response.data, "\r\n", "\n")
         );
     });
 

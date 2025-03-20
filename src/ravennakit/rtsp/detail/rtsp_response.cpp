@@ -26,7 +26,7 @@ void rav::rtsp::response::encode_append(std::string& out, const char* newline) c
         std::back_inserter(out), "RTSP/{}.{} {} {}{}", rtsp_version_major, rtsp_version_minor, status_code,
         reason_phrase, newline
     );
-    headers.encode_append(out, true);
+    rtsp_headers.encode_append(out, true);
     if (!data.empty()) {
         fmt::format_to(std::back_inserter(out), "content-length: {}{}", data.size(), newline);
     }
@@ -39,7 +39,7 @@ std::string rav::rtsp::response::to_debug_string(const bool include_data) const 
     fmt::format_to(
         std::back_inserter(out), "RTSP/{}.{} {} {}", rtsp_version_major, rtsp_version_minor, status_code, reason_phrase
     );
-    out += headers.to_debug_string();
+    out += rtsp_headers.to_debug_string();
     if (include_data && !data.empty()) {
         out += "\n";
         out += string_replace(data, "\r\n", "\n");

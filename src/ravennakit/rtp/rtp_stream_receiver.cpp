@@ -263,16 +263,16 @@ uint32_t rav::rtp_stream_receiver::get_delay() const {
     return delay_;
 }
 
-bool rav::rtp_stream_receiver::subscribe(subscriber* subscriber) {
-    if (subscribers_.add(subscriber)) {
-        subscriber->rtp_stream_receiver_updated(make_updated_event());
+bool rav::rtp_stream_receiver::subscribe(subscriber* subscriber_to_add) {
+    if (subscribers_.add(subscriber_to_add)) {
+        subscriber_to_add->rtp_stream_receiver_updated(make_updated_event());
         return true;
     }
     return false;
 }
 
-bool rav::rtp_stream_receiver::unsubscribe(subscriber* subscriber) {
-    return subscribers_.remove(subscriber);
+bool rav::rtp_stream_receiver::unsubscribe(subscriber* subscriber_to_remove) {
+    return subscribers_.remove(subscriber_to_remove);
 }
 
 std::optional<uint32_t> rav::rtp_stream_receiver::read_data_realtime(
@@ -507,8 +507,8 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
         RAV_TRACE("Packet interval stats: {}", stream.packet_interval_stats.to_string());
     }
 
-    if (auto shared_state = network_thread_reader_.lock_realtime()) {
-        if (shared_state->consumer_active) {
+    if (auto state = network_thread_reader_.lock_realtime()) {
+        if (state->consumer_active) {
             intermediate_packet intermediate {};
             intermediate.timestamp = event.packet.timestamp();
             intermediate.seq = event.packet.sequence_number();
@@ -516,9 +516,9 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
             intermediate.packet_time_frames = stream.packet_time_frames;
             std::memcpy(intermediate.data.data(), payload.data(), intermediate.data_len);
 
-            if (!shared_state->fifo.push(intermediate)) {
+            if (!state->fifo.push(intermediate)) {
                 RAV_TRACE("Failed to push packet info FIFO, make receiver inactive");
-                shared_state->consumer_active = false;
+                state->consumer_active = false;
                 set_state(receiver_state::ok_no_consumer, true);
             } else {
                 set_state(receiver_state::ok, true);
@@ -527,7 +527,7 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
             set_state(receiver_state::ok_no_consumer, true);
         }
 
-        while (auto seq = shared_state->packets_too_old.pop()) {
+        while (auto seq = state->packets_too_old.pop()) {
             stream.packet_stats.mark_packet_too_late(*seq);
         }
     }
@@ -616,43 +616,43 @@ void rav::rtp_stream_receiver::do_maintenance() {
 }
 
 void rav::rtp_stream_receiver::do_realtime_maintenance() {
-    if (auto shared_state = audio_thread_reader_.lock_realtime()) {
-        if (shared_state->consumer_active.exchange(true) == false) {
-            shared_state->fifo.pop_all();
+    if (auto state = audio_thread_reader_.lock_realtime()) {
+        if (state->consumer_active.exchange(true) == false) {
+            state->fifo.pop_all();
         }
 
-        while (const auto packet = shared_state->fifo.pop()) {
+        while (const auto packet = state->fifo.pop()) {
             wrapping_uint32 packet_timestamp(packet->timestamp);
-            if (!shared_state->first_packet_timestamp) {
+            if (!state->first_packet_timestamp) {
                 RAV_TRACE("First packet timestamp: {}", packet->timestamp);
-                shared_state->first_packet_timestamp = packet_timestamp;
-                shared_state->receiver_buffer.set_next_ts(packet->timestamp);
-                shared_state->next_ts = packet_timestamp - delay_.load();
+                state->first_packet_timestamp = packet_timestamp;
+                state->receiver_buffer.set_next_ts(packet->timestamp);
+                state->next_ts = packet_timestamp - delay_.load();
             }
 
             // Determine whether whole packet is too old
-            if (packet_timestamp + packet->packet_time_frames <= shared_state->next_ts) {
+            if (packet_timestamp + packet->packet_time_frames <= state->next_ts) {
                 // RAV_WARNING("Packet too late: seq={}, ts={}", packet->seq, packet->timestamp);
                 TRACY_MESSAGE("Packet too late - skipping");
-                if (!shared_state->packets_too_old.push(packet->seq)) {
+                if (!state->packets_too_old.push(packet->seq)) {
                     RAV_ERROR("Packet not enqueued to packets_too_old");
                 }
                 continue;
             }
 
             // Determine whether packet contains outdated data
-            if (packet_timestamp < shared_state->next_ts) {
+            if (packet_timestamp < state->next_ts) {
                 RAV_WARNING("Packet partly too late: seq={}, ts={}", packet->seq, packet->timestamp);
                 TRACY_MESSAGE("Packet partly too late - not skipping");
-                if (!shared_state->packets_too_old.push(packet->seq)) {
+                if (!state->packets_too_old.push(packet->seq)) {
                     RAV_ERROR("Packet not enqueued to packets_too_old");
                 }
                 // Still process the packet since it contains data that is not outdated
             }
 
-            shared_state->receiver_buffer.clear_until(packet->timestamp);
+            state->receiver_buffer.clear_until(packet->timestamp);
 
-            if (!shared_state->receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->data_len})) {
+            if (!state->receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->data_len})) {
                 RAV_ERROR("Packet not written to buffer");
             }
         }

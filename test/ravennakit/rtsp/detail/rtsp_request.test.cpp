@@ -15,29 +15,29 @@
 TEST_CASE("rtsp_request", "[rtsp_request]") {
     SECTION("Get header") {
         rav::rtsp::request request;
-        request.headers.push_back(rav::rtsp::headers::header {"Content-Length", "123"});
-        request.headers.push_back({"Content-Type", "application/sdp"});
+        request.rtsp_headers.push_back(rav::rtsp::headers::header {"Content-Length", "123"});
+        request.rtsp_headers.push_back({"Content-Type", "application/sdp"});
 
-        if (const auto* header = request.headers.get("Content-Length"); header) {
+        if (const auto* header = request.rtsp_headers.get("Content-Length"); header) {
             REQUIRE(header->value == "123");
         } else {
             FAIL("Content-Length header not found");
         }
 
-        if (const auto* header = request.headers.get("Content-Type"); header) {
+        if (const auto* header = request.rtsp_headers.get("Content-Type"); header) {
             REQUIRE(header->value == "application/sdp");
         } else {
             FAIL("Content-Type header not found");
         }
 
-        REQUIRE(request.headers.get("Content-Size") == nullptr);
+        REQUIRE(request.rtsp_headers.get("Content-Size") == nullptr);
     }
 
     SECTION("Get content length") {
         rav::rtsp::request request;
-        request.headers.push_back({"Content-Length", "123"});
+        request.rtsp_headers.push_back({"Content-Length", "123"});
 
-        if (auto content_length = request.headers.get_content_length(); content_length) {
+        if (auto content_length = request.rtsp_headers.get_content_length(); content_length) {
             REQUIRE(*content_length == 123);
         } else {
             FAIL("Content-Length header not found");
@@ -46,7 +46,7 @@ TEST_CASE("rtsp_request", "[rtsp_request]") {
 
     SECTION("Get content length while there is no Content-Length header") {
         rav::rtsp::request request;
-        REQUIRE(request.headers.get_content_length() == std::nullopt);
+        REQUIRE(request.rtsp_headers.get_content_length() == std::nullopt);
     }
 
     SECTION("reset") {
@@ -55,14 +55,14 @@ TEST_CASE("rtsp_request", "[rtsp_request]") {
         request.uri = "/index.html";
         request.rtsp_version_major = 1;
         request.rtsp_version_minor = 1;
-        request.headers.emplace_back({"CSeq", "1"});
+        request.rtsp_headers.emplace_back({"CSeq", "1"});
         request.data = "Hello, World!";
         request.reset();
         REQUIRE(request.method.empty());
         REQUIRE(request.uri.empty());
         REQUIRE(request.rtsp_version_major == 0);
         REQUIRE(request.rtsp_version_minor == 0);
-        REQUIRE(request.headers.empty());
+        REQUIRE(request.rtsp_headers.empty());
         REQUIRE(request.data.empty());
     }
 }
@@ -73,8 +73,8 @@ TEST_CASE("rtsp_request | encode", "[rtsp_request]") {
     req.rtsp_version_minor = 0;
     req.method = "OPTIONS";
     req.uri = "*";
-    req.headers.push_back({"CSeq", "1"});
-    req.headers.push_back({"Accept", "application/sdp"});
+    req.rtsp_headers.push_back({"CSeq", "1"});
+    req.rtsp_headers.push_back({"Accept", "application/sdp"});
     req.data = "Hello, World!";
 
     auto encoded = req.encode();

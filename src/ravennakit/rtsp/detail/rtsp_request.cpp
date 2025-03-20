@@ -19,7 +19,7 @@ void rav::rtsp::request::reset() {
     uri.clear();
     rtsp_version_major = {};
     rtsp_version_minor = {};
-    headers.clear();
+    rtsp_headers.clear();
     data.clear();
 }
 
@@ -33,7 +33,7 @@ void rav::rtsp::request::encode_append(std::string& out, const char* newline) co
     fmt::format_to(
         std::back_inserter(out), "{} {} RTSP/{}.{}{}", method, uri, rtsp_version_major, rtsp_version_minor, newline
     );
-    headers.encode_append(out, true);
+    rtsp_headers.encode_append(out, true);
     if (!data.empty()) {
         fmt::format_to(std::back_inserter(out), "content-length: {}{}", data.size(), newline);
     }
@@ -44,7 +44,7 @@ void rav::rtsp::request::encode_append(std::string& out, const char* newline) co
 std::string rav::rtsp::request::to_debug_string(bool include_data) const {
     std::string out;
     fmt::format_to(std::back_inserter(out), "{} {} RTSP/{}.{}", method, uri, rtsp_version_major, rtsp_version_minor);
-    out += headers.to_debug_string();
+    out += rtsp_headers.to_debug_string();
     if (include_data && !data.empty()) {
         out += "\n";
         out += string_replace(data, "\r\n", "\n");

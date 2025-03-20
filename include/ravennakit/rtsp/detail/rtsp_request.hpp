@@ -25,7 +25,7 @@ struct request {
     std::string uri;
     int rtsp_version_major {1};
     int rtsp_version_minor {0};
-    headers headers;
+    headers rtsp_headers;
     std::string data;
 
     request() = default;

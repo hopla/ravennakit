@@ -156,11 +156,11 @@ void rav::ravenna_transmitter::on_request(rtsp::connection::request_event event)
         return;
     }
     auto response = rtsp::response(200, "OK", *encoded);
-    if (const auto* cseq = event.request.headers.get("cseq")) {
-        response.headers.set(*cseq);
+    if (const auto* cseq = event.rtsp_request.rtsp_headers.get("cseq")) {
+        response.rtsp_headers.set(*cseq);
     }
-    response.headers.set("content-type", "application/sdp");
-    event.connection.async_send_response(response);
+    response.rtsp_headers.set("content-type", "application/sdp");
+    event.rtsp_connection.async_send_response(response);
 }
 
 void rav::ravenna_transmitter::send_announce() const {
@@ -171,7 +171,7 @@ void rav::ravenna_transmitter::send_announce() const {
     }
     rtsp::request request;
     request.method = "ANNOUNCE";
-    request.headers.set("content-type", "application/sdp");
+    request.rtsp_headers.set("content-type", "application/sdp");
     request.data = std::move(sdp.value());
     request.uri = uri::encode(
         "rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_name_

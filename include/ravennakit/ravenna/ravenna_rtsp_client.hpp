@@ -52,18 +52,18 @@ class ravenna_rtsp_client: public ravenna_browser::subscriber {
 
     /**
      * Subscribes to a session.
-     * @param subscriber The subscriber to add.
+     * @param subscriber_to_add The subscriber to add.
      * @param session_name The name of the session to subscribe to.
      * @return true if the subscriber was added, or false if it was already in the list.
      */
-    [[nodiscard]] bool subscribe_to_session(subscriber* subscriber, const std::string& session_name);
+    [[nodiscard]] bool subscribe_to_session(subscriber* subscriber_to_add, const std::string& session_name);
 
     /**
      * Unsubscribes from all sessions.
-     * @param subscriber The subscriber to remove.
+     * @param subscriber_to_remove The subscriber to remove.
      * @return true if the subscriber was removed from at least one session, or false if it wasn't.
      */
-    [[nodiscard]] bool unsubscribe_from_all_sessions(subscriber* subscriber);
+    [[nodiscard]] bool unsubscribe_from_all_sessions(subscriber* subscriber_to_remove);
 
     /**
      * Tries to find the SDP for the given session.

@@ -20,17 +20,17 @@ namespace rav::rtsp {
 class connection final: public std::enable_shared_from_this<connection> {
   public:
     struct connect_event {
-        connection& connection;
+        connection& rtsp_connection;
     };
 
     struct request_event {
-        connection& connection;
-        const request& request;
+        connection& rtsp_connection;
+        const request& rtsp_request;
     };
 
     struct response_event {
-        connection& connection;
-        const response& response;
+        connection& rtsp_connection;
+        const response& rtsp_response;
     };
 
     /**

@@ -16,7 +16,7 @@
 #include <asio.hpp>
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * Implements logic for filtering RTP packets.

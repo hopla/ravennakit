@@ -20,13 +20,13 @@
 #include <CLI/App.hpp>
 
 namespace examples {
-class loopback: public rav::rtp_stream_receiver::subscriber {
+class loopback: public rav::rtp::rtp_stream_receiver::subscriber {
   public:
     explicit loopback(std::string stream_name, const asio::ip::address_v4& interface_addr) :
         stream_name_(std::move(stream_name)) {
         rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
-        auto config = rav::rtp_receiver::configuration {interface_addr};
-        rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
+        auto config = rav::rtp::rtp_receiver::configuration {interface_addr};
+        rtp_receiver_ = std::make_unique<rav::rtp::rtp_receiver>(io_context_, config);
 
         ravenna_receiver_ = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
         ravenna_receiver_->set_delay(480);  // 10ms @ 48kHz
@@ -44,7 +44,7 @@ class loopback: public rav::rtp_stream_receiver::subscriber {
             io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005)
         );
 
-        rtp_transmitter_ = std::make_unique<rav::rtp_transmitter>(io_context_, interface_addr);
+        rtp_transmitter_ = std::make_unique<rav::rtp::rtp_transmitter>(io_context_, interface_addr);
 
         ptp_instance_ = std::make_unique<rav::ptp_instance>(io_context_);
         if (const auto result = ptp_instance_->add_port(interface_addr); !result) {
@@ -79,7 +79,7 @@ class loopback: public rav::rtp_stream_receiver::subscriber {
         }
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::rtp_stream_receiver::stream_updated_event& event) override {
         buffer_.resize(event.selected_audio_format.bytes_per_frame() * event.packet_time_frames);
         if (!transmitter_->set_audio_format(event.selected_audio_format)) {
             RAV_ERROR("Format not supported by transmitter");
@@ -106,13 +106,13 @@ class loopback: public rav::rtp_stream_receiver::subscriber {
     // Receiver components
     rav::ravenna_browser browser_ {io_context_};
     std::unique_ptr<rav::ravenna_rtsp_client> rtsp_client_;
-    std::unique_ptr<rav::rtp_receiver> rtp_receiver_;
+    std::unique_ptr<rav::rtp::rtp_receiver> rtp_receiver_;
     std::unique_ptr<rav::ravenna_receiver> ravenna_receiver_;
 
     // Sender components
     std::unique_ptr<rav::dnssd::dnssd_advertiser> advertiser_;
     std::unique_ptr<rav::rtsp::server> rtsp_server_;
-    std::unique_ptr<rav::rtp_transmitter> rtp_transmitter_;
+    std::unique_ptr<rav::rtp::rtp_transmitter> rtp_transmitter_;
     std::unique_ptr<rav::ptp_instance> ptp_instance_;
     std::unique_ptr<rav::ravenna_transmitter> transmitter_;
     rav::event_slot<rav::ptp_instance::port_changed_state_event> ptp_port_changed_event_slot_;

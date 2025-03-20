@@ -23,7 +23,7 @@
 #include "ravennakit/core/util/wrapping_uint.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A class that receives RTP packets and buffers them for playback.

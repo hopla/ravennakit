@@ -25,7 +25,7 @@ namespace examples {
 /**
  * A class that is a subscriber to a rtp_stream_receiver and writes the audio data to a wav file.
  */
-class stream_recorder: public rav::rtp_stream_receiver::subscriber {
+class stream_recorder: public rav::rtp::rtp_stream_receiver::subscriber {
   public:
     explicit stream_recorder(std::unique_ptr<rav::ravenna_receiver> sink) : receiver_(std::move(sink)) {
         if (receiver_) {
@@ -56,7 +56,7 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
         }
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::rtp_stream_receiver::stream_updated_event& event) override {
         close();
 
         if (receiver_ == nullptr) {
@@ -101,9 +101,9 @@ class ravenna_recorder {
     explicit ravenna_recorder(const std::string& interface_address) {
         rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
 
-        rav::rtp_receiver::configuration config;
+        rav::rtp::rtp_receiver::configuration config;
         config.interface_address = asio::ip::make_address(interface_address);
-        rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
+        rtp_receiver_ = std::make_unique<rav::rtp::rtp_receiver>(io_context_, config);
     }
 
     ~ravenna_recorder() = default;
@@ -130,7 +130,7 @@ class ravenna_recorder {
     asio::io_context io_context_;
     rav::ravenna_browser browser_ {io_context_};
     std::unique_ptr<rav::ravenna_rtsp_client> rtsp_client_;
-    std::unique_ptr<rav::rtp_receiver> rtp_receiver_;
+    std::unique_ptr<rav::rtp::rtp_receiver> rtp_receiver_;
     std::vector<std::unique_ptr<stream_recorder>> recorders_;
 };
 

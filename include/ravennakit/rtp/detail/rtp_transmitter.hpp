@@ -12,7 +12,7 @@
 #include "udp_sender_receiver.hpp"
 #include "ravennakit/rtp/rtp_packet.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * This class is responsible for transmitting RTP packets.

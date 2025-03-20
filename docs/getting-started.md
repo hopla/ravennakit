@@ -42,7 +42,7 @@ like a virtual RAVENNA node. Using this class also makes it easier to deal with 
 The following code snippet shows how to set up a RAVENNA node:
 
 ```cpp
-struct ravenna_node_subscriber final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
+struct ravenna_node_subscriber final: rav::ravenna_node::subscriber, rav::rtp::rtp_stream_receiver::subscriber {
     void ravenna_node_discovered(const rav::dnssd::dnssd_browser::service_resolved& event) override {
         RAV_INFO("RAVENNA node discovered: {}", event.description.to_string());
     }
@@ -63,7 +63,7 @@ struct ravenna_node_subscriber final: rav::ravenna_node::subscriber, rav::rtp_st
         RAV_INFO("RAVENNA receiver added for: {}", receiver.get_session_name());
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::rtp_stream_receiver::stream_updated_event& event) override {
         RAV_INFO("Stream updated: {}", event.to_string());
     }
 };
@@ -72,7 +72,7 @@ int main() {
     rav::log::set_level_from_env();
     rav::system::do_system_checks();
 
-    rav::rtp_receiver::configuration config;
+    rav::rtp::rtp_receiver::configuration config;
     config.interface_address = asio::ip::make_address("192.168.1.1");  // Fill in the address of the NIC to use
 
     rav::ravenna_node ravenna_node(config);

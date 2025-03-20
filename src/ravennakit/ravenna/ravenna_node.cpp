@@ -10,8 +10,8 @@
 
 #include "ravennakit/ravenna/ravenna_node.hpp"
 
-rav::ravenna_node::ravenna_node(rtp_receiver::configuration config) {
-    rtp_receiver_ = std::make_unique<rtp_receiver>(io_context_, std::move(config));
+rav::ravenna_node::ravenna_node(rtp::rtp_receiver::configuration config) {
+    rtp_receiver_ = std::make_unique<rtp::rtp_receiver>(io_context_, std::move(config));
 
     std::promise<std::thread::id> promise;
     auto f = promise.get_future();
@@ -120,7 +120,7 @@ std::future<void> rav::ravenna_node::unsubscribe(subscriber* subscriber_to_remov
 }
 
 std::future<void>
-rav::ravenna_node::subscribe_to_receiver(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_add) {
+rav::ravenna_node::subscribe_to_receiver(id receiver_id, rtp::rtp_stream_receiver::subscriber* subscriber_to_add) {
     auto work = [this, receiver_id, subscriber_to_add] {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
@@ -136,7 +136,7 @@ rav::ravenna_node::subscribe_to_receiver(id receiver_id, rtp_stream_receiver::su
 }
 
 std::future<void>
-rav::ravenna_node::unsubscribe_from_receiver(id receiver_id, rtp_stream_receiver::subscriber* subscriber_to_remove) {
+rav::ravenna_node::unsubscribe_from_receiver(id receiver_id, rtp::rtp_stream_receiver::subscriber* subscriber_to_remove) {
     auto work = [this, receiver_id, subscriber_to_remove] {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
@@ -151,14 +151,14 @@ rav::ravenna_node::unsubscribe_from_receiver(id receiver_id, rtp_stream_receiver
     return asio::dispatch(io_context_, asio::use_future(work));
 }
 
-std::future<rav::rtp_stream_receiver::stream_stats> rav::ravenna_node::get_stats_for_receiver(id receiver_id) {
+std::future<rav::rtp::rtp_stream_receiver::stream_stats> rav::ravenna_node::get_stats_for_receiver(id receiver_id) {
     auto work = [this, receiver_id] {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
                 return receiver->get_session_stats();
             }
         }
-        return rtp_stream_receiver::stream_stats {};
+        return rtp::rtp_stream_receiver::stream_stats {};
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }

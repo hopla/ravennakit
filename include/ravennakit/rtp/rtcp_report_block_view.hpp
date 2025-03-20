@@ -15,7 +15,7 @@
 
 #include "ravennakit/ntp/timestamp.hpp"
 
-namespace rav {
+namespace rav::rtcp {
 
 class rtcp_report_block_view {
   public:

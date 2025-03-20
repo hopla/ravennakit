@@ -15,7 +15,7 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A buffer which operates on bytes, unaware of its contents. Can be used to account for jitter when receiving RTP data.

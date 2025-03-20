@@ -17,8 +17,8 @@
 
 namespace examples {
 
-struct ravenna_node final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
-    explicit ravenna_node(const rav::rtp_receiver::configuration& config) : node(config) {
+struct ravenna_node final: rav::ravenna_node::subscriber, rav::rtp::rtp_stream_receiver::subscriber {
+    explicit ravenna_node(const rav::rtp::rtp_receiver::configuration& config) : node(config) {
         node.subscribe(this).wait();
     }
 
@@ -46,7 +46,7 @@ struct ravenna_node final: rav::ravenna_node::subscriber, rav::rtp_stream_receiv
         RAV_INFO("RAVENNA receiver added for: {}", receiver.get_session_name());
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::rtp_stream_receiver::stream_updated_event& event) override {
         RAV_INFO("Stream updated: {}", event.to_string());
     }
 
@@ -70,7 +70,7 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    rav::rtp_receiver::configuration config;
+    rav::rtp::rtp_receiver::configuration config;
     config.interface_address = asio::ip::make_address(interface_address);
 
     examples::ravenna_node node_example(config);

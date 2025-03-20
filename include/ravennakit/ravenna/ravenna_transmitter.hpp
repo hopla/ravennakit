@@ -37,7 +37,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
 
     ravenna_transmitter(
         asio::io_context& io_context, dnssd::dnssd_advertiser& advertiser, rtsp::server& rtsp_server,
-        ptp_instance& ptp_instance, rtp_transmitter& rtp_transmitter, id id, std::string session_name,
+        ptp_instance& ptp_instance, rtp::rtp_transmitter& rtp_transmitter, id id, std::string session_name,
         asio::ip::address_v4 interface_address
     );
 
@@ -122,7 +122,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
     dnssd::dnssd_advertiser& advertiser_;
     rtsp::server& rtsp_server_;
     ptp_instance& ptp_instance_;
-    rtp_transmitter& rtp_transmitter_;
+    rtp::rtp_transmitter& rtp_transmitter_;
 
     id id_;
     std::string session_name_;
@@ -137,7 +137,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
     aes67_packet_time ptime_ {aes67_packet_time::ms_1()};
     bool running_ {false};
     ptp_clock_identity grandmaster_identity_;
-    rtp_packet rtp_packet_;
+    rtp::rtp_packet rtp_packet_;
     std::vector<uint8_t> packet_intermediate_buffer_;
     asio::high_resolution_timer timer_;
     events_type events_;

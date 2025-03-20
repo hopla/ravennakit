@@ -128,7 +128,7 @@ size_t receive_from_socket(
 
 }  // namespace
 
-class rav::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> {
+class rav::rtp::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> {
   public:
     struct multicast_group {
         asio::ip::address multicast_address;
@@ -165,7 +165,7 @@ class rav::udp_sender_receiver::impl: public std::enable_shared_from_this<impl> 
 #endif
 };
 
-void rav::udp_sender_receiver::impl::set_dscp_value(const int value) {
+void rav::rtp::udp_sender_receiver::impl::set_dscp_value(const int value) {
 #if RAV_WINDOWS
     if (!qos_flow_.has_socket()) {
         if (!qos_flow_.add_socket_to_flow(socket_)) {
@@ -184,20 +184,20 @@ void rav::udp_sender_receiver::impl::set_dscp_value(const int value) {
 #endif
 }
 
-asio::error_code rav::udp_sender_receiver::impl::set_multicast_loopback(const bool enable) {
+asio::error_code rav::rtp::udp_sender_receiver::impl::set_multicast_loopback(const bool enable) {
     asio::error_code ec;
     socket_.set_option(asio::ip::multicast::enable_loopback(enable), ec);
     return ec;
 }
 
 asio::error_code
-rav::udp_sender_receiver::impl::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) {
+rav::rtp::udp_sender_receiver::impl::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) {
     asio::error_code ec;
     socket_.set_option(asio::ip::multicast::outbound_interface(interface_address), ec);
     return ec;
 }
 
-void rav::udp_sender_receiver::impl::send(
+void rav::rtp::udp_sender_receiver::impl::send(
     const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& endpoint
 ) {
     RAV_ASSERT(data != nullptr, "Data must not be null");
@@ -214,7 +214,7 @@ void rav::udp_sender_receiver::impl::send(
     }
 }
 
-void rav::udp_sender_receiver::impl::stop() {
+void rav::rtp::udp_sender_receiver::impl::stop() {
     if (handler_ == nullptr) {
         return;  // Nothing to do here
     }
@@ -232,7 +232,7 @@ void rav::udp_sender_receiver::impl::stop() {
     RAV_TRACE("Stopped udp_sender_receiver");
 }
 
-void rav::udp_sender_receiver::impl::start(handler_type handler) {
+void rav::rtp::udp_sender_receiver::impl::start(handler_type handler) {
     if (handler_) {
         RAV_WARNING("RTP receiver is already running");
         return;
@@ -248,7 +248,7 @@ void rav::udp_sender_receiver::impl::start(handler_type handler) {
     );
 }
 
-rav::udp_sender_receiver::impl::impl(asio::io_context& io_context, const asio::ip::udp::endpoint& endpoint) :
+rav::rtp::udp_sender_receiver::impl::impl(asio::io_context& io_context, const asio::ip::udp::endpoint& endpoint) :
     socket_(io_context) {
     socket_.open(endpoint.protocol());
     socket_.set_option(asio::ip::udp::socket::reuse_address(true));
@@ -257,7 +257,7 @@ rav::udp_sender_receiver::impl::impl(asio::io_context& io_context, const asio::i
     socket_.set_option(asio::detail::socket_option::integer<IPPROTO_IP, IP_RECVDSTADDR_PKTINFO>(1));
 }
 
-void rav::udp_sender_receiver::impl::async_receive() {
+void rav::rtp::udp_sender_receiver::impl::async_receive() {
     auto self = shared_from_this();
     socket_.async_wait(asio::socket_base::wait_read, [self](std::error_code ec) {
         TRACY_ZONE_SCOPED;
@@ -316,7 +316,7 @@ void rav::udp_sender_receiver::impl::async_receive() {
     });
 }
 
-rav::subscription rav::udp_sender_receiver::impl::join_multicast_group(
+rav::subscription rav::rtp::udp_sender_receiver::impl::join_multicast_group(
     const asio::ip::address& multicast_address, const asio::ip::address& interface_address
 ) {
     auto leave_group = [self = shared_from_this(), multicast_address, interface_address] {
@@ -361,18 +361,18 @@ rav::subscription rav::udp_sender_receiver::impl::join_multicast_group(
     return subscription(leave_group);
 }
 
-void rav::udp_sender_receiver::start(handler_type handler) const {
+void rav::rtp::udp_sender_receiver::start(handler_type handler) const {
     TRACY_ZONE_SCOPED;
     impl_->start(std::move(handler));
 }
 
-void rav::udp_sender_receiver::send(
+void rav::rtp::udp_sender_receiver::send(
     const uint8_t* data, const size_t size, const asio::ip::udp::endpoint& endpoint
 ) const {
     impl_->send(data, size, endpoint);
 }
 
-rav::subscription rav::udp_sender_receiver::join_multicast_group(
+rav::subscription rav::rtp::udp_sender_receiver::join_multicast_group(
     const asio::ip::address& multicast_address, const asio::ip::address& interface_address
 ) const {
     if (impl_ == nullptr) {
@@ -383,7 +383,7 @@ rav::subscription rav::udp_sender_receiver::join_multicast_group(
 }
 
 asio::error_code
-rav::udp_sender_receiver::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) const {
+rav::rtp::udp_sender_receiver::set_multicast_outbound_interface(const asio::ip::address_v4& interface_address) const {
     if (impl_ == nullptr) {
         RAV_WARNING("No implementation available");
         return {};
@@ -391,7 +391,7 @@ rav::udp_sender_receiver::set_multicast_outbound_interface(const asio::ip::addre
     return impl_->set_multicast_outbound_interface(interface_address);
 }
 
-asio::error_code rav::udp_sender_receiver::set_multicast_loopback(const bool enable) const {
+asio::error_code rav::rtp::udp_sender_receiver::set_multicast_loopback(const bool enable) const {
     if (impl_ == nullptr) {
         RAV_WARNING("No implementation available");
         return {};
@@ -399,22 +399,22 @@ asio::error_code rav::udp_sender_receiver::set_multicast_loopback(const bool ena
     return impl_->set_multicast_loopback(enable);
 }
 
-rav::udp_sender_receiver::udp_sender_receiver(asio::io_context& io_context, const asio::ip::udp::endpoint& endpoint) :
+rav::rtp::udp_sender_receiver::udp_sender_receiver(asio::io_context& io_context, const asio::ip::udp::endpoint& endpoint) :
     impl_(std::make_shared<impl>(io_context, endpoint)) {}
 
-rav::udp_sender_receiver::udp_sender_receiver(
+rav::rtp::udp_sender_receiver::udp_sender_receiver(
     asio::io_context& io_context, const asio::ip::address& interface_address, const uint16_t port
 ) :
     udp_sender_receiver(io_context, asio::ip::udp::endpoint(interface_address, port)) {}
 
-rav::udp_sender_receiver::~udp_sender_receiver() {
+rav::rtp::udp_sender_receiver::~udp_sender_receiver() {
     if (impl_) {
         impl_->stop();
         impl_.reset();
     }
 }
 
-void rav::udp_sender_receiver::set_dscp_value(const int value) const {
+void rav::rtp::udp_sender_receiver::set_dscp_value(const int value) const {
     if (impl_) {
         impl_->set_dscp_value(value);
     }

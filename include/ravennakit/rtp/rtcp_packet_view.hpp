@@ -19,7 +19,7 @@
 #include "ravennakit/ntp/timestamp.hpp"
 #include "rtp_constants.hpp"
 
-namespace rav {
+namespace rav::rtcp {
 
 class rtcp_packet_view {
   public:

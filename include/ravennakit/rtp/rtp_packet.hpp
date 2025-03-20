@@ -13,7 +13,7 @@
 #include "ravennakit/core/containers/byte_buffer.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * This class holds state for an RTP packet and provides methods to encode it into a stream.

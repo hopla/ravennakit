@@ -14,7 +14,7 @@
 
 #include <asio.hpp>
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A custom UDP sender and receiver class which extends usual UDP socket functionality by adding the ability to receive

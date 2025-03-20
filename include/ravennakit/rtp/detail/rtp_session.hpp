@@ -13,7 +13,7 @@
 #include <asio.hpp>
 #include "ravennakit/core/format.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 struct rtp_session {
     asio::ip::address connection_address;

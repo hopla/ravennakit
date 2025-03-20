@@ -23,7 +23,7 @@
 #include <asio.hpp>
 #include <utility>
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A class which sets up sockets for receiver RTP and RTCP packets, and allows subscribing to the received packets.
@@ -38,7 +38,7 @@ class rtp_receiver {
     };
 
     struct rtcp_packet_event {
-        const rtcp_packet_view& packet;
+        const rtcp::rtcp_packet_view& packet;
         const rtp_session& session;
         const asio::ip::udp::endpoint& src_endpoint;
     };

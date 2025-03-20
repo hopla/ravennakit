@@ -35,14 +35,14 @@ typedef BOOL(PASCAL* LPFN_WSARECVMSG)(
 );
 #endif
 
-rav::rtp_receiver::rtp_receiver(asio::io_context& io_context, configuration config) :
+rav::rtp::rtp_receiver::rtp_receiver(asio::io_context& io_context, configuration config) :
     io_context_(io_context), config_(std::move(config)) {}
 
-asio::io_context& rav::rtp_receiver::get_io_context() const {
+asio::io_context& rav::rtp::rtp_receiver::get_io_context() const {
     return io_context_;
 }
 
-bool rav::rtp_receiver::subscribe(subscriber* subscriber_to_add, const rtp_session& session, const rtp_filter& filter) {
+bool rav::rtp::rtp_receiver::subscribe(subscriber* subscriber_to_add, const rtp_session& session, const rtp_filter& filter) {
     auto* context = find_or_create_session_context(session);
 
     if (context == nullptr) {
@@ -55,7 +55,7 @@ bool rav::rtp_receiver::subscribe(subscriber* subscriber_to_add, const rtp_sessi
     return context->subscribers.add_or_update_context(subscriber_to_add, subscriber_context {filter});
 }
 
-bool rav::rtp_receiver::unsubscribe(const subscriber* subscriber_to_remove) {
+bool rav::rtp::rtp_receiver::unsubscribe(const subscriber* subscriber_to_remove) {
     size_t count = 0;
     for (auto it = sessions_contexts_.begin(); it != sessions_contexts_.end();) {
         if (it->subscribers.remove(subscriber_to_remove)) {
@@ -70,7 +70,7 @@ bool rav::rtp_receiver::unsubscribe(const subscriber* subscriber_to_remove) {
     return count > 0;
 }
 
-rav::rtp_receiver::session_context* rav::rtp_receiver::find_session_context(const rtp_session& session) {
+rav::rtp::rtp_receiver::session_context* rav::rtp::rtp_receiver::find_session_context(const rtp_session& session) {
     for (auto& context : sessions_contexts_) {
         if (context.session == session) {
             return &context;
@@ -79,7 +79,7 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::find_session_context(cons
     return nullptr;
 }
 
-rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_context(const rtp_session& session) {
+rav::rtp::rtp_receiver::session_context* rav::rtp::rtp_receiver::create_new_session_context(const rtp_session& session) {
     session_context new_session;
     new_session.session = session;
     new_session.rtp_sender_receiver = find_rtp_sender_receiver(session.rtp_port);
@@ -142,7 +142,7 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::create_new_session_contex
     return &sessions_contexts_.back();
 }
 
-rav::rtp_receiver::session_context* rav::rtp_receiver::find_or_create_session_context(const rtp_session& session) {
+rav::rtp::rtp_receiver::session_context* rav::rtp::rtp_receiver::find_or_create_session_context(const rtp_session& session) {
     auto context = find_session_context(session);
     if (context == nullptr) {
         context = create_new_session_context(session);
@@ -150,7 +150,7 @@ rav::rtp_receiver::session_context* rav::rtp_receiver::find_or_create_session_co
     return context;
 }
 
-std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtp_sender_receiver(const uint16_t port) {
+std::shared_ptr<rav::rtp::udp_sender_receiver> rav::rtp::rtp_receiver::find_rtp_sender_receiver(const uint16_t port) {
     for (auto& context : sessions_contexts_) {
         if (context.session.rtcp_port == port) {
             RAV_WARNING("RTCP port found instead of RTP port. This is a network administration error.");
@@ -163,7 +163,7 @@ std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtp_sender_rec
     return {};
 }
 
-std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtcp_sender_receiver(const uint16_t port) {
+std::shared_ptr<rav::rtp::udp_sender_receiver> rav::rtp::rtp_receiver::find_rtcp_sender_receiver(const uint16_t port) {
     for (auto& session : sessions_contexts_) {
         if (session.session.rtp_port == port) {
             RAV_WARNING("RTP port found instead of RTCP port. This is a network administration error.");
@@ -176,7 +176,7 @@ std::shared_ptr<rav::udp_sender_receiver> rav::rtp_receiver::find_rtcp_sender_re
     return {};
 }
 
-void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv_event& event) {
+void rav::rtp::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv_event& event) {
     TRACY_ZONE_SCOPED;
 
     const rtp_packet_view packet(event.data, event.size);
@@ -217,10 +217,10 @@ void rav::rtp_receiver::handle_incoming_rtp_data(const udp_sender_receiver::recv
     // TODO: Process the packet
 }
 
-void rav::rtp_receiver::handle_incoming_rtcp_data(const udp_sender_receiver::recv_event& event) {
+void rav::rtp::rtp_receiver::handle_incoming_rtcp_data(const udp_sender_receiver::recv_event& event) {
     TRACY_ZONE_SCOPED;
 
-    const rtcp_packet_view packet(event.data, event.size);
+    const rtcp::rtcp_packet_view packet(event.data, event.size);
     if (!packet.validate()) {
         RAV_WARNING("Invalid RTCP packet received");
         return;

@@ -17,7 +17,7 @@
 
 #include <utility>
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A class that collects statistics about RTP packets.

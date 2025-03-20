@@ -15,7 +15,7 @@
 
 #include "ravennakit/core/containers/buffer_view.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * Functions for reading RTP header data. The data given is not copied or otherwise managed by this class so it's

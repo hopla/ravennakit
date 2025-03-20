@@ -13,7 +13,7 @@
 #include "ravennakit/ravenna/ravenna_constants.hpp"
 #include "ravennakit/rtp/detail/rtp_filter.hpp"
 
-rav::ravenna_receiver::ravenna_receiver(ravenna_rtsp_client& rtsp_client, rtp_receiver& rtp_receiver) :
+rav::ravenna_receiver::ravenna_receiver(ravenna_rtsp_client& rtsp_client, rtp::rtp_receiver& rtp_receiver) :
     rtp_stream_receiver(rtp_receiver), rtsp_client_(rtsp_client) {}
 
 rav::ravenna_receiver::~ravenna_receiver() {

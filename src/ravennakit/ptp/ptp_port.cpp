@@ -29,7 +29,7 @@ constexpr auto k_ptp_event_port = 319;
 constexpr auto k_ptp_general_port = 320;
 }  // namespace
 
-rav::ptp_port::ptp_port(
+rav::ptp::ptp_port::ptp_port(
     ptp_instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
     const ptp_port_identity port_identity
 ) :
@@ -78,17 +78,17 @@ rav::ptp_port::ptp_port(
     schedule_announce_receipt_timeout();
 }
 
-rav::ptp_port::~ptp_port() = default;
+rav::ptp::ptp_port::~ptp_port() = default;
 
-const rav::ptp_port_identity& rav::ptp_port::get_port_identity() const {
+const rav::ptp::ptp_port_identity& rav::ptp::ptp_port::get_port_identity() const {
     return port_ds_.port_identity;
 }
 
-void rav::ptp_port::assert_valid_state(const ptp_profile& profile) const {
+void rav::ptp::ptp_port::assert_valid_state(const ptp_profile& profile) const {
     port_ds_.assert_valid_state(profile);
 }
 
-void rav::ptp_port::apply_state_decision_algorithm(
+void rav::ptp::ptp_port::apply_state_decision_algorithm(
     const ptp_default_ds& default_ds, const std::optional<ptp_best_announce_message>& ebest
 ) {
     if (!ebest && port_ds_.port_state == ptp_state::listening) {
@@ -114,7 +114,7 @@ void rav::ptp_port::apply_state_decision_algorithm(
     set_state(parent_.get_state_for_decision_code(*recommended_state));
 }
 
-std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended_state(
+std::optional<rav::ptp::ptp_state_decision_code> rav::ptp::ptp_port::calculate_recommended_state(
     const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
 ) const {
     if (!ebest && port_ds_.port_state == ptp_state::listening) {
@@ -153,7 +153,7 @@ std::optional<rav::ptp_state_decision_code> rav::ptp_port::calculate_recommended
     return ptp_state_decision_code::m3;  // BMC_MASTER (Ebest)
 }
 
-void rav::ptp_port::schedule_announce_receipt_timeout() {
+void rav::ptp::ptp_port::schedule_announce_receipt_timeout() {
     const auto random_factor = random().get_random_int(0, 1000) / 1000.0;
     const auto announce_interval_ms = static_cast<int>(std::pow(2, port_ds_.log_announce_interval) * 1000);
     const auto announce_receipt_timeout = port_ds_.announce_receipt_timeout * announce_interval_ms
@@ -172,7 +172,7 @@ void rav::ptp_port::schedule_announce_receipt_timeout() {
     });
 }
 
-void rav::ptp_port::set_state(const ptp_state new_state) {
+void rav::ptp::ptp_port::set_state(const ptp_state new_state) {
     if (new_state == port_ds_.port_state) {
         return;
     }
@@ -205,7 +205,7 @@ void rav::ptp_port::set_state(const ptp_state new_state) {
     parent_.on_port_changed_state({*this});
 }
 
-rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(const ptp_sync_message& sync_message) const {
+rav::ptp::ptp_measurement<double> rav::ptp::ptp_port::calculate_offset_from_master(const ptp_sync_message& sync_message) const {
     RAV_ASSERT(!sync_message.header.flags.two_step_flag, "Use the other method for two-step sync messages");
     const auto corrected_sync_correction_field =
         ptp_time_interval::from_wire_format(sync_message.header.correction_field)
@@ -217,7 +217,7 @@ rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(const p
     return {t2, offset, mean_delay_, {}};
 }
 
-rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(
+rav::ptp::ptp_measurement<double> rav::ptp::ptp_port::calculate_offset_from_master(
     const ptp_sync_message& sync_message, const ptp_follow_up_message& follow_up_message
 ) const {
     RAV_ASSERT(sync_message.header.flags.two_step_flag, "Use the other method for one-step sync messages");
@@ -233,7 +233,7 @@ rav::ptp_measurement<double> rav::ptp_port::calculate_offset_from_master(
     return {t2, offset, mean_delay_, {}};
 }
 
-void rav::ptp_port::trigger_announce_receipt_timeout_expires_event() {
+void rav::ptp::ptp_port::trigger_announce_receipt_timeout_expires_event() {
     TRACY_ZONE_SCOPED;
 
     erbest_.reset();
@@ -244,7 +244,7 @@ void rav::ptp_port::trigger_announce_receipt_timeout_expires_event() {
     }
 }
 
-void rav::ptp_port::process_request_response_delay_sequence() {
+void rav::ptp::ptp_port::process_request_response_delay_sequence() {
     TRACY_ZONE_SCOPED;
 
     if (!(port_ds_.port_state == ptp_state::slave || port_ds_.port_state == ptp_state::uncalibrated)) {
@@ -267,7 +267,7 @@ void rav::ptp_port::process_request_response_delay_sequence() {
     }
 }
 
-void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) {
+void rav::ptp::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& sequence) {
     TRACY_ZONE_SCOPED;
 
     const auto msg = sequence.create_delay_req_message(port_ds_);
@@ -279,12 +279,12 @@ void rav::ptp_port::send_delay_req_message(ptp_request_response_delay_sequence& 
     sequence.set_delay_req_sent_time(parent_.get_local_ptp_time());
 }
 
-rav::ptp_state rav::ptp_port::state() const {
+rav::ptp::ptp_state rav::ptp::ptp_port::state() const {
     return port_ds_.port_state;
 }
 
-std::optional<rav::ptp_best_announce_message>
-rav::ptp_port::determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports) {
+std::optional<rav::ptp::ptp_best_announce_message>
+rav::ptp::ptp_port::determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports) {
     const ptp_port* best_port = nullptr;
 
     for (auto& port : ports) {
@@ -333,15 +333,15 @@ rav::ptp_port::determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& por
     return ptp_best_announce_message {*best_port->erbest_, best_port->port_ds_.port_identity};
 }
 
-const rav::ptp_port_ds& rav::ptp_port::port_ds() const {
+const rav::ptp::ptp_port_ds& rav::ptp::ptp_port::port_ds() const {
     return port_ds_;
 }
 
-void rav::ptp_port::increase_age() {
+void rav::ptp::ptp_port::increase_age() {
     foreign_master_list_.increase_age();
 }
 
-void rav::ptp_port::handle_recv_event(const rtp::udp_sender_receiver::recv_event& event) {
+void rav::ptp::ptp_port::handle_recv_event(const rtp::udp_sender_receiver::recv_event& event) {
     TRACY_ZONE_SCOPED;
 
     const buffer_view data(event.data, event.size);
@@ -454,7 +454,7 @@ void rav::ptp_port::handle_recv_event(const rtp::udp_sender_receiver::recv_event
     }
 }
 
-void rav::ptp_port::handle_announce_message(
+void rav::ptp::ptp_port::handle_announce_message(
     const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs
 ) {
     TRACY_ZONE_SCOPED;
@@ -505,7 +505,7 @@ void rav::ptp_port::handle_announce_message(
     parent_.execute_state_decision_event();
 }
 
-void rav::ptp_port::handle_sync_message(ptp_sync_message sync_message, buffer_view<const uint8_t> tlvs) {
+void rav::ptp::ptp_port::handle_sync_message(ptp_sync_message sync_message, buffer_view<const uint8_t> tlvs) {
     TRACY_ZONE_SCOPED;
 
     std::ignore = tlvs;
@@ -546,7 +546,7 @@ void rav::ptp_port::handle_sync_message(ptp_sync_message sync_message, buffer_vi
     process_request_response_delay_sequence();
 }
 
-void rav::ptp_port::handle_follow_up_message(
+void rav::ptp::ptp_port::handle_follow_up_message(
     const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs
 ) {
     TRACY_ZONE_SCOPED;
@@ -584,7 +584,7 @@ void rav::ptp_port::handle_follow_up_message(
     RAV_WARNING("Received follow-up message without matching sync message");
 }
 
-void rav::ptp_port::handle_delay_resp_message(
+void rav::ptp::ptp_port::handle_delay_resp_message(
     const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs
 ) {
     TRACY_ZONE_SCOPED;
@@ -639,21 +639,21 @@ void rav::ptp_port::handle_delay_resp_message(
     RAV_WARNING("Received a delay response message without matching delay request message");
 }
 
-void rav::ptp_port::handle_pdelay_resp_message(
+void rav::ptp::ptp_port::handle_pdelay_resp_message(
     const ptp_pdelay_resp_message& delay_req_message, buffer_view<const uint8_t> tlvs
 ) {
     std::ignore = delay_req_message;
     std::ignore = tlvs;
 }
 
-void rav::ptp_port::handle_pdelay_resp_follow_up_message(
+void rav::ptp::ptp_port::handle_pdelay_resp_follow_up_message(
     const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
 ) {
     std::ignore = delay_req_message;
     std::ignore = tlvs;
 }
 
-void rav::ptp_port::calculate_erbest() {
+void rav::ptp::ptp_port::calculate_erbest() {
     if (erbest_) {
         RAV_ASSERT(
             foreign_master_list_.size() > 0,

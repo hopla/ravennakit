@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <cmath>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a point in time. It stores this point as a combination of seconds + nanoseconds + fraction.

@@ -11,8 +11,8 @@
 #include "ravennakit/ptp/messages/ptp_announce_message.hpp"
 #include "ravennakit/core/byte_order.hpp"
 
-tl::expected<rav::ptp_announce_message, rav::ptp_error>
-rav::ptp_announce_message::from_data(const ptp_message_header& header, buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::ptp_announce_message, rav::ptp::ptp_error>
+rav::ptp::ptp_announce_message::from_data(const ptp_message_header& header, buffer_view<const uint8_t> data) {
     if (data.size() < k_message_size) {
         return tl::unexpected(ptp_error::invalid_message_length);
     }
@@ -33,7 +33,7 @@ rav::ptp_announce_message::from_data(const ptp_message_header& header, buffer_vi
     return msg;
 }
 
-std::string rav::ptp_announce_message::to_string() const {
+std::string rav::ptp::ptp_announce_message::to_string() const {
     return fmt::format(
         "{} origin_timestamp={}.{:09d} current_utc_offset={} gm_priority1={} gm_clock_quality=({})", header.to_string(),
         origin_timestamp.raw_seconds(), origin_timestamp.raw_nanoseconds(), current_utc_offset, grandmaster_priority1,

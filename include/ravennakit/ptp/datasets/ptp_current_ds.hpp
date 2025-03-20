@@ -14,7 +14,7 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the data set as described in IEEE1588-2019: 8.2.2.

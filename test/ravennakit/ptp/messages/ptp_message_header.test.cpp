@@ -32,12 +32,12 @@ TEST_CASE("ptp_message_header") {
             0x81,                                            // logMessageInterval
         };
 
-        auto header = rav::ptp_message_header::from_data(rav::buffer_view(data));
+        auto header = rav::ptp::ptp_message_header::from_data(rav::buffer_view(data));
 
         REQUIRE(header.has_value());
         REQUIRE(header->sdo_id.major == 0xf);
         REQUIRE(header->sdo_id.minor == 0x22);
-        REQUIRE(header->message_type == rav::ptp_message_type::management);
+        REQUIRE(header->message_type == rav::ptp::ptp_message_type::management);
         REQUIRE(header->version.major == 0x2);
         REQUIRE(header->version.minor == 0x1);
         REQUIRE(header->message_length == 300);
@@ -73,10 +73,10 @@ TEST_CASE("ptp_message_header") {
     }
 
     SECTION("Write to stream") {
-        rav::ptp_message_header header;
+        rav::ptp::ptp_message_header header;
         header.sdo_id.major = 0xf;
         header.sdo_id.minor = 0x22;
-        header.message_type = rav::ptp_message_type::management;
+        header.message_type = rav::ptp::ptp_message_type::management;
         header.version.major = 0x2;
         header.version.minor = 0x1;
         header.message_length = 300;
@@ -120,7 +120,7 @@ TEST_CASE("ptp_message_header::flag_field") {
         uint8_t octet1 = 0;
         uint8_t octet2 = 0;
 
-        auto flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        auto flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.alternate_master_flag == false);
         REQUIRE(flags.two_step_flag == false);
         REQUIRE(flags.unicast_flag == false);
@@ -135,56 +135,56 @@ TEST_CASE("ptp_message_header::flag_field") {
         REQUIRE(flags.synchronization_uncertain == false);
 
         octet1 = 1 << 0;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.alternate_master_flag == true);
 
         octet1 = 1 << 1;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.two_step_flag == true);
 
         octet1 = 1 << 2;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.unicast_flag == true);
 
         octet1 = 1 << 5;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.profile_specific_1 == true);
 
         octet1 = 1 << 6;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.profile_specific_2 == true);
 
         octet2 = 1 << 0;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.leap61 == true);
 
         octet2 = 1 << 1;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.leap59 == true);
 
         octet2 = 1 << 2;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.current_utc_offset_valid == true);
 
         octet2 = 1 << 3;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.ptp_timescale == true);
 
         octet2 = 1 << 4;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.time_traceable == true);
 
         octet2 = 1 << 5;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.frequency_traceable == true);
 
         octet2 = 1 << 6;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::ptp_message_header::flag_field::from_octets(octet1, octet2);
         REQUIRE(flags.synchronization_uncertain == true);
     }
 
     SECTION("Pack to octets") {
-        rav::ptp_message_header::flag_field flags;
+        rav::ptp::ptp_message_header::flag_field flags;
 
         SECTION("Leap 61") {
             flags.leap61 = true;
@@ -248,7 +248,7 @@ TEST_CASE("ptp_message_header::flag_field") {
     }
 
     SECTION("Pack with all fields set, make sure reserved fields are zero") {
-        rav::ptp_message_header::flag_field flags;
+        rav::ptp::ptp_message_header::flag_field flags;
         flags.alternate_master_flag = true;
         flags.two_step_flag = true;
         flags.unicast_flag = true;

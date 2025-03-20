@@ -25,7 +25,7 @@
 #include <asio/ip/address.hpp>
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a PTP instance as defined in IEEE 1588-2019.

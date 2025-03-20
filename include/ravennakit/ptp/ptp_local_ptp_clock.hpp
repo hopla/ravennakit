@@ -22,7 +22,7 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * A class that maintains a local PTP clock as close as possible to some grand master clock.

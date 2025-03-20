@@ -16,7 +16,7 @@
 
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_follow_up_message {
     ptp_message_header header;

@@ -12,7 +12,7 @@
 #include "ptp_comparison_data_set.hpp"
 #include "ravennakit/ptp/messages/ptp_announce_message.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_best_announce_message {
     ptp_announce_message message;

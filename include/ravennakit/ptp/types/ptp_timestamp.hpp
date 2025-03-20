@@ -17,7 +17,7 @@
 #include "ravennakit/core/streams/output_stream.hpp"
 #include "ravennakit/core/types/uint48.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * A PTP timestamp, consisting of a seconds and nanoseconds part.

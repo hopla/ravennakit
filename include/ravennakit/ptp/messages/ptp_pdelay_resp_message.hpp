@@ -13,7 +13,7 @@
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_pdelay_resp_message {
     ptp_timestamp request_receipt_timestamp;

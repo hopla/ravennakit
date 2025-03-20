@@ -15,7 +15,7 @@
 
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_pdelay_req_message {
     // TODO: Add the header

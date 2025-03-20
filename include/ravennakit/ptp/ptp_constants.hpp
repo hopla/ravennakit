@@ -12,7 +12,7 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 constexpr uint8_t k_foreign_master_time_window = 4;  // times announce interval
 constexpr uint8_t k_foreign_master_threshold = 2;    // Announce messages received within time window

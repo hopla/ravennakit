@@ -12,7 +12,7 @@
 
 #include "ptp_sync_message.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 using ptp_delay_req_message = ptp_sync_message;
 

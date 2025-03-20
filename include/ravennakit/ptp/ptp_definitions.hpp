@@ -11,7 +11,7 @@
 #pragma once
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * The PTP state.

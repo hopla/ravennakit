@@ -14,7 +14,7 @@
 #include "ravennakit/ptp/types/ptp_clock_quality.hpp"
 #include "ravennakit/ptp/types/ptp_sdo_id.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the default data set as described in IEEE1588-2019: 8.2.1.

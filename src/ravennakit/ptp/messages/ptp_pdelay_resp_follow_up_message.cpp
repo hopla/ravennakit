@@ -10,8 +10,8 @@
 
 #include "ravennakit/ptp/messages/ptp_pdelay_resp_follow_up_message.hpp"
 
-tl::expected<rav::ptp_pdelay_resp_follow_up_message, rav::ptp_error>
-rav::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::ptp_pdelay_resp_follow_up_message, rav::ptp::ptp_error>
+rav::ptp::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_t> data) {
     if (data.size() < k_message_size) {
         return tl::make_unexpected(ptp_error::invalid_message_length);
     }
@@ -26,7 +26,7 @@ rav::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_
     return msg;
 }
 
-std::string rav::ptp_pdelay_resp_follow_up_message::to_string() const {
+std::string rav::ptp::ptp_pdelay_resp_follow_up_message::to_string() const {
     return fmt::format(
         "response_origin_timestamp={} requesting_port_identity={}", response_origin_timestamp.to_string(),
         requesting_port_identity.to_string()

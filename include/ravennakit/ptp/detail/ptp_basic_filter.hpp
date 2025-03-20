@@ -13,7 +13,7 @@
 #include <cmath>
 #include <algorithm>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Simple averaging filter.

@@ -32,7 +32,7 @@
 #include <optional>
 #include <vector>
 
-namespace rav {
+namespace rav::ptp {
 
 class ptp_instance;
 

@@ -10,7 +10,7 @@
 
 #include "ravennakit/ptp/bmca/ptp_comparison_data_set.hpp"
 
-rav::ptp_comparison_data_set::ptp_comparison_data_set(
+rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
     const ptp_announce_message& announce_message, const ptp_port_identity& receiver_identity
 ) {
     grandmaster_priority1 = announce_message.grandmaster_priority1;
@@ -22,7 +22,7 @@ rav::ptp_comparison_data_set::ptp_comparison_data_set(
     identity_of_receiver = receiver_identity;
 }
 
-rav::ptp_comparison_data_set::ptp_comparison_data_set(
+rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
     const ptp_announce_message& announce_message, const ptp_port_ds& port_ds
 ) {
     grandmaster_priority1 = announce_message.grandmaster_priority1;
@@ -34,7 +34,7 @@ rav::ptp_comparison_data_set::ptp_comparison_data_set(
     identity_of_receiver = port_ds.port_identity;
 }
 
-rav::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds& default_ds) {
+rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds& default_ds) {
     grandmaster_priority1 = default_ds.priority1;
     grandmaster_identity = default_ds.clock_identity;
     grandmaster_clock_quality = default_ds.clock_quality;
@@ -44,8 +44,8 @@ rav::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds& defa
     identity_of_receiver = {default_ds.clock_identity, 0};
 }
 
-rav::ptp_comparison_data_set::result
-rav::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) const {
+rav::ptp::ptp_comparison_data_set::result
+rav::ptp::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) const {
     if (grandmaster_identity == other.grandmaster_identity) {
         // Compare Steps Removed of A and B:
 
@@ -159,7 +159,7 @@ rav::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) cons
     return result::error1;
 }
 
-rav::ptp_comparison_data_set::result rav::ptp_comparison_data_set::compare(
+rav::ptp::ptp_comparison_data_set::result rav::ptp::ptp_comparison_data_set::compare(
     const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity
 ) {
     const ptp_comparison_data_set set_a(a, receiver_identity);

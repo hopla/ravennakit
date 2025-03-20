@@ -13,7 +13,7 @@
 #include "ravennakit/core/streams/output_stream.hpp"
 #include "ravennakit/ptp/ptp_definitions.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * PTP Clock Quality
@@ -50,7 +50,7 @@ struct ptp_clock_quality {
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
             "clock_class={} clock_accuracy={} offset_scaled_log_variance={}", clock_class,
-            rav::to_string(clock_accuracy), offset_scaled_log_variance
+            rav::ptp::to_string(clock_accuracy), offset_scaled_log_variance
         );
     }
 };

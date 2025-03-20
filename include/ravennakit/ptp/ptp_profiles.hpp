@@ -15,7 +15,7 @@
 #include <cstdint>
 #include <optional>
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_profile {
     const char* profile_name {""};

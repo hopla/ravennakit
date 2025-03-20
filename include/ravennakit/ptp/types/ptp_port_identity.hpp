@@ -19,7 +19,7 @@
 
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a PTP port identity.

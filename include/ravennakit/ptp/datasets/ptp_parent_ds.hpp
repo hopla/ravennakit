@@ -15,7 +15,7 @@
 #include "ravennakit/ptp/types/ptp_clock_quality.hpp"
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the parent data set as described in IEEE1588-2019: 8.2.3.

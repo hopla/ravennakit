@@ -11,7 +11,7 @@
 #pragma once
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_sdo_id {
     uint8_t major {};

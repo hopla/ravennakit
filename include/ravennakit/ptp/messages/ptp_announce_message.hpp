@@ -14,7 +14,7 @@
 #include "ravennakit/ptp/types/ptp_clock_quality.hpp"
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_announce_message {
     ptp_message_header header;

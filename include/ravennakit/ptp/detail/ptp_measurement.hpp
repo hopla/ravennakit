@@ -11,7 +11,7 @@
 #pragma once
 #include "ravennakit/ptp/types/ptp_time_interval.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 template<class T>
 struct ptp_measurement {

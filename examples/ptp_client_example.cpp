@@ -36,10 +36,10 @@ int main(int const argc, char* argv[]) {
     std::vector<rav::subscription> subscriptions;
     asio::io_context io_context;
 
-    rav::ptp_instance ptp_instance(io_context);
+    rav::ptp::ptp_instance ptp_instance(io_context);
     auto result = ptp_instance.add_port(asio::ip::make_address(interface_address));
     if (!result) {
-        RAV_TRACE("PTP Error: {}", static_cast<std::underlying_type_t<rav::ptp_error>>(result.error()));
+        RAV_TRACE("PTP Error: {}", static_cast<std::underlying_type_t<rav::ptp::ptp_error>>(result.error()));
         return 1;
     }
 

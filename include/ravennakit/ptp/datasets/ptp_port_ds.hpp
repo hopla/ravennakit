@@ -15,7 +15,7 @@
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Port data set. IEEE 1588-2019: 8.2.15.

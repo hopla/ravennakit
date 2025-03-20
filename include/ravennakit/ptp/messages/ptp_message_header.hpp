@@ -23,7 +23,7 @@
 #include <cstdint>
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_version {
     uint8_t major {};

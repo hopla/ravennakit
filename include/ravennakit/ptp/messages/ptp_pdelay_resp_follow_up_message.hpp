@@ -14,7 +14,7 @@
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_pdelay_resp_follow_up_message {
     ptp_timestamp response_origin_timestamp;

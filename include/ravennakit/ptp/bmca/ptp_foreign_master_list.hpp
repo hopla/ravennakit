@@ -17,7 +17,7 @@
 
 #include <vector>
 
-namespace rav {
+namespace rav::ptp {
 
 class ptp_foreign_master_list {
   public:

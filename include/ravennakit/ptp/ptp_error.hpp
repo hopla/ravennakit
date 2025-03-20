@@ -10,7 +10,7 @@
 
 #pragma once
 
-namespace rav {
+namespace rav::ptp {
 
 enum class ptp_error {
     invalid_data,

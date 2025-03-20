@@ -19,7 +19,7 @@
 #include "ravennakit/core/math/sliding_stats.hpp"
 #include "ravennakit/ptp/messages/ptp_delay_resp_message.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * This class captures all the data needed to calculate the mean path delay and the offset from the master clock using

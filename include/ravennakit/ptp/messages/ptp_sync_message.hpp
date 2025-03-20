@@ -14,7 +14,7 @@
 #include "ravennakit/core/containers/byte_buffer.hpp"
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 struct ptp_sync_message {
     constexpr static size_t k_message_length = ptp_message_header::k_header_size + 10;

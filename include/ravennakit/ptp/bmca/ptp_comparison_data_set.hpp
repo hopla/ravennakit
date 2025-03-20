@@ -17,7 +17,7 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Contains the data needed to compare two PTP data sets.

@@ -20,7 +20,7 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a PTP clock identity.

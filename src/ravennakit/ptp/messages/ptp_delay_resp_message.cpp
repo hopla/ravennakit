@@ -10,15 +10,15 @@
 
 #include "ravennakit/ptp/messages/ptp_delay_resp_message.hpp"
 
-tl::expected<rav::ptp::ptp_delay_resp_message, rav::ptp::ptp_error>
-rav::ptp::ptp_delay_resp_message::from_data(const ptp_message_header& header, const buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::DelayRespMessage, rav::ptp::Error>
+rav::ptp::DelayRespMessage::from_data(const MessageHeader& header, const buffer_view<const uint8_t> data) {
     if (data.size() < k_message_size) {
-        return tl::unexpected(ptp_error::invalid_message_length);
+        return tl::unexpected(Error::invalid_message_length);
     }
-    ptp_delay_resp_message msg;
+    DelayRespMessage msg;
     msg.header = header;
-    msg.receive_timestamp = ptp_timestamp::from_data(data);
-    auto port_identity = ptp_port_identity::from_data(data.subview(10));
+    msg.receive_timestamp = Timestamp::from_data(data);
+    auto port_identity = PortIdentity::from_data(data.subview(10));
     if (!port_identity) {
         return tl::unexpected(port_identity.error());
     }
@@ -26,7 +26,7 @@ rav::ptp::ptp_delay_resp_message::from_data(const ptp_message_header& header, co
     return msg;
 }
 
-std::string rav::ptp::ptp_delay_resp_message::to_string() const {
+std::string rav::ptp::DelayRespMessage::to_string() const {
     return fmt::format(
         "receive_timestamp={} requesting_port_identity={}", receive_timestamp.to_string(),
         requesting_port_identity.to_string()

@@ -16,12 +16,12 @@
 
 namespace rav::ptp {
 
-struct ptp_sync_message {
-    constexpr static size_t k_message_length = ptp_message_header::k_header_size + 10;
+struct SyncMessage {
+    constexpr static size_t k_message_length = MessageHeader::k_header_size + 10;
 
-    ptp_message_header header;
-    ptp_timestamp origin_timestamp;
-    ptp_timestamp receive_timestamp; // Not part of the message on the wire, but used for calculations
+    MessageHeader header;
+    Timestamp origin_timestamp;
+    Timestamp receive_timestamp; // Not part of the message on the wire, but used for calculations
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -29,7 +29,7 @@ struct ptp_sync_message {
      * @param data The message data. Expects it to start at the beginning of the message, excluding the header.
      * @return A ptp_announce_message if the data is valid, otherwise a ptp_error.
      */
-    static tl::expected<ptp_sync_message, ptp_error> from_data(const ptp_message_header& header, buffer_view<const uint8_t> data);
+    static tl::expected<SyncMessage, Error> from_data(const MessageHeader& header, buffer_view<const uint8_t> data);
 
     /**
      * Write the ptp_announce_message to a byte buffer.

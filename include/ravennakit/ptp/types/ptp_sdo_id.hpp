@@ -13,7 +13,7 @@
 
 namespace rav::ptp {
 
-struct ptp_sdo_id {
+struct SdoId {
     uint8_t major {};
     uint8_t minor {};
 
@@ -21,11 +21,11 @@ struct ptp_sdo_id {
         return fmt::format("{}.{}", major, minor);
     }
 
-    friend bool operator==(const ptp_sdo_id& lhs, const ptp_sdo_id& rhs) {
+    friend bool operator==(const SdoId& lhs, const SdoId& rhs) {
         return std::tie(lhs.major, lhs.minor) == std::tie(rhs.major, rhs.minor);
     }
 
-    friend bool operator!=(const ptp_sdo_id& lhs, const ptp_sdo_id& rhs) {
+    friend bool operator!=(const SdoId& lhs, const SdoId& rhs) {
         return !(lhs == rhs);
     }
 };

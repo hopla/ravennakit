@@ -18,13 +18,13 @@ namespace rav::ptp {
 /**
  * Simple averaging filter.
  */
-class ptp_basic_filter {
+class BasicFilter {
   public:
     /**
      * Constructor.
      * @param gain The gain of the filter.
      */
-    explicit ptp_basic_filter(const double gain) : gain_(gain) {
+    explicit BasicFilter(const double gain) : gain_(gain) {
         reset();
     }
 

@@ -18,9 +18,9 @@
 
 namespace rav::ptp {
 
-struct ptp_follow_up_message {
-    ptp_message_header header;
-    ptp_timestamp precise_origin_timestamp;
+struct FollowUpMessage {
+    MessageHeader header;
+    Timestamp precise_origin_timestamp;
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -28,8 +28,8 @@ struct ptp_follow_up_message {
      * @param data The message data. Expects it to start at the beginning of the message, excluding the header.
      * @return A ptp_announce_message if the data is valid, otherwise a ptp_error.
      */
-    static tl::expected<ptp_follow_up_message, ptp_error>
-    from_data(const ptp_message_header& header, buffer_view<const uint8_t> data);
+    static tl::expected<FollowUpMessage, Error>
+    from_data(const MessageHeader& header, buffer_view<const uint8_t> data);
 
     /**
      * @returns A string representation of the ptp_announce_message.

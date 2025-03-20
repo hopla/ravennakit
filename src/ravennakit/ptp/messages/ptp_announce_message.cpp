@@ -11,29 +11,29 @@
 #include "ravennakit/ptp/messages/ptp_announce_message.hpp"
 #include "ravennakit/core/byte_order.hpp"
 
-tl::expected<rav::ptp::ptp_announce_message, rav::ptp::ptp_error>
-rav::ptp::ptp_announce_message::from_data(const ptp_message_header& header, buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::AnnounceMessage, rav::ptp::Error>
+rav::ptp::AnnounceMessage::from_data(const MessageHeader& header, buffer_view<const uint8_t> data) {
     if (data.size() < k_message_size) {
-        return tl::unexpected(ptp_error::invalid_message_length);
+        return tl::unexpected(Error::invalid_message_length);
     }
 
-    ptp_announce_message msg;
+    AnnounceMessage msg;
     msg.header = header;
-    msg.origin_timestamp = ptp_timestamp::from_data(data);
+    msg.origin_timestamp = Timestamp::from_data(data);
     msg.current_utc_offset = data.read_be<int16_t>(10);
     // Byte 12 is reserved
     msg.grandmaster_priority1 = data[13];
     msg.grandmaster_clock_quality.clock_class = data[14];
-    msg.grandmaster_clock_quality.clock_accuracy = static_cast<ptp_clock_accuracy>(data[15]);
+    msg.grandmaster_clock_quality.clock_accuracy = static_cast<ClockAccuracy>(data[15]);
     msg.grandmaster_clock_quality.offset_scaled_log_variance = data.read_be<uint16_t>(16);
     msg.grandmaster_priority2 = data[18];
-    msg.grandmaster_identity = ptp_clock_identity::from_data(data.subview(19));
+    msg.grandmaster_identity = ClockIdentity::from_data(data.subview(19));
     msg.steps_removed = data.read_be<uint16_t>(27);
-    msg.time_source = static_cast<ptp_time_source>(data[29]);
+    msg.time_source = static_cast<TimeSource>(data[29]);
     return msg;
 }
 
-std::string rav::ptp::ptp_announce_message::to_string() const {
+std::string rav::ptp::AnnounceMessage::to_string() const {
     return fmt::format(
         "{} origin_timestamp={}.{:09d} current_utc_offset={} gm_priority1={} gm_clock_quality=({})", header.to_string(),
         origin_timestamp.raw_seconds(), origin_timestamp.raw_nanoseconds(), current_utc_offset, grandmaster_priority1,

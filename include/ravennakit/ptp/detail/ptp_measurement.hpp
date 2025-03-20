@@ -9,12 +9,13 @@
  */
 
 #pragma once
+
 #include "ravennakit/ptp/types/ptp_time_interval.hpp"
 
 namespace rav::ptp {
 
 template<class T>
-struct ptp_measurement {
+struct Measurement {
     T sync_event_ingress_timestamp;
     T offset_from_master;
     T mean_delay;

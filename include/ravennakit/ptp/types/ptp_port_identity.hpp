@@ -25,24 +25,24 @@ namespace rav::ptp {
  * Represents a PTP port identity.
  * IEEE1588-2019: 5.3.5
  */
-struct ptp_port_identity {
+struct PortIdentity {
     constexpr static uint16_t k_port_number_min = 0x1;     // Inclusive
     constexpr static uint16_t k_port_number_max = 0xfffe;  // Inclusive
     constexpr static uint16_t k_port_number_all = 0xffff;  // Means all ports
 
-    ptp_clock_identity clock_identity;
+    ClockIdentity clock_identity;
     uint16_t port_number {};  // Valid range: [k_port_number_min, k_port_number_max]
 
     /**
      * Construct a PTP port identity from a byte array.
      * @param data The data to construct the port identity from. Must be at least 10 bytes long.
      */
-    static tl::expected<ptp_port_identity, ptp_error> from_data(const buffer_view<const uint8_t> data) {
+    static tl::expected<PortIdentity, Error> from_data(const buffer_view<const uint8_t> data) {
         if (data.size_bytes() < 10) {
-            return tl::unexpected(ptp_error::invalid_message_length);
+            return tl::unexpected(Error::invalid_message_length);
         }
-        ptp_port_identity port_identity;
-        port_identity.clock_identity = ptp_clock_identity::from_data(data);
+        PortIdentity port_identity;
+        port_identity.clock_identity = ClockIdentity::from_data(data);
         port_identity.port_number = rav::read_be<uint16_t>(data.data() + 8);
         return port_identity;
     }
@@ -72,11 +72,11 @@ struct ptp_port_identity {
         RAV_ASSERT(port_number <= k_port_number_max, "port_number is above maximum");
     }
 
-    friend bool operator==(const ptp_port_identity& lhs, const ptp_port_identity& rhs) {
+    friend bool operator==(const PortIdentity& lhs, const PortIdentity& rhs) {
         return std::tie(lhs.clock_identity, lhs.port_number) == std::tie(rhs.clock_identity, rhs.port_number);
     }
 
-    friend bool operator!=(const ptp_port_identity& lhs, const ptp_port_identity& rhs) {
+    friend bool operator!=(const PortIdentity& lhs, const PortIdentity& rhs) {
         return !(lhs == rhs);
     }
 };

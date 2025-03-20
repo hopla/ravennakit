@@ -20,12 +20,12 @@ namespace rav::ptp {
 /**
  * Port data set. IEEE 1588-2019: 8.2.15.
  */
-struct ptp_port_ds {
-    ptp_port_identity port_identity;
-    ptp_state port_state {ptp_state::undefined};
+struct PortDs {
+    PortIdentity port_identity;
+    State port_state {State::undefined};
     /// Valid range: [0,5]
     int8_t log_min_delay_req_interval {0};  // Required for e2e only
-    ptp_time_interval mean_link_delay;      // Required for p2p only
+    TimeInterval mean_link_delay;      // Required for p2p only
 
     /// Specifies the mean time interval between successive Announce messages. Should be uniform throughout a domain.
     /// IEEE 1588-2019: 7.7.2.2
@@ -39,19 +39,19 @@ struct ptp_port_ds {
     /// IEEE 1588-2019: 7.7.2.3
     int8_t log_sync_interval {1};
 
-    ptp_delay_mechanism delay_mechanism {};  // Required for p2p only
+    DelayMechanism delay_mechanism {};  // Required for p2p only
     int8_t log_min_pdelay_req_interval {0};  // Required for p2p only
     uint8_t version_number {2};              // 4 bits on the wire (one nibble)
     uint8_t minor_version_number {1};        // 4 bits on the wire (one nibble)
-    ptp_time_interval delay_asymmetry;
+    TimeInterval delay_asymmetry;
 
     /**
      * Checks the internal state of this object according to IEEE1588-2019. Asserts when something is wrong.
      * @param profile The profile to check against.
      */
-    void assert_valid_state(const ptp_profile& profile) const {
+    void assert_valid_state(const Profile& profile) const {
         port_identity.assert_valid_state();
-        RAV_ASSERT(port_state != ptp_state::undefined, "port_state is undefined");
+        RAV_ASSERT(port_state != State::undefined, "port_state is undefined");
         RAV_ASSERT(
             profile.port_ds.log_announce_interval_range.contains(log_announce_interval),
             "log_announce_interval is out of range"

@@ -19,17 +19,17 @@ namespace rav::ptp {
  * PTP Clock Quality
  * IEEE1588-2019 section 7.6.2.5, Table 4
  */
-struct ptp_clock_quality {
+struct ClockQuality {
     /// The clock class. Default is 248, for slave-only the value is 255.
     uint8_t clock_class {};
-    ptp_clock_accuracy clock_accuracy {ptp_clock_accuracy::unknown};
+    ClockAccuracy clock_accuracy {ClockAccuracy::unknown};
     uint16_t offset_scaled_log_variance {};
 
-    ptp_clock_quality() = default;
+    ClockQuality() = default;
 
-    explicit ptp_clock_quality(const bool slave_only) {
+    explicit ClockQuality(const bool slave_only) {
         clock_class = slave_only ? 255 : 248;
-        clock_accuracy = ptp_clock_accuracy::unknown;
+        clock_accuracy = ClockAccuracy::unknown;
         offset_scaled_log_variance = 0;
     }
 

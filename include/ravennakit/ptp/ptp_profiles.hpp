@@ -17,7 +17,7 @@
 
 namespace rav::ptp {
 
-struct ptp_profile {
+struct Profile {
     const char* profile_name {""};
     uint8_t profile_number {};
     uint8_t primary_version {};
@@ -60,7 +60,7 @@ struct ptp_profile {
     double t {};  // Variance algorithm (7.6.3.2)
 };
 
-static constexpr ptp_profile ptp_default_profile_1 {
+static constexpr Profile DefaultProfile1 {
     "Default delay request-response profile",
     1,
     1,
@@ -89,7 +89,7 @@ static constexpr ptp_profile ptp_default_profile_1 {
     1.0,
 };
 
-static constexpr ptp_profile ptp_default_profile_2 {
+static constexpr Profile DefaultProfile2 {
     "Default delay peer-to-peer delay profile",
     2,
     1,
@@ -120,7 +120,7 @@ static constexpr ptp_profile ptp_default_profile_2 {
     1.0,
 };
 
-static constexpr ptp_profile ptp_default_profile_3 {
+static constexpr Profile DefaultProfile3 {
     "High Accuracy Delay Request-Response Default PTP Profile",
     3,
     1,

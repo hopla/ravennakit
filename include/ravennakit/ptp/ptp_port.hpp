@@ -34,38 +34,36 @@
 
 namespace rav::ptp {
 
-class ptp_instance;
+class Instance;
 
-class ptp_port {
+class Port {
   public:
-    ptp_port(
-        ptp_instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
-        ptp_port_identity port_identity
+    Port(
+        Instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
+        PortIdentity port_identity
     );
 
-    ~ptp_port();
+    ~Port();
 
     /**
      * @return The port identity of this port.
      */
-    [[nodiscard]] const ptp_port_identity& get_port_identity() const;
+    [[nodiscard]] const PortIdentity& get_port_identity() const;
 
     /**
      * Checks the internal state of this object according to IEEE1588-2019. Asserts when something is wrong.
      */
-    void assert_valid_state(const ptp_profile& profile) const;
+    void assert_valid_state(const Profile& profile) const;
 
     /**
      * Applies the state decision algorithm to this port.
      */
-    void apply_state_decision_algorithm(
-        const ptp_default_ds& default_ds, const std::optional<ptp_best_announce_message>& ebest
-    );
+    void apply_state_decision_algorithm(const DefaultDs& default_ds, const std::optional<BestAnnounceMessage>& ebest);
 
     /**
      * @return The current state of this port.
      */
-    [[nodiscard]] ptp_state state() const;
+    [[nodiscard]] State state() const;
 
     /**
      * Calculates erbest of this port, if necessary. Removes entries from the foreign master list which didn't
@@ -78,13 +76,12 @@ class ptp_port {
      * @param ports The ports to find the best announce message from.
      * @return The best announce message, or nullopt if there is no best announce message.
      */
-    static std::optional<ptp_best_announce_message>
-    determine_ebest(const std::vector<std::unique_ptr<ptp_port>>& ports);
+    static std::optional<BestAnnounceMessage> determine_ebest(const std::vector<std::unique_ptr<Port>>& ports);
 
     /**
      * @return The port data set of this port.
      */
-    [[nodiscard]] const ptp_port_ds& port_ds() const;
+    [[nodiscard]] const PortDs& port_ds() const;
 
     /**
      * Increases the age by one.
@@ -92,31 +89,31 @@ class ptp_port {
     void increase_age();
 
   private:
-    ptp_instance& parent_;
-    ptp_port_ds port_ds_;
+    Instance& parent_;
+    PortDs port_ds_;
     asio::steady_timer announce_receipt_timeout_timer_;
     rtp::udp_sender_receiver event_socket_;
     rtp::udp_sender_receiver general_socket_;
     std::vector<subscription> subscriptions_;
-    ptp_foreign_master_list foreign_master_list_;
-    std::optional<ptp_announce_message> erbest_;
+    ForeignMasterList foreign_master_list_;
+    std::optional<AnnounceMessage> erbest_;
     sliding_stats mean_delay_stats_ {31};
     double mean_delay_ = 0.0;
-    ptp_basic_filter mean_delay_filter_ {0.1};
+    BasicFilter mean_delay_filter_ {0.1};
     int32_t syncs_until_delay_req_ = 10;  // Number of syncs until the next delay_req message.
-    byte_buffer send_buffer_{128};
+    byte_buffer send_buffer_ {128};
 
-    ring_buffer<ptp_sync_message> sync_messages_ {8};
-    ring_buffer<ptp_request_response_delay_sequence> request_response_delay_sequences_ {8};
+    ring_buffer<SyncMessage> sync_messages_ {8};
+    ring_buffer<RequestResponseDelaySequence> request_response_delay_sequences_ {8};
 
     void handle_recv_event(const rtp::udp_sender_receiver::recv_event& event);
-    void handle_announce_message(const ptp_announce_message& announce_message, buffer_view<const uint8_t> tlvs);
-    void handle_sync_message(ptp_sync_message sync_message, buffer_view<const uint8_t> tlvs);
-    void handle_follow_up_message(const ptp_follow_up_message& follow_up_message, buffer_view<const uint8_t> tlvs);
-    void handle_delay_resp_message(const ptp_delay_resp_message& delay_resp_message, buffer_view<const uint8_t> tlvs);
-    void handle_pdelay_resp_message(const ptp_pdelay_resp_message& delay_req_message, buffer_view<const uint8_t> tlvs);
+    void handle_announce_message(const AnnounceMessage& announce_message, buffer_view<const uint8_t> tlvs);
+    void handle_sync_message(SyncMessage sync_message, buffer_view<const uint8_t> tlvs);
+    void handle_follow_up_message(const FollowUpMessage& follow_up_message, buffer_view<const uint8_t> tlvs);
+    void handle_delay_resp_message(const DelayRespMessage& delay_resp_message, buffer_view<const uint8_t> tlvs);
+    void handle_pdelay_resp_message(const PdelayRespMessage& delay_req_message, buffer_view<const uint8_t> tlvs);
     void handle_pdelay_resp_follow_up_message(
-        const ptp_pdelay_resp_follow_up_message& delay_req_message, buffer_view<const uint8_t> tlvs
+        const PdelayRespFollowUpMessage& delay_req_message, buffer_view<const uint8_t> tlvs
     );
 
     /**
@@ -125,23 +122,21 @@ class ptp_port {
      * @param ebest The best announce message of all ports.
      * @return The recommended state of this port.
      */
-    [[nodiscard]] std::optional<ptp_state_decision_code> calculate_recommended_state(
-        const ptp_default_ds& default_ds, const std::optional<ptp_comparison_data_set>& ebest
-    ) const;
+    [[nodiscard]] std::optional<StateDecisionCode>
+    calculate_recommended_state(const DefaultDs& default_ds, const std::optional<ComparisonDataSet>& ebest) const;
 
     void schedule_announce_receipt_timeout();
     void trigger_announce_receipt_timeout_expires_event();
 
     void process_request_response_delay_sequence();
-    void send_delay_req_message(ptp_request_response_delay_sequence& sequence);
+    void send_delay_req_message(RequestResponseDelaySequence& sequence);
 
-    void set_state(ptp_state new_state);
+    void set_state(State new_state);
 
-    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master(const ptp_sync_message& sync_message) const;
+    [[nodiscard]] Measurement<double> calculate_offset_from_master(const SyncMessage& sync_message) const;
 
-    [[nodiscard]] ptp_measurement<double> calculate_offset_from_master(
-        const ptp_sync_message& sync_message, const ptp_follow_up_message& follow_up_message
-    ) const;
+    [[nodiscard]] Measurement<double>
+    calculate_offset_from_master(const SyncMessage& sync_message, const FollowUpMessage& follow_up_message) const;
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

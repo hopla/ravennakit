@@ -23,17 +23,17 @@ namespace rav::ptp {
  * A PTP timestamp, consisting of a seconds and nanoseconds part.
  * Note: not suitable for memcpy to and from the wire.
  */
-struct ptp_timestamp {
+struct Timestamp {
     /// Size on the wire in bytes.
     static constexpr size_t k_size = 10;
 
-    ptp_timestamp() = default;
+    Timestamp() = default;
 
     /**
      * Create a ptp_timestamp from a number of nanoseconds.
      * @param nanos The number of nanoseconds.
      */
-    explicit ptp_timestamp(const uint64_t nanos) {
+    explicit Timestamp(const uint64_t nanos) {
         seconds_ = nanos / 1'000'000'000;
         nanoseconds_ = static_cast<uint32_t>(nanos % 1'000'000'000);
     }
@@ -43,7 +43,7 @@ struct ptp_timestamp {
      * @param seconds The number of seconds.
      * @param nanoseconds The number of nanoseconds.
      */
-    ptp_timestamp(const uint64_t seconds, const uint32_t nanoseconds) : seconds_(seconds), nanoseconds_(nanoseconds) {}
+    Timestamp(const uint64_t seconds, const uint32_t nanoseconds) : seconds_(seconds), nanoseconds_(nanoseconds) {}
 
     /**
      * Get a timestamp for given amount of years since epoch (whatever that is in the callers context).
@@ -51,7 +51,7 @@ struct ptp_timestamp {
      * @param years The number of years.
      * @return The timestamp.
      */
-    static ptp_timestamp from_years(const uint64_t years) {
+    static Timestamp from_years(const uint64_t years) {
         return {years * 365 * 24 * 60 * 60, 0};
     }
 
@@ -60,7 +60,7 @@ struct ptp_timestamp {
      * @param seconds The number of days.
      * @return The timestamp.
      */
-    static ptp_timestamp from_seconds(const uint64_t seconds) {
+    static Timestamp from_seconds(const uint64_t seconds) {
         return {seconds, 0};
     }
 
@@ -69,7 +69,7 @@ struct ptp_timestamp {
      * @param other The timestamp to add.
      * @return The sum of the two timestamps.
      */
-    [[nodiscard]] ptp_time_interval operator+(const ptp_timestamp& other) const {
+    [[nodiscard]] TimeInterval operator+(const Timestamp& other) const {
         return this->to_time_interval() + other.to_time_interval();
     }
 
@@ -78,7 +78,7 @@ struct ptp_timestamp {
      * @param other The timestamp to subtract.
      * @return The difference of the two timestamps.
      */
-    [[nodiscard]] ptp_time_interval operator-(const ptp_timestamp& other) const {
+    [[nodiscard]] TimeInterval operator-(const Timestamp& other) const {
         return this->to_time_interval() - other.to_time_interval();
     }
 
@@ -86,7 +86,7 @@ struct ptp_timestamp {
      * Adds given time interval to the timestamp.
      * @param time_interval The interval to add.
      */
-    void add(const ptp_time_interval time_interval) {
+    void add(const TimeInterval time_interval) {
         if (time_interval.seconds() < 0) {
             // Subtract the value
             const auto s_abs = static_cast<uint64_t>(std::abs(time_interval.seconds()));
@@ -156,19 +156,19 @@ struct ptp_timestamp {
         }
     }
 
-    friend bool operator<(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+    friend bool operator<(const Timestamp& lhs, const Timestamp& rhs) {
         return lhs.seconds_ < rhs.seconds_ || (lhs.seconds_ == rhs.seconds_ && lhs.nanoseconds_ < rhs.nanoseconds_);
     }
 
-    friend bool operator<=(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+    friend bool operator<=(const Timestamp& lhs, const Timestamp& rhs) {
         return rhs >= lhs;
     }
 
-    friend bool operator>(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+    friend bool operator>(const Timestamp& lhs, const Timestamp& rhs) {
         return rhs < lhs;
     }
 
-    friend bool operator>=(const ptp_timestamp& lhs, const ptp_timestamp& rhs) {
+    friend bool operator>=(const Timestamp& lhs, const Timestamp& rhs) {
         return !(lhs < rhs);
     }
 
@@ -178,9 +178,9 @@ struct ptp_timestamp {
      * @param data The data to create the timestamp from. Assumed to be in network byte order.
      * @return The created ptp_timestamp.
      */
-    static ptp_timestamp from_data(const buffer_view<const uint8_t> data) {
+    static Timestamp from_data(const buffer_view<const uint8_t> data) {
         RAV_ASSERT(data.size() >= 10, "data is too short to create a ptp_timestamp");
-        ptp_timestamp ts;
+        Timestamp ts;
         ts.seconds_ = data.read_be<uint48_t>(0).to_uint64();
         ts.nanoseconds_ = data.read_be<uint32_t>(6);
         return ts;
@@ -242,7 +242,7 @@ struct ptp_timestamp {
      * @return The number of nanoseconds represented by this timestamp. The resulting number will clamp to int64 min/max
      * and never overflow.
      */
-    [[nodiscard]] ptp_time_interval to_time_interval() const {
+    [[nodiscard]] TimeInterval to_time_interval() const {
         RAV_ASSERT(nanoseconds_ < 1'000'000'000, "Nano seconds must be within [0, 1'000'000'000)");
 
         if (static_cast<int64_t>(seconds_) > std::numeric_limits<int64_t>::max()) {

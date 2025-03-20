@@ -16,16 +16,16 @@
 
 namespace rav::ptp {
 
-struct ptp_announce_message {
-    ptp_message_header header;
-    ptp_timestamp origin_timestamp;
+struct AnnounceMessage {
+    MessageHeader header;
+    Timestamp origin_timestamp;
     int16_t current_utc_offset {};  // Seconds
     uint8_t grandmaster_priority1 {};
-    ptp_clock_quality grandmaster_clock_quality;
+    ClockQuality grandmaster_clock_quality;
     uint8_t grandmaster_priority2 {};
-    ptp_clock_identity grandmaster_identity;
+    ClockIdentity grandmaster_identity;
     uint16_t steps_removed {};
-    ptp_time_source time_source {};
+    TimeSource time_source {};
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -33,8 +33,8 @@ struct ptp_announce_message {
      * @param data The message data. Expects it to start at the beginning of the message, excluding the header.
      * @return A ptp_announce_message if the data is valid, otherwise a ptp_error.
      */
-    static tl::expected<ptp_announce_message, ptp_error>
-    from_data(const ptp_message_header& header, buffer_view<const uint8_t> data);
+    static tl::expected<AnnounceMessage, Error>
+    from_data(const MessageHeader& header, buffer_view<const uint8_t> data);
 
     /**
      * @returns A string representation of the ptp_announce_message.

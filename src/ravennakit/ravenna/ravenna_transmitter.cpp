@@ -18,7 +18,7 @@
 
 rav::ravenna_transmitter::ravenna_transmitter(
     asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::server& rtsp_server,
-    ptp::ptp_instance& ptp_instance, rtp::rtp_transmitter& rtp_transmitter, const id id, std::string session_name,
+    ptp::Instance& ptp_instance, rtp::rtp_transmitter& rtp_transmitter, const id id, std::string session_name,
     asio::ip::address_v4 interface_address
 ) :
     advertiser_(advertiser),
@@ -49,7 +49,7 @@ rav::ravenna_transmitter::ravenna_transmitter(
     );
 
     ptp_parent_changed_slot_ =
-        ptp_instance.on_parent_changed.subscribe([this](const ptp::ptp_instance::parent_changed_event& event) {
+        ptp_instance.on_parent_changed.subscribe([this](const ptp::Instance::ParentChangedEvent& event) {
             if (grandmaster_identity_ == event.parent.grandmaster_identity) {
                 return;
             }
@@ -128,7 +128,7 @@ void rav::ravenna_transmitter::start(const uint32_t timestamp_samples) {
     RAV_TRACE("Start transmitting at timestamp: {}", timestamp_samples);
 }
 
-void rav::ravenna_transmitter::start(const ptp::ptp_timestamp timestamp) {
+void rav::ravenna_transmitter::start(const ptp::Timestamp timestamp) {
     start(static_cast<uint32_t>(timestamp.to_samples(audio_format_.sample_rate)));
 }
 

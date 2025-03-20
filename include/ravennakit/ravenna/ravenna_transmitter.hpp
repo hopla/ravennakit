@@ -37,7 +37,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
 
     ravenna_transmitter(
         asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::server& rtsp_server,
-        ptp::ptp_instance& ptp_instance, rtp::rtp_transmitter& rtp_transmitter, id id, std::string session_name,
+        ptp::Instance& ptp_instance, rtp::rtp_transmitter& rtp_transmitter, id id, std::string session_name,
         asio::ip::address_v4 interface_address
     );
 
@@ -88,7 +88,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
      * Start the streaming.
      * @param timestamp The timestamp at which to send the first packet.
      */
-    void start(ptp::ptp_timestamp timestamp);
+    void start(ptp::Timestamp timestamp);
 
     /**
      * Stops the streaming.
@@ -121,7 +121,7 @@ class ravenna_transmitter: public rtsp::server::path_handler {
   private:
     dnssd::Advertiser& advertiser_;
     rtsp::server& rtsp_server_;
-    ptp::ptp_instance& ptp_instance_;
+    ptp::Instance& ptp_instance_;
     rtp::rtp_transmitter& rtp_transmitter_;
 
     id id_;
@@ -136,13 +136,13 @@ class ravenna_transmitter: public rtsp::server::path_handler {
     sdp::format sdp_format_;  // I think we can compute this from audio_format_ each time we need it
     aes67::PacketTime ptime_ {aes67::PacketTime::ms_1()};
     bool running_ {false};
-    ptp::ptp_clock_identity grandmaster_identity_;
+    ptp::ClockIdentity grandmaster_identity_;
     rtp::rtp_packet rtp_packet_;
     std::vector<uint8_t> packet_intermediate_buffer_;
     asio::high_resolution_timer timer_;
     events_type events_;
     byte_buffer send_buffer_;
-    event_slot<ptp::ptp_instance::parent_changed_event> ptp_parent_changed_slot_;
+    event_slot<ptp::Instance::ParentChangedEvent> ptp_parent_changed_slot_;
 
     /**
      * Sends an announce request to all connected clients.

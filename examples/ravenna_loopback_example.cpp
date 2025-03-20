@@ -46,13 +46,13 @@ class loopback: public rav::rtp::rtp_stream_receiver::subscriber {
 
         rtp_transmitter_ = std::make_unique<rav::rtp::rtp_transmitter>(io_context_, interface_addr);
 
-        ptp_instance_ = std::make_unique<rav::ptp::ptp_instance>(io_context_);
+        ptp_instance_ = std::make_unique<rav::ptp::Instance>(io_context_);
         if (const auto result = ptp_instance_->add_port(interface_addr); !result) {
             RAV_THROW_EXCEPTION("Failed to add PTP port: {}", to_string(result.error()));
         }
 
         ptp_port_changed_event_slot_ = ptp_instance_->on_port_changed_state.subscribe([this](auto event) {
-            if (event.port.state() == rav::ptp::ptp_state::slave) {
+            if (event.port.state() == rav::ptp::State::slave) {
                 RAV_INFO("Port state changed to slave, start playing");
                 ptp_clock_stable_ = true;
                 start_transmitting();  // Also called when the first packet is received
@@ -113,9 +113,9 @@ class loopback: public rav::rtp::rtp_stream_receiver::subscriber {
     std::unique_ptr<rav::dnssd::Advertiser> advertiser_;
     std::unique_ptr<rav::rtsp::server> rtsp_server_;
     std::unique_ptr<rav::rtp::rtp_transmitter> rtp_transmitter_;
-    std::unique_ptr<rav::ptp::ptp_instance> ptp_instance_;
+    std::unique_ptr<rav::ptp::Instance> ptp_instance_;
     std::unique_ptr<rav::ravenna_transmitter> transmitter_;
-    rav::event_slot<rav::ptp::ptp_instance::port_changed_state_event> ptp_port_changed_event_slot_;
+    rav::event_slot<rav::ptp::Instance::PortChangedStateEventEvent> ptp_port_changed_event_slot_;
 
     /**
      * Starts transmitting if the PTP clock is stable and a timestamp is available and transmitter is not already

@@ -15,7 +15,7 @@
 TEST_CASE("ptp_clock_identity") {
     SECTION("Construct from MAC address") {
         const rav::mac_address mac_address("a1:b2:c3:d4:e5:f6");
-        const rav::ptp::ptp_clock_identity clock_identity = rav::ptp::ptp_clock_identity::from_mac_address(mac_address);
+        const rav::ptp::ClockIdentity clock_identity = rav::ptp::ClockIdentity::from_mac_address(mac_address);
 
         REQUIRE(clock_identity.data[0] == 0xa1);
         REQUIRE(clock_identity.data[1] == 0xb2);
@@ -28,12 +28,12 @@ TEST_CASE("ptp_clock_identity") {
     }
 
     SECTION("Default constructor") {
-        constexpr rav::ptp::ptp_clock_identity clock_identity;
+        constexpr rav::ptp::ClockIdentity clock_identity;
         REQUIRE(clock_identity.empty());
     }
 
     SECTION("Empty") {
-        rav::ptp::ptp_clock_identity clock_identity;
+        rav::ptp::ClockIdentity clock_identity;
         REQUIRE(clock_identity.empty());
 
         for (unsigned char& i : clock_identity.data) {
@@ -45,8 +45,8 @@ TEST_CASE("ptp_clock_identity") {
     }
 
     SECTION("Comparison") {
-        rav::ptp::ptp_clock_identity a;
-        rav::ptp::ptp_clock_identity b;
+        rav::ptp::ClockIdentity a;
+        rav::ptp::ClockIdentity b;
 
         SECTION("Equal") {
             REQUIRE(a == b);

@@ -18,10 +18,10 @@
 
 namespace rav::ptp {
 
-struct ptp_delay_resp_message {
-    ptp_message_header header;
-    ptp_timestamp receive_timestamp;
-    ptp_port_identity requesting_port_identity;
+struct DelayRespMessage {
+    MessageHeader header;
+    Timestamp receive_timestamp;
+    PortIdentity requesting_port_identity;
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -29,8 +29,8 @@ struct ptp_delay_resp_message {
      * @param data The message data. Expects it to start at the beginning of the message, excluding the header.
      * @return A ptp_announce_message if the data is valid, otherwise a ptp_error.
      */
-    static tl::expected<ptp_delay_resp_message, ptp_error>
-    from_data(const ptp_message_header& header, buffer_view<const uint8_t> data);
+    static tl::expected<DelayRespMessage, Error>
+    from_data(const MessageHeader& header, buffer_view<const uint8_t> data);
 
     /**
      * @returns A string representation of the ptp_announce_message.

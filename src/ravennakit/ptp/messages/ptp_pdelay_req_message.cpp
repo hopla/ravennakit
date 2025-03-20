@@ -10,21 +10,21 @@
 
 #include "ravennakit/ptp/messages/ptp_pdelay_req_message.hpp"
 
-tl::expected<rav::ptp::ptp_pdelay_req_message, rav::ptp::ptp_error>
-rav::ptp::ptp_pdelay_req_message::from_data(const buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::PdelayReqMessage, rav::ptp::Error>
+rav::ptp::PdelayReqMessage::from_data(const buffer_view<const uint8_t> data) {
     if (data.size() < k_message_size) {
-        return tl::make_unexpected(ptp_error::invalid_message_length);
+        return tl::make_unexpected(Error::invalid_message_length);
     }
 
-    ptp_pdelay_req_message msg;
-    msg.origin_timestamp = ptp_timestamp::from_data(data);
+    PdelayReqMessage msg;
+    msg.origin_timestamp = Timestamp::from_data(data);
     return msg;
 }
 
-void rav::ptp::ptp_pdelay_req_message::write_to(byte_buffer& buffer) const {
+void rav::ptp::PdelayReqMessage::write_to(byte_buffer& buffer) const {
     return origin_timestamp.write_to(buffer);
 }
 
-std::string rav::ptp::ptp_pdelay_req_message::to_string() const {
+std::string rav::ptp::PdelayReqMessage::to_string() const {
     return fmt::format("origin_timestamp={}", origin_timestamp.to_string());
 }

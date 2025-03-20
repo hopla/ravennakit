@@ -29,7 +29,7 @@ class wav_file_player {
   public:
     explicit wav_file_player(
         asio::io_context& io_context, rav::dnssd::Advertiser& advertiser, rav::rtsp::server& rtsp_server,
-        rav::ptp::ptp_instance& ptp_instance, rav::rtp::rtp_transmitter& rtp_transmitter, rav::id::generator& id_generator,
+        rav::ptp::Instance& ptp_instance, rav::rtp::rtp_transmitter& rtp_transmitter, rav::id::generator& id_generator,
         const asio::ip::address_v4& interface_address, const rav::file& file_to_play, const std::string& session_name
     ) {
         if (!file_to_play.exists()) {
@@ -79,7 +79,7 @@ class wav_file_player {
         });
     }
 
-    void start(const rav::ptp::ptp_timestamp at) const {
+    void start(const rav::ptp::Timestamp at) const {
         transmitter_->start(at);
     }
 
@@ -120,9 +120,9 @@ int main(int const argc, char* argv[]) {
     rav::rtp::rtp_transmitter rtp_transmitter(io_context, interface_address);
 
     // PTP
-    rav::ptp::ptp_instance ptp_instance(io_context);
+    rav::ptp::Instance ptp_instance(io_context);
     auto slot = ptp_instance.on_port_changed_state.subscribe([&ptp_instance, &wav_file_players](auto event) {
-        if (event.port.state() == rav::ptp::ptp_state::slave) {
+        if (event.port.state() == rav::ptp::State::slave) {
             RAV_INFO("Port state changed to slave, start players");
             auto start_at = ptp_instance.get_local_ptp_time();
             start_at.add_seconds(0.5);

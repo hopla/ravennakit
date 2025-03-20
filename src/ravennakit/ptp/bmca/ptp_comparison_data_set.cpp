@@ -10,8 +10,8 @@
 
 #include "ravennakit/ptp/bmca/ptp_comparison_data_set.hpp"
 
-rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
-    const ptp_announce_message& announce_message, const ptp_port_identity& receiver_identity
+rav::ptp::ComparisonDataSet::ComparisonDataSet(
+    const AnnounceMessage& announce_message, const PortIdentity& receiver_identity
 ) {
     grandmaster_priority1 = announce_message.grandmaster_priority1;
     grandmaster_identity = announce_message.grandmaster_identity;
@@ -22,8 +22,8 @@ rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
     identity_of_receiver = receiver_identity;
 }
 
-rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
-    const ptp_announce_message& announce_message, const ptp_port_ds& port_ds
+rav::ptp::ComparisonDataSet::ComparisonDataSet(
+    const AnnounceMessage& announce_message, const PortDs& port_ds
 ) {
     grandmaster_priority1 = announce_message.grandmaster_priority1;
     grandmaster_identity = announce_message.grandmaster_identity;
@@ -34,7 +34,7 @@ rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(
     identity_of_receiver = port_ds.port_identity;
 }
 
-rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds& default_ds) {
+rav::ptp::ComparisonDataSet::ComparisonDataSet(const DefaultDs& default_ds) {
     grandmaster_priority1 = default_ds.priority1;
     grandmaster_identity = default_ds.clock_identity;
     grandmaster_clock_quality = default_ds.clock_quality;
@@ -44,8 +44,8 @@ rav::ptp::ptp_comparison_data_set::ptp_comparison_data_set(const ptp_default_ds&
     identity_of_receiver = {default_ds.clock_identity, 0};
 }
 
-rav::ptp::ptp_comparison_data_set::result
-rav::ptp::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other) const {
+rav::ptp::ComparisonDataSet::result
+rav::ptp::ComparisonDataSet::compare(const ComparisonDataSet& other) const {
     if (grandmaster_identity == other.grandmaster_identity) {
         // Compare Steps Removed of A and B:
 
@@ -159,10 +159,10 @@ rav::ptp::ptp_comparison_data_set::compare(const ptp_comparison_data_set& other)
     return result::error1;
 }
 
-rav::ptp::ptp_comparison_data_set::result rav::ptp::ptp_comparison_data_set::compare(
-    const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity
+rav::ptp::ComparisonDataSet::result rav::ptp::ComparisonDataSet::compare(
+    const AnnounceMessage& a, const AnnounceMessage& b, const PortIdentity& receiver_identity
 ) {
-    const ptp_comparison_data_set set_a(a, receiver_identity);
-    const ptp_comparison_data_set set_b(b, receiver_identity);
+    const ComparisonDataSet set_a(a, receiver_identity);
+    const ComparisonDataSet set_b(b, receiver_identity);
     return set_a.compare(set_b);
 }

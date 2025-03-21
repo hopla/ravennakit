@@ -17,10 +17,10 @@
  */
 
 int main() {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
-    auto ifaces = rav::network_interface::get_all();
+    auto ifaces = rav::NetworkInterface::get_all();
     for (auto& iface : ifaces.value()) {
         fmt::println("{}", iface.to_string());
     }

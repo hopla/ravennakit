@@ -21,18 +21,13 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
-/**
- * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
- * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
- * Separate files for each stream are created and existing files will be overwritten.
- */
-
+namespace examples {
 /**
  * A class that is a subscriber to a rtp_stream_receiver and writes the audio data to a wav file.
  */
-class stream_recorder: public rav::rtp_stream_receiver::subscriber {
+class stream_recorder: public rav::rtp::StreamReceiver::Subscriber {
   public:
-    explicit stream_recorder(std::unique_ptr<rav::ravenna_receiver> sink) : receiver_(std::move(sink)) {
+    explicit stream_recorder(std::unique_ptr<rav::RavennaReceiver> sink) : receiver_(std::move(sink)) {
         if (receiver_) {
             if (!receiver_->subscribe(this)) {
                 RAV_WARNING("Failed to add subscriber");
@@ -61,7 +56,7 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
         }
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::StreamReceiver::StreamUpdatedEvent& event) override {
         close();
 
         if (receiver_ == nullptr) {
@@ -71,21 +66,21 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
 
         audio_format_ = event.selected_audio_format;
         file_output_stream_ =
-            std::make_unique<rav::file_output_stream>(rav::file(receiver_->get_session_name() + ".wav"));
-        wav_writer_ = std::make_unique<rav::wav_audio_format::writer>(
-            *file_output_stream_, rav::wav_audio_format::format_code::pcm, audio_format_.sample_rate,
+            std::make_unique<rav::FileOutputStream>(rav::File(receiver_->get_session_name() + ".wav"));
+        wav_writer_ = std::make_unique<rav::WavAudioFormat::Writer>(
+            *file_output_stream_, rav::WavAudioFormat::FormatCode::pcm, audio_format_.sample_rate,
             audio_format_.num_channels, audio_format_.bytes_per_sample() * 8
         );
         audio_data_.resize(event.packet_time_frames * audio_format_.bytes_per_frame());
     }
 
-    void on_data_ready(const rav::wrapping_uint32 timestamp) override {
+    void on_data_ready(const rav::WrappingUint32 timestamp) override {
         if (!receiver_->read_data_realtime(audio_data_.data(), audio_data_.size(), timestamp.value())) {
             RAV_ERROR("Failed to read audio data");
             return;
         }
-        if (audio_format_.byte_order == rav::audio_format::byte_order::be) {
-            rav::byte_order::swap_bytes(audio_data_.data(), audio_data_.size(), audio_format_.bytes_per_sample());
+        if (audio_format_.byte_order == rav::AudioFormat::ByteOrder::be) {
+            rav::swap_bytes(audio_data_.data(), audio_data_.size(), audio_format_.bytes_per_sample());
         }
         if (!wav_writer_->write_audio_data(audio_data_.data(), audio_data_.size())) {
             RAV_ERROR("Failed to write audio data");
@@ -93,28 +88,28 @@ class stream_recorder: public rav::rtp_stream_receiver::subscriber {
     }
 
   private:
-    std::unique_ptr<rav::ravenna_receiver> receiver_;
-    std::unique_ptr<rav::file_output_stream> file_output_stream_;
-    std::unique_ptr<rav::wav_audio_format::writer> wav_writer_;
+    std::unique_ptr<rav::RavennaReceiver> receiver_;
+    std::unique_ptr<rav::FileOutputStream> file_output_stream_;
+    std::unique_ptr<rav::WavAudioFormat::Writer> wav_writer_;
     std::vector<uint8_t> audio_data_;
-    rav::audio_format audio_format_;
-    std::optional<rav::wrapping_uint32> stream_ts_;
+    rav::AudioFormat audio_format_;
+    std::optional<rav::WrappingUint32> stream_ts_;
 };
 
-class ravenna_recorder_example {
+class ravenna_recorder {
   public:
-    explicit ravenna_recorder_example(const std::string& interface_address) {
-        rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
+    explicit ravenna_recorder(const std::string& interface_address) {
+        rtsp_client_ = std::make_unique<rav::RavennaRtspClient>(io_context_, browser_);
 
-        rav::rtp_receiver::configuration config;
+        rav::rtp::Receiver::Configuration config;
         config.interface_address = asio::ip::make_address(interface_address);
-        rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
+        rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(io_context_, config);
     }
 
-    ~ravenna_recorder_example() = default;
+    ~ravenna_recorder() = default;
 
     void add_stream(const std::string& stream_name) {
-        auto receiver = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
+        auto receiver = std::make_unique<rav::RavennaReceiver>(*rtsp_client_, *rtp_receiver_);
         receiver->set_delay(480);  // 10ms @ 48kHz
         if (!receiver->subscribe_to_session(stream_name)) {
             RAV_ERROR("Failed to subscribe to session");
@@ -133,15 +128,22 @@ class ravenna_recorder_example {
 
   private:
     asio::io_context io_context_;
-    rav::ravenna_browser browser_ {io_context_};
-    std::unique_ptr<rav::ravenna_rtsp_client> rtsp_client_;
-    std::unique_ptr<rav::rtp_receiver> rtp_receiver_;
+    rav::RavennaBrowser browser_ {io_context_};
+    std::unique_ptr<rav::RavennaRtspClient> rtsp_client_;
+    std::unique_ptr<rav::rtp::Receiver> rtp_receiver_;
     std::vector<std::unique_ptr<stream_recorder>> recorders_;
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to receive audio streams from a RAVENNA device and write the audio data to wav files.
+ * It sets up a RAVENNA sink that listens for announcements from a RAVENNA device and starts receiving audio data.
+ * Separate files for each stream are created and existing files will be overwritten.
+ */
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RAVENNA Receiver example"};
     argv = app.ensure_utf8(argv);
@@ -154,7 +156,7 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    ravenna_recorder_example recorder_example(interface_address);
+    examples::ravenna_recorder recorder_example(interface_address);
 
     for (auto& stream_name : stream_names) {
         recorder_example.add_stream(stream_name);

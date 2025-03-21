@@ -15,21 +15,21 @@
 
 #include "ravennakit/core/containers/buffer_view.hpp"
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * Functions for reading RTP header data. The data given is not copied or otherwise managed by this class so it's
  * cheap to create and use but make sure to keep the data alive while using this class.
  * RFC 3550 https://datatracker.ietf.org/doc/html/rfc3550
  */
-class rtp_packet_view {
+class PacketView {
   public:
     /**
      * Constructs an RTP header from the given data.
      * @param data The RTP header data.
      * @param size_bytes The size of the RTP header data in bytes.
      */
-    rtp_packet_view(const uint8_t* data, size_t size_bytes);
+    PacketView(const uint8_t* data, size_t size_bytes);
 
     /**
      * Validated the RTP header data. After this method returns all other methods should return valid data and not lead
@@ -98,7 +98,7 @@ class rtp_packet_view {
     /**
      * @return Returns the header extension data. Data is not endian swapped.
      */
-    [[nodiscard]] buffer_view<const uint8_t> get_header_extension_data() const;
+    [[nodiscard]] BufferView<const uint8_t> get_header_extension_data() const;
 
     /**
      * @returns Returns the length of the header which is also the start index of the payload data.
@@ -108,7 +108,7 @@ class rtp_packet_view {
     /**
      * @return Returns a view to the payload data.
      */
-    [[nodiscard]] buffer_view<const uint8_t> payload_data() const;
+    [[nodiscard]] BufferView<const uint8_t> payload_data() const;
 
     /**
      * @return Returns the size of the RTP header in bytes.

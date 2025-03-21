@@ -1,6 +1,6 @@
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
-#include "ravennakit/dnssd/service_description.hpp"
+#include "ravennakit/dnssd/dnssd_service_description.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
 
 #include <iostream>
@@ -9,7 +9,9 @@
 #include <asio/post.hpp>
 #include <thread>
 
-static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::string& string_value) {
+namespace examples {
+
+static bool parse_txt_record(rav::dnssd::TxtRecord& txt_record, const std::string& string_value) {
     if (string_value.empty())
         return false;
 
@@ -22,9 +24,11 @@ static bool parse_txt_record(rav::dnssd::txt_record& txt_record, const std::stri
     return true;
 }
 
+}  // namespace examples
+
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     std::vector<std::string> args;
     for (int i = 1; i < argc; i++) {
@@ -49,27 +53,27 @@ int main(int const argc, char* argv[]) {
     }
 
     // Parse remaining arguments as TxtRecord
-    rav::dnssd::txt_record txt_record;
+    rav::dnssd::TxtRecord txt_record;
     for (auto it = args.begin() + 2; it != args.end(); ++it) {
-        parse_txt_record(txt_record, *it);
+        examples::parse_txt_record(txt_record, *it);
     }
 
     asio::io_context io_context;
 
-    const auto advertiser = rav::dnssd::dnssd_advertiser::create(io_context);
+    const auto advertiser = rav::dnssd::Advertiser::create(io_context);
 
     if (advertiser == nullptr) {
         RAV_ERROR("Error: no dnssd advertiser implementation available for this platform");
         return -1;
     }
 
-    rav::dnssd::dnssd_advertiser::subscriber subscriber;
+    rav::dnssd::Advertiser::Subscriber subscriber;
 
-    subscriber->on<rav::dnssd::dnssd_advertiser::advertiser_error>([](const auto& event) {
+    subscriber->on<rav::dnssd::Advertiser::AdvertiserError>([](const auto& event) {
         RAV_ERROR("Advertiser error: {}", event.error_message);
     });
 
-    subscriber->on<rav::dnssd::dnssd_advertiser::name_conflict>([](const auto& event) {
+    subscriber->on<rav::dnssd::Advertiser::NameConflict>([](const auto& event) {
         RAV_CRITICAL("Name conflict: {} {}", event.reg_type, event.name);
     });
 
@@ -100,7 +104,7 @@ int main(int const argc, char* argv[]) {
             continue;
         }
         try {
-            if (parse_txt_record(txt_record, cmd)) {
+            if (examples::parse_txt_record(txt_record, cmd)) {
                 // Schedule the updates on the io_context thread because the advertiser is not thread-safe.
                 asio::post(io_context, [=, &advertiser] {
                     advertiser->update_txt_record(service_id2, txt_record);

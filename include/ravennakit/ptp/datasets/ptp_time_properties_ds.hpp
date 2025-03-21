@@ -14,12 +14,12 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the time properties data set as described in IEEE1588-2019: 8.2.4.
  */
-struct ptp_time_properties_ds {
+struct TimePropertiesDs {
     int16_t current_utc_offset {};
     bool current_utc_offset_valid {};
     bool leap59 {};
@@ -27,7 +27,7 @@ struct ptp_time_properties_ds {
     bool time_traceable {};
     bool frequency_traceable {};
     bool ptp_timescale {};
-    ptp_time_source time_source {};
+    TimeSource time_source {};
 };
 
 }  // namespace rav

@@ -15,22 +15,22 @@
 #include "ravennakit/ptp/types/ptp_clock_quality.hpp"
 #include "ravennakit/ptp/types/ptp_port_identity.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the parent data set as described in IEEE1588-2019: 8.2.3.
  */
-struct ptp_parent_ds {
-    ptp_port_identity parent_port_identity;
+struct ParentDs {
+    PortIdentity parent_port_identity;
     bool parent_stats {};
-    ptp_clock_identity grandmaster_identity;
-    ptp_clock_quality grandmaster_clock_quality;
+    ClockIdentity grandmaster_identity;
+    ClockQuality grandmaster_clock_quality;
     uint16_t grandmaster_priority1 {};
     uint8_t grandmaster_priority2 {};
 
-    ptp_parent_ds() = default;
+    ParentDs() = default;
 
-    explicit ptp_parent_ds(const ptp_default_ds& default_ds) {
+    explicit ParentDs(const DefaultDs& default_ds) {
         parent_port_identity.clock_identity = default_ds.clock_identity;  // IEEE1588-2019: 8.2.3.2
         parent_stats = false;                                             // IEEE1588-2019: 8.2.3.3
         grandmaster_identity = default_ds.clock_identity;                 // IEEE1588-2019: 8.2.3.6

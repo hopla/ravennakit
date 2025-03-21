@@ -14,13 +14,13 @@
 
 TEST_CASE("rtp_receive_buffer") {
     SECTION("Read with wraparound") {
-        rav::rtp_receive_buffer buffer;
+        rav::rtp::ReceiveBuffer buffer;
         buffer.resize(10, 2);
 
         std::array<const uint8_t, 4> input = {0x0, 0x1, 0x2, 0x3};
         std::array<uint8_t, 4> output = {0x0, 0x1, 0x2, 0x3};
 
-        const rav::buffer_view buffer_view(input.data(), input.size());
+        const rav::BufferView buffer_view(input.data(), input.size());
         buffer.write(4, buffer_view);
         REQUIRE(buffer.next_ts().value() == 6);
 
@@ -52,13 +52,13 @@ TEST_CASE("rtp_receive_buffer") {
     }
 
     SECTION("Fill buffer in one go") {
-        rav::rtp_receive_buffer buffer;
+        rav::rtp::ReceiveBuffer buffer;
         buffer.resize(4, 2);
 
         std::array<const uint8_t, 8> input = {0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8};
         std::array<uint8_t, 4> output = {};
 
-        const rav::buffer_view buffer_view(input.data(), input.size());
+        const rav::BufferView buffer_view(input.data(), input.size());
         buffer.write(2, buffer_view);
         REQUIRE(buffer.next_ts().value() == 6);
 
@@ -69,13 +69,13 @@ TEST_CASE("rtp_receive_buffer") {
     }
 
     SECTION("Clear until") {
-        rav::rtp_receive_buffer buffer;
+        rav::rtp::ReceiveBuffer buffer;
         buffer.resize(4, 2);
 
         std::array<const uint8_t, 8> input = {0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8};
         std::array<uint8_t, 8> output = {};
 
-        const rav::buffer_view buffer_view(input.data(), input.size());
+        const rav::BufferView buffer_view(input.data(), input.size());
         buffer.write(2, buffer_view);
         REQUIRE(buffer.next_ts().value() == 6);
 
@@ -98,13 +98,13 @@ TEST_CASE("rtp_receive_buffer") {
     }
 
     SECTION("Clear until some high timestamp") {
-        rav::rtp_receive_buffer buffer;
+        rav::rtp::ReceiveBuffer buffer;
         buffer.resize(480, 2);
         buffer.clear_until(1000);
     }
 
     SECTION("Clear until some crazy high timestamp") {
-        rav::rtp_receive_buffer buffer;
+        rav::rtp::ReceiveBuffer buffer;
         buffer.resize(480, 2);
         buffer.clear_until(253366016);
     }

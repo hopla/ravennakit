@@ -28,14 +28,14 @@ TEST_CASE("ptp_announce_message") {
             0x40,                                            // time source
         };
 
-        auto announce = rav::ptp_announce_message::from_data({}, rav::buffer_view(data));
+        auto announce = rav::ptp::AnnounceMessage::from_data({}, rav::BufferView(data));
         REQUIRE(announce);
         REQUIRE(announce->origin_timestamp.raw_seconds() == 0x010203040506);
         REQUIRE(announce->origin_timestamp.raw_nanoseconds() == 0x0708090a);
         REQUIRE(announce->current_utc_offset == 0x0b0c);
         REQUIRE(announce->grandmaster_priority1 == 0x0d);
         REQUIRE(announce->grandmaster_clock_quality.clock_class == 0x0e);
-        REQUIRE(announce->grandmaster_clock_quality.clock_accuracy == rav::ptp_clock_accuracy::lt_25_ns);
+        REQUIRE(announce->grandmaster_clock_quality.clock_accuracy == rav::ptp::ClockAccuracy::lt_25_ns);
         REQUIRE(announce->grandmaster_clock_quality.offset_scaled_log_variance == 0x1011);
         REQUIRE(announce->grandmaster_priority2 == 0x12);
         REQUIRE(announce->grandmaster_identity.data[0] == 0x13);
@@ -47,6 +47,6 @@ TEST_CASE("ptp_announce_message") {
         REQUIRE(announce->grandmaster_identity.data[6] == 0x19);
         REQUIRE(announce->grandmaster_identity.data[7] == 0x1a);
         REQUIRE(announce->steps_removed == 0x1b1c);
-        REQUIRE(announce->time_source == rav::ptp_time_source::ptp);
+        REQUIRE(announce->time_source == rav::ptp::TimeSource::ptp);
     }
 }

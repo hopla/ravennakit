@@ -17,19 +17,19 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Contains the data needed to compare two PTP data sets.
  */
-struct ptp_comparison_data_set {
+struct ComparisonDataSet {
     uint8_t grandmaster_priority1 {};
-    ptp_clock_identity grandmaster_identity;
-    ptp_clock_quality grandmaster_clock_quality;
+    ClockIdentity grandmaster_identity;
+    ClockQuality grandmaster_clock_quality;
     uint8_t grandmaster_priority2 {};
     uint16_t steps_removed {};
-    ptp_clock_identity identity_of_senders;
-    ptp_port_identity identity_of_receiver;
+    ClockIdentity identity_of_senders;
+    PortIdentity identity_of_receiver;
 
     /**
      * The result of comparing two PTP data sets.
@@ -53,34 +53,34 @@ struct ptp_comparison_data_set {
         better,
     };
 
-    ptp_comparison_data_set() = default;
+    ComparisonDataSet() = default;
 
     /**
      * Constructs a set from an announce message and a port data set.
      * @param announce_message The announce message.
      * @param receiver_identity The identity of the receiver.
      */
-    ptp_comparison_data_set(const ptp_announce_message& announce_message, const ptp_port_identity& receiver_identity);
+    ComparisonDataSet(const AnnounceMessage& announce_message, const PortIdentity& receiver_identity);
 
     /**
      * Constructs a set from an announce message and a port data set.
      * @param announce_message The announce message.
      * @param port_ds The port data set.
      */
-    ptp_comparison_data_set(const ptp_announce_message& announce_message, const ptp_port_ds& port_ds);
+    ComparisonDataSet(const AnnounceMessage& announce_message, const PortDs& port_ds);
 
     /**
      * Constructs a set from a default data set.
      * @param default_ds The default data set.
      */
-    explicit ptp_comparison_data_set(const ptp_default_ds& default_ds);
+    explicit ComparisonDataSet(const DefaultDs& default_ds);
 
     /**
      * Compares this data set to another. The comparison is done according to the rules in IEEE 1588-2019 9.3.4.
      * @param other The other data set to compare to.
      * @return The result of the comparison. See the result enum for more information.
      */
-    [[nodiscard]] result compare(const ptp_comparison_data_set& other) const;
+    [[nodiscard]] result compare(const ComparisonDataSet& other) const;
 
     /**
      * Convenience method for comparing two announce messages.
@@ -90,7 +90,7 @@ struct ptp_comparison_data_set {
      * @return The result of the comparison. See the result enum for more information.
      */
     static result
-    compare(const ptp_announce_message& a, const ptp_announce_message& b, const ptp_port_identity& receiver_identity);
+    compare(const AnnounceMessage& a, const AnnounceMessage& b, const PortIdentity& receiver_identity);
 };
 
 }  // namespace rav

@@ -15,9 +15,9 @@
 #include <cstdint>
 #include <optional>
 
-namespace rav {
+namespace rav::ptp {
 
-struct ptp_profile {
+struct Profile {
     const char* profile_name {""};
     uint8_t profile_number {};
     uint8_t primary_version {};
@@ -36,19 +36,19 @@ struct ptp_profile {
 
     struct port_ds_struct {
         int8_t log_announce_interval_default {};
-        range<int8_t> log_announce_interval_range {};
+        Range<int8_t> log_announce_interval_range {};
 
         int8_t log_sync_interval_default {};
-        range<int8_t> log_sync_interval_range {};
+        Range<int8_t> log_sync_interval_range {};
 
         int8_t log_min_delay_req_interval_default {};
-        range<int8_t> log_min_delay_req_interval_range {};
+        Range<int8_t> log_min_delay_req_interval_range {};
 
         uint8_t announce_receipt_timeout_default {};
-        range<uint8_t> announce_receipt_timeout_range {};
+        Range<uint8_t> announce_receipt_timeout_range {};
 
         std::optional<int8_t> log_pdelay_req_interval_default {};
-        std::optional<range<int8_t>> log_pdelay_req_interval_range {};
+        std::optional<Range<int8_t>> log_pdelay_req_interval_range {};
     } port_ds;
 
     struct transparent_clock_default_ds_struct {
@@ -60,7 +60,7 @@ struct ptp_profile {
     double t {};  // Variance algorithm (7.6.3.2)
 };
 
-static constexpr ptp_profile ptp_default_profile_1 {
+static constexpr Profile DefaultProfile1 {
     "Default delay request-response profile",
     1,
     1,
@@ -89,7 +89,7 @@ static constexpr ptp_profile ptp_default_profile_1 {
     1.0,
 };
 
-static constexpr ptp_profile ptp_default_profile_2 {
+static constexpr Profile DefaultProfile2 {
     "Default delay peer-to-peer delay profile",
     2,
     1,
@@ -120,7 +120,7 @@ static constexpr ptp_profile ptp_default_profile_2 {
     1.0,
 };
 
-static constexpr ptp_profile ptp_default_profile_3 {
+static constexpr Profile DefaultProfile3 {
     "High Accuracy Delay Request-Response Default PTP Profile",
     3,
     1,

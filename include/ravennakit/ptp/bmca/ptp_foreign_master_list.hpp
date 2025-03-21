@@ -17,31 +17,31 @@
 
 #include <vector>
 
-namespace rav {
+namespace rav::ptp {
 
-class ptp_foreign_master_list {
+class ForeignMasterList {
   public:
     static constexpr size_t k_foreign_master_time_window = 4;  // 4 announce intervals
     static constexpr size_t k_foreign_master_threshold = 2;    // 2 announce messages within the time window
 
     struct entry {
         /// The identity of the foreign master.
-        ptp_port_identity foreign_master_port_identity;
+        PortIdentity foreign_master_port_identity;
         /// number of messages received within k_foreign_master_time_window.
         size_t foreign_master_announce_messages {};
         /// The most recent announce message received from the foreign master.
-        std::optional<ptp_announce_message> most_recent_announce_message;
+        std::optional<AnnounceMessage> most_recent_announce_message;
         /// The age of the most recent announce message.
         size_t age {};
     };
 
-    ptp_foreign_master_list() = default;
+    ForeignMasterList() = default;
 
     /**
      * Adds or updates an entry in the foreign master list.
      * @param announce_message The announce message to add or update.
      */
-    void add_or_update_entry(const ptp_announce_message& announce_message) {
+    void add_or_update_entry(const AnnounceMessage& announce_message) {
         const auto foreign_port_identity = announce_message.header.source_port_identity;
 
         if (auto* e = find_entry(foreign_port_identity)) {
@@ -68,7 +68,7 @@ class ptp_foreign_master_list {
      * Removes all entries except the one with the given foreign master port identity.
      * @param erbest The entry for which to keep the foreign master port identity.
      */
-    void purge_entries(const std::optional<ptp_announce_message>& erbest) {
+    void purge_entries(const std::optional<AnnounceMessage>& erbest) {
         entries_.erase(
             std::remove_if(
                 entries_.begin(), entries_.end(),
@@ -127,7 +127,7 @@ class ptp_foreign_master_list {
   private:
     std::vector<entry> entries_;
 
-    [[nodiscard]] const entry* find_entry(const ptp_port_identity& foreign_master_port_identity) const {
+    [[nodiscard]] const entry* find_entry(const PortIdentity& foreign_master_port_identity) const {
         for (auto& e : entries_) {
             if (e.foreign_master_port_identity == foreign_master_port_identity) {
                 return &e;
@@ -137,7 +137,7 @@ class ptp_foreign_master_list {
         return nullptr;
     }
 
-    [[nodiscard]] entry* find_entry(const ptp_port_identity& foreign_master_port_identity) {
+    [[nodiscard]] entry* find_entry(const PortIdentity& foreign_master_port_identity) {
         for (auto& e : entries_) {
             if (e.foreign_master_port_identity == foreign_master_port_identity) {
                 return &e;

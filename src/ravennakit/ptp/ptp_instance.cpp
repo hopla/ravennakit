@@ -14,45 +14,45 @@
 #include "ravennakit/core/net/interfaces/network_interface_list.hpp"
 #include "ravennakit/ptp/ptp_constants.hpp"
 
-rav::ptp_instance::ptp_instance(asio::io_context& io_context) :
+rav::ptp::Instance::Instance(asio::io_context& io_context) :
     io_context_(io_context), state_decision_timer_(io_context), default_ds_(true), parent_ds_(default_ds_) {}
 
-rav::ptp_instance::~ptp_instance() {
+rav::ptp::Instance::~Instance() {
     state_decision_timer_.cancel();
 }
 
-tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::address& interface_address) {
+tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_port(const asio::ip::address& interface_address) {
     if (!ports_.empty()) {
-        return tl::unexpected(ptp_error::only_ordinary_clock_supported);
+        return tl::unexpected(Error::only_ordinary_clock_supported);
     }
 
     network_interfaces_.refresh();
     auto* iface = network_interfaces_.find_by_address(interface_address);
     if (!iface) {
-        return tl::unexpected(ptp_error::network_interface_not_found);
+        return tl::unexpected(Error::network_interface_not_found);
     }
 
     if (default_ds_.clock_identity.empty()) {
         // Need to assign the instance clock identity based on the first port added
         const auto mac_address = iface->get_mac_address();
         if (!mac_address) {
-            return tl::unexpected(ptp_error::no_mac_address_available);
+            return tl::unexpected(Error::no_mac_address_available);
         }
 
-        const auto identity = ptp_clock_identity::from_mac_address(mac_address.value());
+        const auto identity = ClockIdentity::from_mac_address(mac_address.value());
         if (!identity.is_valid()) {
-            return tl::unexpected(ptp_error::invalid_clock_identity);
+            return tl::unexpected(Error::invalid_clock_identity);
         }
 
         default_ds_.clock_identity = identity;
     }
 
-    ptp_port_identity port_identity;
+    PortIdentity port_identity;
     port_identity.clock_identity = default_ds_.clock_identity;
     port_identity.port_number = get_next_available_port_number();
 
-    ports_.emplace_back(std::make_unique<ptp_port>(*this, io_context_, interface_address, port_identity))
-        ->assert_valid_state(ptp_default_profile_1);
+    ports_.emplace_back(std::make_unique<Port>(*this, io_context_, interface_address, port_identity))
+        ->assert_valid_state(DefaultProfile1);
 
     default_ds_.number_ports = static_cast<uint16_t>(ports_.size());
 
@@ -64,18 +64,18 @@ tl::expected<void, rav::ptp_error> rav::ptp_instance::add_port(const asio::ip::a
     return {};
 }
 
-const rav::ptp_default_ds& rav::ptp_instance::default_ds() const {
+const rav::ptp::DefaultDs& rav::ptp::Instance::default_ds() const {
     return default_ds_;
 }
 
-const rav::ptp_parent_ds& rav::ptp_instance::get_parent_ds() const {
+const rav::ptp::ParentDs& rav::ptp::Instance::get_parent_ds() const {
     return parent_ds_;
 }
 
-bool rav::ptp_instance::set_recommended_state(
-    const ptp_state_decision_code state_decision_code, const std::optional<ptp_announce_message>& announce_message
+bool rav::ptp::Instance::set_recommended_state(
+    const StateDecisionCode state_decision_code, const std::optional<AnnounceMessage>& announce_message
 ) {
-    if (state_decision_code == ptp_state_decision_code::m1 || state_decision_code == ptp_state_decision_code::m2) {
+    if (state_decision_code == StateDecisionCode::m1 || state_decision_code == StateDecisionCode::m2) {
         current_ds_.steps_removed = 0;
         current_ds_.offset_from_master = {};
         current_ds_.mean_delay = {};
@@ -92,11 +92,11 @@ bool rav::ptp_instance::set_recommended_state(
         time_properties_ds_.current_utc_offset_valid = false;
         time_properties_ds_.frequency_traceable = false;
         time_properties_ds_.ptp_timescale = false;
-        time_properties_ds_.time_source = ptp_time_source::internal_oscillator;
+        time_properties_ds_.time_source = TimeSource::internal_oscillator;
         return true;
     }
 
-    if (state_decision_code == ptp_state_decision_code::s1) {
+    if (state_decision_code == StateDecisionCode::s1) {
         if (!announce_message) {
             RAV_ERROR("State decision code is S1 needs announcement message");
             return false;
@@ -131,11 +131,11 @@ bool rav::ptp_instance::set_recommended_state(
     return true;
 }
 
-void rav::ptp_instance::execute_state_decision_event() {
+void rav::ptp::Instance::execute_state_decision_event() {
     // Note: should be called at least every announce message transmission interval
 
     const auto all_ports_initializing = std::all_of(ports_.begin(), ports_.end(), [](const auto& port) {
-        return port->state() == ptp_state::initializing;
+        return port->state() == State::initializing;
     });
 
     // IEEE1588-2019: 9.2.6.9
@@ -144,7 +144,7 @@ void rav::ptp_instance::execute_state_decision_event() {
         return;
     }
 
-    const auto ebest = ptp_port::determine_ebest(ports_);
+    const auto ebest = Port::determine_ebest(ports_);
 
     for (const auto& port : ports_) {
         RAV_ASSERT(port, "Found a nullptr in the port list");
@@ -154,7 +154,7 @@ void rav::ptp_instance::execute_state_decision_event() {
     // TODO: Update data sets for all ports (currently only one port is supported)
 }
 
-bool rav::ptp_instance::should_process_ptp_messages(const ptp_message_header& header) const {
+bool rav::ptp::Instance::should_process_ptp_messages(const MessageHeader& header) const {
     // IEEE1588-2019: 7.1.2.1
     if (header.domain_number != default_ds_.domain_number) {
         RAV_TRACE("Discarding message with different domain number: {}", header.to_string());
@@ -186,48 +186,48 @@ bool rav::ptp_instance::should_process_ptp_messages(const ptp_message_header& he
     return true;
 }
 
-rav::ptp_state rav::ptp_instance::get_state_for_decision_code(const ptp_state_decision_code code) const {
+rav::ptp::State rav::ptp::Instance::get_state_for_decision_code(const StateDecisionCode code) const {
     switch (code) {
-        case ptp_state_decision_code::m1:
-        case ptp_state_decision_code::m2:
-        case ptp_state_decision_code::m3:
+        case StateDecisionCode::m1:
+        case StateDecisionCode::m2:
+        case StateDecisionCode::m3:
             if (default_ds_.slave_only) {
-                return ptp_state::listening;  // IEEE 1588-2019: Figure 31
+                return State::listening;  // IEEE 1588-2019: Figure 31
             }
-            return ptp_state::master;
-        case ptp_state_decision_code::s1:
-            return local_ptp_clock_.is_calibrated() ? ptp_state::slave : ptp_state::uncalibrated;
-        case ptp_state_decision_code::p1:
-        case ptp_state_decision_code::p2:
+            return State::master;
+        case StateDecisionCode::s1:
+            return local_ptp_clock_.is_calibrated() ? State::slave : State::uncalibrated;
+        case StateDecisionCode::p1:
+        case StateDecisionCode::p2:
             if (default_ds_.slave_only) {
-                return ptp_state::listening;  // IEEE 1588-2019: Figure 31
+                return State::listening;  // IEEE 1588-2019: Figure 31
             }
-            return ptp_state::passive;
+            return State::passive;
         default:
-            return ptp_state::undefined;
+            return State::undefined;
     }
 }
 
-rav::ptp_timestamp rav::ptp_instance::get_local_ptp_time() const {
+rav::ptp::Timestamp rav::ptp::Instance::get_local_ptp_time() const {
     return local_ptp_clock_.now();
 }
 
-rav::ptp_timestamp rav::ptp_instance::get_local_ptp_time(const ptp_timestamp local_timestamp) const {
+rav::ptp::Timestamp rav::ptp::Instance::get_local_ptp_time(const Timestamp local_timestamp) const {
     return local_ptp_clock_.system_to_ptp_time(local_timestamp);
 }
 
-void rav::ptp_instance::update_local_ptp_clock(const ptp_measurement<double>& measurement) {
-    current_ds_.mean_delay = ptp_time_interval::to_fractional_interval(measurement.mean_delay);
-    current_ds_.offset_from_master = ptp_time_interval::to_fractional_interval(measurement.offset_from_master);
+void rav::ptp::Instance::update_local_ptp_clock(const Measurement<double>& measurement) {
+    current_ds_.mean_delay = TimeInterval::to_fractional_interval(measurement.mean_delay);
+    current_ds_.offset_from_master = TimeInterval::to_fractional_interval(measurement.offset_from_master);
     local_ptp_clock_.update(measurement);
 }
 
-void rav::ptp_instance::force_update_local_ptp_clock(const ptp_timestamp timestamp) {
+void rav::ptp::Instance::force_update_local_ptp_clock(const Timestamp timestamp) {
     local_ptp_clock_.force_update_time(timestamp);
 }
 
-uint16_t rav::ptp_instance::get_next_available_port_number() const {
-    for (uint16_t i = ptp_port_identity::k_port_number_min; i <= ptp_port_identity::k_port_number_max; ++i) {
+uint16_t rav::ptp::Instance::get_next_available_port_number() const {
+    for (uint16_t i = PortIdentity::k_port_number_min; i <= PortIdentity::k_port_number_max; ++i) {
         if (std::none_of(ports_.begin(), ports_.end(), [i](const auto& port) {
                 return port->get_port_identity().port_number == i;
             })) {
@@ -238,7 +238,7 @@ uint16_t rav::ptp_instance::get_next_available_port_number() const {
     return 0;
 }
 
-void rav::ptp_instance::schedule_state_decision_timer() {
+void rav::ptp::Instance::schedule_state_decision_timer() {
     if (ports_.empty()) {
         return;  // Basically stopping the timer, which is fine when there are no ports
     }

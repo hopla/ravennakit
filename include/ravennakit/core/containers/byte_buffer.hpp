@@ -19,16 +19,16 @@ namespace rav {
 /**
  * A wrapper around std::vector with some facilities for writing different types to it in different byte orders.
  */
-class byte_buffer {
+class ByteBuffer {
   public:
-    byte_buffer() = default;
-    explicit byte_buffer(const size_t size) : data_(size) {}
+    ByteBuffer() = default;
+    explicit ByteBuffer(const size_t size) : data_(size) {}
 
-    byte_buffer(const byte_buffer&) = default;
-    byte_buffer& operator=(const byte_buffer&) = default;
+    ByteBuffer(const ByteBuffer&) = default;
+    ByteBuffer& operator=(const ByteBuffer&) = default;
 
-    byte_buffer(byte_buffer&&) noexcept = default;
-    byte_buffer& operator=(byte_buffer&&) noexcept = default;
+    ByteBuffer(ByteBuffer&&) noexcept = default;
+    ByteBuffer& operator=(ByteBuffer&&) noexcept = default;
 
     [[nodiscard]] const uint8_t* data() const {
         return data_.data();
@@ -70,7 +70,7 @@ class byte_buffer {
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
     void write_be(const Type value) {
-        write_ne(byte_order::swap_if_le(value));
+        write_ne(swap_if_le(value));
     }
 
     /**
@@ -81,7 +81,7 @@ class byte_buffer {
      */
     template<typename Type, std::enable_if_t<std::is_trivially_copyable_v<Type>, bool> = true>
     void write_le(const Type value) {
-        return write_ne(byte_order::swap_if_be(value));
+        return write_ne(swap_if_be(value));
     }
 
   private:

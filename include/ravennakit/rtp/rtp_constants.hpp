@@ -10,12 +10,12 @@
 
 #pragma once
 
-namespace rav::rtp::constants {
+namespace rav::rtp {
 
 constexpr auto k_ssrc_length = 4;
 constexpr auto k_rtp_timestamp_length_length = 4;
 
-enum class validation_result {
+enum class ValidationResult {
     invalid_pointer,
     invalid_header_length_length,
     invalid_sender_info_length_length,

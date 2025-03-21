@@ -8,12 +8,6 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-/**
- * This example subscribes to a RAVENNA stream, reads the audio data, and writes it back to the network as a different
- * stream. The purpose of this example is to show (and test) how low the latency can be when using the RAVENNA API and
- * to demonstrate how the playback is sample-sync (although you'll have to measure than on a real device).
- */
-
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
@@ -25,57 +19,59 @@
 
 #include <CLI/App.hpp>
 
-class loopback_example: public rav::rtp_stream_receiver::subscriber{
+namespace examples {
+class loopback: public rav::rtp::StreamReceiver::Subscriber {
   public:
-    explicit loopback_example(std::string stream_name, const asio::ip::address_v4& interface_addr) :
+    explicit loopback(std::string stream_name, const asio::ip::address_v4& interface_addr) :
         stream_name_(std::move(stream_name)) {
-        rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
-        auto config = rav::rtp_receiver::configuration {interface_addr};
-        rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
+        rtsp_client_ = std::make_unique<rav::RavennaRtspClient>(io_context_, browser_);
+        auto config = rav::rtp::Receiver::Configuration {interface_addr};
+        rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(io_context_, config);
 
-        ravenna_receiver_ = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
+        ravenna_receiver_ = std::make_unique<rav::RavennaReceiver>(*rtsp_client_, *rtp_receiver_);
         ravenna_receiver_->set_delay(480);  // 10ms @ 48kHz
         if (!ravenna_receiver_->subscribe(this)) {
             RAV_WARNING("Failed to add subscriber");
         }
-        ravenna_receiver_->subscribe_to_session(stream_name_);
+        std::ignore = ravenna_receiver_->subscribe_to_session(stream_name_);
 
-        advertiser_ = rav::dnssd::dnssd_advertiser::create(io_context_);
+        advertiser_ = rav::dnssd::Advertiser::create(io_context_);
         if (advertiser_ == nullptr) {
             RAV_THROW_EXCEPTION("No dnssd advertiser available");
         }
 
-        rtsp_server_ =
-            std::make_unique<rav::rtsp_server>(io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005));
+        rtsp_server_ = std::make_unique<rav::rtsp::Server>(
+            io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005)
+        );
 
-        rtp_transmitter_ = std::make_unique<rav::rtp_transmitter>(io_context_, interface_addr);
+        rtp_transmitter_ = std::make_unique<rav::rtp::Transmitter>(io_context_, interface_addr);
 
-        ptp_instance_ = std::make_unique<rav::ptp_instance>(io_context_);
+        ptp_instance_ = std::make_unique<rav::ptp::Instance>(io_context_);
         if (const auto result = ptp_instance_->add_port(interface_addr); !result) {
             RAV_THROW_EXCEPTION("Failed to add PTP port: {}", to_string(result.error()));
         }
 
         ptp_port_changed_event_slot_ = ptp_instance_->on_port_changed_state.subscribe([this](auto event) {
-            if (event.port.state() == rav::ptp_state::slave) {
+            if (event.port.state() == rav::ptp::State::slave) {
                 RAV_INFO("Port state changed to slave, start playing");
                 ptp_clock_stable_ = true;
                 start_transmitting();  // Also called when the first packet is received
             }
         });
 
-        transmitter_ = std::make_unique<rav::ravenna_transmitter>(
-            io_context_, *advertiser_, *rtsp_server_, *ptp_instance_, *rtp_transmitter_, rav::id(1),
+        transmitter_ = std::make_unique<rav::RavennaTransmitter>(
+            io_context_, *advertiser_, *rtsp_server_, *ptp_instance_, *rtp_transmitter_, rav::Id(1),
             stream_name_ + "_loopback", interface_addr
         );
 
-        transmitter_->on<rav::ravenna_transmitter::on_data_requested_event>([this](auto event) {
+        transmitter_->on<rav::RavennaTransmitter::OnDataRequestedEvent>([this](auto event) {
             std::ignore = ravenna_receiver_->read_data_realtime(
                 event.buffer.data(), event.buffer.size(), event.timestamp - ravenna_receiver_->get_delay()
             );
         });
     }
 
-    ~loopback_example() override {
+    ~loopback() override {
         if (ravenna_receiver_ != nullptr) {
             if (!ravenna_receiver_->unsubscribe(this)) {
                 RAV_WARNING("Failed to remove subscriber");
@@ -83,7 +79,7 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
         }
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::StreamReceiver::StreamUpdatedEvent& event) override {
         buffer_.resize(event.selected_audio_format.bytes_per_frame() * event.packet_time_frames);
         if (!transmitter_->set_audio_format(event.selected_audio_format)) {
             RAV_ERROR("Format not supported by transmitter");
@@ -92,7 +88,7 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
         start_transmitting();
     }
 
-    void on_data_ready(rav::wrapping_uint32 timestamp) override {
+    void on_data_ready(rav::WrappingUint32 timestamp) override {
         most_recent_timestamp_ = timestamp;
     }
 
@@ -104,22 +100,22 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
     std::string stream_name_;
     asio::io_context io_context_;
     std::vector<uint8_t> buffer_;
-    std::optional<rav::wrapping_uint32> most_recent_timestamp_;
+    std::optional<rav::WrappingUint32> most_recent_timestamp_;
     bool ptp_clock_stable_ = false;
 
     // Receiver components
-    rav::ravenna_browser browser_ {io_context_};
-    std::unique_ptr<rav::ravenna_rtsp_client> rtsp_client_;
-    std::unique_ptr<rav::rtp_receiver> rtp_receiver_;
-    std::unique_ptr<rav::ravenna_receiver> ravenna_receiver_;
+    rav::RavennaBrowser browser_ {io_context_};
+    std::unique_ptr<rav::RavennaRtspClient> rtsp_client_;
+    std::unique_ptr<rav::rtp::Receiver> rtp_receiver_;
+    std::unique_ptr<rav::RavennaReceiver> ravenna_receiver_;
 
     // Sender components
-    std::unique_ptr<rav::dnssd::dnssd_advertiser> advertiser_;
-    std::unique_ptr<rav::rtsp_server> rtsp_server_;
-    std::unique_ptr<rav::rtp_transmitter> rtp_transmitter_;
-    std::unique_ptr<rav::ptp_instance> ptp_instance_;
-    std::unique_ptr<rav::ravenna_transmitter> transmitter_;
-    rav::event_slot<rav::ptp_instance::port_changed_state_event> ptp_port_changed_event_slot_;
+    std::unique_ptr<rav::dnssd::Advertiser> advertiser_;
+    std::unique_ptr<rav::rtsp::Server> rtsp_server_;
+    std::unique_ptr<rav::rtp::Transmitter> rtp_transmitter_;
+    std::unique_ptr<rav::ptp::Instance> ptp_instance_;
+    std::unique_ptr<rav::RavennaTransmitter> transmitter_;
+    rav::EventSlot<rav::ptp::Instance::PortChangedStateEventEvent> ptp_port_changed_event_slot_;
 
     /**
      * Starts transmitting if the PTP clock is stable and a timestamp is available and transmitter is not already
@@ -132,9 +128,17 @@ class loopback_example: public rav::rtp_stream_receiver::subscriber{
     }
 };
 
+}  // namespace examples
+
+/**
+ * This example subscribes to a RAVENNA stream, reads the audio data, and writes it back to the network as a different
+ * stream. The purpose of this example is to show (and test) how low the latency can be when using the RAVENNA API and
+ * to demonstrate how the playback is sample-sync (although you'll have to measure than on a real device).
+ */
+
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RAVENNA Loopback example"};
     argv = app.ensure_utf8(argv);
@@ -150,7 +154,7 @@ int main(int const argc, char* argv[]) {
     const auto interface_address = asio::ip::make_address_v4(interface_address_string);
 
     // Receiving side
-    loopback_example example(stream_name, interface_address);
+    examples::loopback example(stream_name, interface_address);
     example.run();
 
     return 0;

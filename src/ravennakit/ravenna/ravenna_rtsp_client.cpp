@@ -10,31 +10,31 @@
 
 #include "ravennakit/ravenna/ravenna_rtsp_client.hpp"
 
-rav::ravenna_rtsp_client::ravenna_rtsp_client(asio::io_context& io_context, ravenna_browser& browser) :
+rav::RavennaRtspClient::RavennaRtspClient(asio::io_context& io_context, RavennaBrowser& browser) :
     io_context_(io_context), browser_(browser) {
     if (!browser_.subscribe(this)) {
         RAV_WARNING("Failed to add subscriber to browser");
     }
 }
 
-rav::ravenna_rtsp_client::~ravenna_rtsp_client() {
+rav::RavennaRtspClient::~RavennaRtspClient() {
     if (!browser_.unsubscribe(this)) {
         RAV_WARNING("Failed to remove subscriber from browser");
     }
 }
 
-bool rav::ravenna_rtsp_client::subscribe_to_session(subscriber* subscriber, const std::string& session_name) {
-    RAV_ASSERT(subscriber != nullptr, "Subscriber must not be nullptr");
+bool rav::RavennaRtspClient::subscribe_to_session(Subscriber* subscriber_to_add, const std::string& session_name) {
+    RAV_ASSERT(subscriber_to_add != nullptr, "Subscriber must not be nullptr");
 
     // Subscribe to existing session
     for (auto& session : sessions_) {
         if (session.session_name == session_name) {
-            if (!session.subscribers.add(subscriber)) {
+            if (!session.subscribers.add(subscriber_to_add)) {
                 RAV_WARNING("Failed to add subscriber");
                 return false;
             }
             if (session.sdp_.has_value()) {
-                subscriber->on_announced(announced_event {session_name, *session.sdp_});
+                subscriber_to_add->on_announced(AnnouncedEvent {session_name, *session.sdp_});
             }
             return true;
         }
@@ -43,7 +43,7 @@ bool rav::ravenna_rtsp_client::subscribe_to_session(subscriber* subscriber, cons
     // Create new session
     auto& new_session = sessions_.emplace_back();
     new_session.session_name = session_name;
-    if (!new_session.subscribers.add(subscriber)) {
+    if (!new_session.subscribers.add(subscriber_to_add)) {
         RAV_WARNING("Failed to add subscriber");
         sessions_.pop_back(); // Roll back
         return false;
@@ -59,12 +59,12 @@ bool rav::ravenna_rtsp_client::subscribe_to_session(subscriber* subscriber, cons
     return true;
 }
 
-bool rav::ravenna_rtsp_client::unsubscribe_from_all_sessions(subscriber* subscriber) {
-    RAV_ASSERT(subscriber != nullptr, "Subscriber must not be nullptr");
+bool rav::RavennaRtspClient::unsubscribe_from_all_sessions(Subscriber* subscriber_to_remove) {
+    RAV_ASSERT(subscriber_to_remove != nullptr, "Subscriber must not be nullptr");
 
     auto count = 0;
     for (auto& session : sessions_) {
-        if (session.subscribers.remove(subscriber)) {
+        if (session.subscribers.remove(subscriber_to_remove)) {
             count++;
         }
     }
@@ -72,7 +72,7 @@ bool rav::ravenna_rtsp_client::unsubscribe_from_all_sessions(subscriber* subscri
     return count > 0;
 }
 
-void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_browser::service_resolved& event) {
+void rav::RavennaRtspClient::ravenna_session_discovered(const dnssd::Browser::ServiceResolved& event) {
     RAV_TRACE("RAVENNA session resolved: {}", event.description.to_string());
     for (auto& session : sessions_) {
         if (event.description.name == session.session_name) {
@@ -81,8 +81,8 @@ void rav::ravenna_rtsp_client::ravenna_session_discovered(const dnssd::dnssd_bro
     }
 }
 
-std::optional<rav::sdp::session_description>
-rav::ravenna_rtsp_client::get_sdp_for_session(const std::string& session_name) const {
+std::optional<rav::sdp::SessionDescription>
+rav::RavennaRtspClient::get_sdp_for_session(const std::string& session_name) const {
     for (auto& session : sessions_) {
         if (session.session_name == session_name) {
             return session.sdp_;
@@ -91,7 +91,7 @@ rav::ravenna_rtsp_client::get_sdp_for_session(const std::string& session_name) c
     return std::nullopt;
 }
 
-std::optional<std::string> rav::ravenna_rtsp_client::get_sdp_text_for_session(const std::string& session_name) const {
+std::optional<std::string> rav::RavennaRtspClient::get_sdp_text_for_session(const std::string& session_name) const {
     for (auto& session : sessions_) {
         if (session.session_name == session_name) {
             return session.sdp_text_;
@@ -100,70 +100,70 @@ std::optional<std::string> rav::ravenna_rtsp_client::get_sdp_text_for_session(co
     return std::nullopt;
 }
 
-asio::io_context& rav::ravenna_rtsp_client::get_io_context() const {
+asio::io_context& rav::RavennaRtspClient::get_io_context() const {
     return io_context_;
 }
 
-rav::ravenna_rtsp_client::connection_context&
-rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_target, const uint16_t port) {
+rav::RavennaRtspClient::ConnectionContext&
+rav::RavennaRtspClient::find_or_create_connection(const std::string& host_target, const uint16_t port) {
     if (const auto connection = find_connection(host_target, port)) {
         return *connection;
     }
 
-    connections_.push_back({host_target, port, rtsp_client {io_context_}});
+    connections_.push_back({host_target, port, rtsp::Client {io_context_}});
     auto& new_connection = connections_.back();
 
-    new_connection.client.on<rtsp_connection::connect_event>([=](const auto&) {
+    new_connection.client.on<rtsp::Connection::ConnectEvent>([=](const auto&) {
         RAV_TRACE("Connected to: rtsp://{}:{}", host_target, port);
     });
-    new_connection.client.on<rtsp_connection::request_event>([this,
+    new_connection.client.on<rtsp::Connection::RequestEvent>([this,
                                                               &client = new_connection.client](const auto& event) {
-        RAV_TRACE("{}", event.request.to_debug_string(true));
+        RAV_TRACE("{}", event.rtsp_request.to_debug_string(true));
 
-        if (event.request.method == "ANNOUNCE") {
-            if (auto* content_type = event.request.headers.get("content-type")) {
+        if (event.rtsp_request.method == "ANNOUNCE") {
+            if (auto* content_type = event.rtsp_request.rtsp_headers.get("content-type")) {
                 if (!rav::string_starts_with(content_type->value, "application/sdp")) {
                     RAV_ERROR("RTSP request has unexpected Content-Type: {}", content_type->value);
                     return;
                 }
             }
             // Note: the content-type header is not always present, at least for some devices.
-            handle_incoming_sdp(event.request.data);
+            handle_incoming_sdp(event.rtsp_request.data);
             return;
         }
 
-        if (event.request.method == "GET_PARAMETER") {
-            if (event.request.data.empty()) {
+        if (event.rtsp_request.method == "GET_PARAMETER") {
+            if (event.rtsp_request.data.empty()) {
                 // Interpret as liveliness check (ping) (https://datatracker.ietf.org/doc/html/rfc2326#section-10.8)
-                rtsp_response response;
+                rtsp::Response response;
                 response.status_code = 200;
                 response.reason_phrase = "OK";
                 client.async_send_response(response);
             } else {
-                RAV_WARNING("Unsupported parameter: {}", event.request.uri);
+                RAV_WARNING("Unsupported parameter: {}", event.rtsp_request.uri);
             }
             return;
         }
 
-        RAV_WARNING("Unhandled RTSP request: {}", event.request.method);
+        RAV_WARNING("Unhandled RTSP request: {}", event.rtsp_request.method);
     });
-    new_connection.client.on<rtsp_connection::response_event>([=](const auto& event) {
-        RAV_TRACE("{}", event.response.to_debug_string(true));
+    new_connection.client.on<rtsp::Connection::ResponseEvent>([=](const auto& event) {
+        RAV_TRACE("{}", event.rtsp_response.to_debug_string(true));
 
-        if (event.response.status_code != 200) {
+        if (event.rtsp_response.status_code != 200) {
             RAV_ERROR(
-                "RTSP request failed with status: {} {}", event.response.status_code, event.response.reason_phrase
+                "RTSP request failed with status: {} {}", event.rtsp_response.status_code, event.rtsp_response.reason_phrase
             );
             return;
         }
 
-        if (!event.response.data.empty()) {
-            if (auto* content_type = event.response.headers.get("content-type")) {
+        if (!event.rtsp_response.data.empty()) {
+            if (auto* content_type = event.rtsp_response.rtsp_headers.get("content-type")) {
                 if (!rav::string_starts_with(content_type->value, "application/sdp")) {
                     RAV_ERROR("RTSP response has unexpected Content-Type: {}", content_type->value);
                     return;
                 }
-                handle_incoming_sdp(event.response.data);
+                handle_incoming_sdp(event.rtsp_response.data);
                 return;
             }
 
@@ -174,8 +174,8 @@ rav::ravenna_rtsp_client::find_or_create_connection(const std::string& host_targ
     return new_connection;
 }
 
-rav::ravenna_rtsp_client::connection_context*
-rav::ravenna_rtsp_client::find_connection(const std::string& host_target, const uint16_t port) {
+rav::RavennaRtspClient::ConnectionContext*
+rav::RavennaRtspClient::find_connection(const std::string& host_target, const uint16_t port) {
     for (auto& connection : connections_) {
         if (connection.host_target == host_target && connection.port == port) {
             return &connection;
@@ -184,8 +184,8 @@ rav::ravenna_rtsp_client::find_connection(const std::string& host_target, const 
     return nullptr;
 }
 
-void rav::ravenna_rtsp_client::update_session_with_service(
-    session_context& session, const dnssd::service_description& service
+void rav::RavennaRtspClient::update_session_with_service(
+    SessionContext& session, const dnssd::ServiceDescription& service
 ) {
     session.host_target = service.host_target;
     session.port = service.port;
@@ -194,7 +194,7 @@ void rav::ravenna_rtsp_client::update_session_with_service(
     connection.client.async_describe(fmt::format("/by-name/{}", session.session_name));
 }
 
-void rav::ravenna_rtsp_client::do_maintenance() {
+void rav::RavennaRtspClient::do_maintenance() {
     for (auto& session : sessions_) {
         if (session.subscribers.empty()) {
             if (!session.host_target.empty() && session.port != 0) {
@@ -216,8 +216,8 @@ void rav::ravenna_rtsp_client::do_maintenance() {
     );
 }
 
-void rav::ravenna_rtsp_client::handle_incoming_sdp(const std::string& sdp_text) {
-    auto result = sdp::session_description::parse_new(sdp_text);
+void rav::RavennaRtspClient::handle_incoming_sdp(const std::string& sdp_text) {
+    auto result = sdp::SessionDescription::parse_new(sdp_text);
     if (result.is_err()) {
         RAV_ERROR("Failed to parse SDP: {}", result.get_err());
         return;
@@ -231,7 +231,7 @@ void rav::ravenna_rtsp_client::handle_incoming_sdp(const std::string& sdp_text) 
             session.sdp_text_ = sdp_text;
 
             session.subscribers.foreach ([&](auto s) {
-                s->on_announced(announced_event {session.session_name, sdp});
+                s->on_announced(AnnouncedEvent {session.session_name, sdp});
             });
         }
     }

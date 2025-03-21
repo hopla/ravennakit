@@ -15,25 +15,25 @@
 
 #include <asio.hpp>
 
-namespace rav {
+namespace rav::rtsp {
 
 /**
  * Client for connecting to an RTSP server. Given io_context must be single-threaded to implicitly support
  * thread-safety.
  */
-class rtsp_client final: rtsp_connection::subscriber {
+class Client final: Connection::Subscriber {
   public:
-    using events_type =
-        events<rtsp_connection::connect_event, rtsp_connection::response_event, rtsp_connection::request_event>;
+    using EventsType =
+        Events<Connection::ConnectEvent, Connection::ResponseEvent, Connection::RequestEvent>;
 
-    explicit rtsp_client(asio::io_context& io_context);
-    ~rtsp_client() override;
+    explicit Client(asio::io_context& io_context);
+    ~Client() override;
 
-    rtsp_client(const rtsp_client&) = delete;
-    rtsp_client& operator=(const rtsp_client&) = delete;
+    Client(const Client&) = delete;
+    Client& operator=(const Client&) = delete;
 
-    rtsp_client(rtsp_client&&) noexcept = default;
-    rtsp_client& operator=(rtsp_client&&) noexcept = default;
+    Client(Client&&) noexcept = default;
+    Client& operator=(Client&&) noexcept = default;
 
     /**
      * Connect to the given address and port. Function is async and will return immediately.
@@ -78,13 +78,13 @@ class rtsp_client final: rtsp_connection::subscriber {
      * Sends given response to the server. Function is async and will return immediately.
      * @param response The response to send.
      */
-    void async_send_response(const rtsp_response& response) const;
+    void async_send_response(const Response& response) const;
 
     /**
      * Sends given request to the server. Function is async and will return immediately.
      * @param request The request to send.
      */
-    void async_send_request(const rtsp_request& request) const;
+    void async_send_request(const Request& request) const;
 
     /**
      * Registers a handler for a specific event.
@@ -92,20 +92,20 @@ class rtsp_client final: rtsp_connection::subscriber {
      * @param handler The handler to register.
      */
     template<class T>
-    void on(events_type::handler<T> handler) {
+    void on(EventsType::handler<T> handler) {
         events_.on(handler);
     }
 
     // rtsp_connection::subscriber overrides
-    void on_connect(rtsp_connection& connection) override;
-    void on_request(rtsp_connection& connection, const rtsp_request& request) override;
-    void on_response(rtsp_connection& connection, const rtsp_response& response) override;
+    void on_connect(Connection& connection) override;
+    void on_request(Connection& connection, const Request& request) override;
+    void on_response(Connection& connection, const Response& response) override;
 
   private:
     asio::ip::tcp::resolver resolver_;
     std::string host_;
-    std::shared_ptr<rtsp_connection> connection_;
-    events_type events_;
+    std::shared_ptr<Connection> connection_;
+    EventsType events_;
 
     void
     async_resolve_connect(const std::string& host, const std::string& service, asio::ip::resolver_base::flags flags);

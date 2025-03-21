@@ -8,7 +8,6 @@
  * Copyright (c) 2024 Owllab. All rights reserved.
  */
 
-#include "ravennakit/asio/io_context_runner.hpp"
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
 #include "ravennakit/rtsp/rtsp_client.hpp"
@@ -20,8 +19,8 @@
  */
 
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RTSP Client example"};
     argv = app.ensure_utf8(argv);
@@ -39,20 +38,20 @@ int main(int const argc, char* argv[]) {
 
     asio::io_context io_context;
 
-    rav::rtsp_client client(io_context);
+    rav::rtsp::Client client(io_context);
 
-    client.on<rav::rtsp_connection::connect_event>([path, &client](const rav::rtsp_connection::connect_event&) {
+    client.on<rav::rtsp::Connection::ConnectEvent>([path, &client](const rav::rtsp::Connection::ConnectEvent&) {
         RAV_INFO("Connected, send DESCRIBE request");
         client.async_describe(path);
     });
 
-    client.on<rav::rtsp_connection::request_event>([](const rav::rtsp_connection::request_event& event) {
-        RAV_INFO("{}\n{}", event.request.to_debug_string(true), rav::string_replace(event.request.data, "\r\n", "\n"));
+    client.on<rav::rtsp::Connection::RequestEvent>([](const rav::rtsp::Connection::RequestEvent& event) {
+        RAV_INFO("{}\n{}", event.rtsp_request.to_debug_string(true), rav::string_replace(event.rtsp_request.data, "\r\n", "\n"));
     });
 
-    client.on<rav::rtsp_connection::response_event>([](const rav::rtsp_connection::response_event& event) {
+    client.on<rav::rtsp::Connection::ResponseEvent>([](const rav::rtsp::Connection::ResponseEvent& event) {
         RAV_INFO(
-            "{}\n{}", event.response.to_debug_string(true), rav::string_replace(event.response.data, "\r\n", "\n")
+            "{}\n{}", event.rtsp_response.to_debug_string(true), rav::string_replace(event.rtsp_response.data, "\r\n", "\n")
         );
     });
 

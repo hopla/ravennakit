@@ -11,13 +11,13 @@
 #pragma once
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * The PTP state.
  * IEEE1588-2019: 8.2.15.3.1, 9.2.5, Table 27
  */
-enum class ptp_state : uint8_t {
+enum class State : uint8_t {
     undefined = 0x0,  // Not specified in IEEE1588-2019
     initializing = 0x1,
     faulty = 0x2,
@@ -35,27 +35,27 @@ enum class ptp_state : uint8_t {
  * @param state The state to convert.
  * @return The string representation of the state.
  */
-inline const char* to_string(const ptp_state state) {
+inline const char* to_string(const State state) {
     switch (state) {
-        case ptp_state::undefined:
+        case State::undefined:
             return "undefined";
-        case ptp_state::initializing:
+        case State::initializing:
             return "initializing";
-        case ptp_state::faulty:
+        case State::faulty:
             return "faulty";
-        case ptp_state::disabled:
+        case State::disabled:
             return "disabled";
-        case ptp_state::listening:
+        case State::listening:
             return "listening";
-        case ptp_state::pre_master:
+        case State::pre_master:
             return "pre_master";
-        case ptp_state::master:
+        case State::master:
             return "master";
-        case ptp_state::passive:
+        case State::passive:
             return "passive";
-        case ptp_state::uncalibrated:
+        case State::uncalibrated:
             return "uncalibrated";
-        case ptp_state::slave:
+        case State::slave:
             return "slave";
         default:
             return "unknown";
@@ -65,7 +65,7 @@ inline const char* to_string(const ptp_state state) {
 /**
  * IEEE1588-2019: 7.6.2.6, Table 5
  */
-enum class ptp_clock_accuracy : uint8_t {
+enum class ClockAccuracy : uint8_t {
     // 0x00 to 0x16 Reserved
     lt_1_ps = 0x17,    // The time is accurate to within 1 picosecond
     lt_2_5_ps = 0x18,  // The time is accurate to within 2.5 picoseconds
@@ -100,65 +100,65 @@ enum class ptp_clock_accuracy : uint8_t {
     reserved = 0xFF,  // Reserved
 };
 
-inline const char* to_string(const ptp_clock_accuracy accuracy) {
+inline const char* to_string(const ClockAccuracy accuracy) {
     switch (accuracy) {
-        case ptp_clock_accuracy::lt_1_ps:
+        case ClockAccuracy::lt_1_ps:
             return "within 1 picosecond";
-        case ptp_clock_accuracy::lt_2_5_ps:
+        case ClockAccuracy::lt_2_5_ps:
             return "within 2.5 picoseconds";
-        case ptp_clock_accuracy::lt_10_ps:
+        case ClockAccuracy::lt_10_ps:
             return "within 10 picoseconds";
-        case ptp_clock_accuracy::lt_25_ps:
+        case ClockAccuracy::lt_25_ps:
             return "within 25 picoseconds";
-        case ptp_clock_accuracy::lt_100_ps:
+        case ClockAccuracy::lt_100_ps:
             return "within 100 picoseconds";
-        case ptp_clock_accuracy::lt_250_ps:
+        case ClockAccuracy::lt_250_ps:
             return "within 250 picoseconds";
-        case ptp_clock_accuracy::lt_1_ns:
+        case ClockAccuracy::lt_1_ns:
             return "within 1 nanosecond";
-        case ptp_clock_accuracy::lt_2_5_ns:
+        case ClockAccuracy::lt_2_5_ns:
             return "within 2.5 nanoseconds";
-        case ptp_clock_accuracy::lt_10_ns:
+        case ClockAccuracy::lt_10_ns:
             return "within 10 nanoseconds";
-        case ptp_clock_accuracy::lt_25_ns:
+        case ClockAccuracy::lt_25_ns:
             return "within 25 nanoseconds";
-        case ptp_clock_accuracy::lt_100_ns:
+        case ClockAccuracy::lt_100_ns:
             return "within 100 nanoseconds";
-        case ptp_clock_accuracy::lt_250_ns:
+        case ClockAccuracy::lt_250_ns:
             return "within 250 nanoseconds";
-        case ptp_clock_accuracy::lt_1_us:
+        case ClockAccuracy::lt_1_us:
             return "within 1 microsecond";
-        case ptp_clock_accuracy::lt_2_5_us:
+        case ClockAccuracy::lt_2_5_us:
             return "within 2.5 microseconds";
-        case ptp_clock_accuracy::lt_10_us:
+        case ClockAccuracy::lt_10_us:
             return "within 10 microseconds";
-        case ptp_clock_accuracy::lt_25_us:
+        case ClockAccuracy::lt_25_us:
             return "within 25 microseconds";
-        case ptp_clock_accuracy::lt_100_us:
+        case ClockAccuracy::lt_100_us:
             return "within 100 microseconds";
-        case ptp_clock_accuracy::lt_250_us:
+        case ClockAccuracy::lt_250_us:
             return "within 250 microseconds";
-        case ptp_clock_accuracy::lt_1_ms:
+        case ClockAccuracy::lt_1_ms:
             return "within 1 millisecond";
-        case ptp_clock_accuracy::lt_2_5_ms:
+        case ClockAccuracy::lt_2_5_ms:
             return "within 2.5 milliseconds";
-        case ptp_clock_accuracy::lt_10_ms:
+        case ClockAccuracy::lt_10_ms:
             return "within 10 milliseconds";
-        case ptp_clock_accuracy::lt_25_ms:
+        case ClockAccuracy::lt_25_ms:
             return "within 25 milliseconds";
-        case ptp_clock_accuracy::lt_100_ms:
+        case ClockAccuracy::lt_100_ms:
             return "within 100 milliseconds";
-        case ptp_clock_accuracy::lt_250_ms:
+        case ClockAccuracy::lt_250_ms:
             return "within 250 milliseconds";
-        case ptp_clock_accuracy::lt_1_s:
+        case ClockAccuracy::lt_1_s:
             return "within 1 second";
-        case ptp_clock_accuracy::lt_10_s:
+        case ClockAccuracy::lt_10_s:
             return "within 10 seconds";
-        case ptp_clock_accuracy::gt_10_s:
+        case ClockAccuracy::gt_10_s:
             return "greater than 10 seconds";
-        case ptp_clock_accuracy::reserved:
+        case ClockAccuracy::reserved:
             return "reserved";
-        case ptp_clock_accuracy::unknown:
+        case ClockAccuracy::unknown:
         default:
             return "unknown";
     }
@@ -168,7 +168,7 @@ inline const char* to_string(const ptp_clock_accuracy accuracy) {
  * PTP Time source
  * IEEE1588-2019: 7.6.2.8, Table 6
  */
-enum class ptp_time_source : uint8_t {
+enum class TimeSource : uint8_t {
     undefined = 0x0,  // Not specified in IEEE1588-2019
     atomic_clock = 0x10,
     gnss = 0x20,
@@ -187,7 +187,7 @@ enum class ptp_time_source : uint8_t {
  * State decision codes.
  * IEEE1588-2019: 9.3.1, 9.3.5, Table 30, 31, 32, 33.
  */
-enum class ptp_state_decision_code {
+enum class StateDecisionCode {
     /// The PTP Port is in the MASTER state because it is on a clockClass 1 through 127 PTP Instance and is a PTP Port
     /// of the Grandmaster PTP Instance of the domain.
     m1,
@@ -211,19 +211,19 @@ enum class ptp_state_decision_code {
  * @param code The code to convert.
  * @return The string representation of the code.
  */
-inline const char* to_string(const ptp_state_decision_code code) {
+inline const char* to_string(const StateDecisionCode code) {
     switch (code) {
-        case ptp_state_decision_code::m1:
+        case StateDecisionCode::m1:
             return "M1";
-        case ptp_state_decision_code::m2:
+        case StateDecisionCode::m2:
             return "M2";
-        case ptp_state_decision_code::m3:
+        case StateDecisionCode::m3:
             return "M3";
-        case ptp_state_decision_code::s1:
+        case StateDecisionCode::s1:
             return "S1";
-        case ptp_state_decision_code::p1:
+        case StateDecisionCode::p1:
             return "P1";
-        case ptp_state_decision_code::p2:
+        case StateDecisionCode::p2:
             return "P2";
         default:
             return "Unknown";
@@ -234,7 +234,7 @@ inline const char* to_string(const ptp_state_decision_code code) {
  * PTP Message types.
  * IEEE1588-2019: Table 36
  */
-enum class ptp_message_type : uint8_t {
+enum class MessageType : uint8_t {
     sync = 0x0,          // Event
     delay_req = 0x1,     // Event
     p_delay_req = 0x2,   // Event
@@ -253,34 +253,34 @@ enum class ptp_message_type : uint8_t {
     reserved6 = 0xf,
 };
 
-inline const char* to_string(const ptp_message_type type) {
+inline const char* to_string(const MessageType type) {
     switch (type) {
-        case ptp_message_type::sync:
+        case MessageType::sync:
             return "Sync";
-        case ptp_message_type::delay_req:
+        case MessageType::delay_req:
             return "Delay_Req";
-        case ptp_message_type::p_delay_req:
+        case MessageType::p_delay_req:
             return "Pdelay_Req";
-        case ptp_message_type::p_delay_resp:
+        case MessageType::p_delay_resp:
             return "Pdelay_Resp";
-        case ptp_message_type::follow_up:
+        case MessageType::follow_up:
             return "Follow_Up";
-        case ptp_message_type::delay_resp:
+        case MessageType::delay_resp:
             return "Delay_resp";
-        case ptp_message_type::p_delay_resp_follow_up:
+        case MessageType::p_delay_resp_follow_up:
             return "Pdelay_Resp_Follow_Up";
-        case ptp_message_type::announce:
+        case MessageType::announce:
             return "Announce";
-        case ptp_message_type::signaling:
+        case MessageType::signaling:
             return "Signaling";
-        case ptp_message_type::management:
+        case MessageType::management:
             return "Management";
-        case ptp_message_type::reserved1:
-        case ptp_message_type::reserved2:
-        case ptp_message_type::reserved3:
-        case ptp_message_type::reserved4:
-        case ptp_message_type::reserved5:
-        case ptp_message_type::reserved6:
+        case MessageType::reserved1:
+        case MessageType::reserved2:
+        case MessageType::reserved3:
+        case MessageType::reserved4:
+        case MessageType::reserved5:
+        case MessageType::reserved6:
             return "Reserved";
         default:
             return "Unknown";
@@ -291,7 +291,7 @@ inline const char* to_string(const ptp_message_type type) {
  * PTP Delay mechanism.
  * IEEE1588-2019: 8.2.15.4.4, Table 21
  */
-enum class ptp_delay_mechanism : uint8_t {
+enum class DelayMechanism : uint8_t {
     undefined = 0x0,  // Not specified in IEEE1588-2019
     e2e = 0x1,
     p2p = 0x2,

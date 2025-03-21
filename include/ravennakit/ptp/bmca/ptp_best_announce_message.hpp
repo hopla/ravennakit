@@ -12,13 +12,13 @@
 #include "ptp_comparison_data_set.hpp"
 #include "ravennakit/ptp/messages/ptp_announce_message.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
-struct ptp_best_announce_message {
-    ptp_announce_message message;
-    ptp_port_identity receiver_identity;
+struct BestAnnounceMessage {
+    AnnounceMessage message;
+    PortIdentity receiver_identity;
 
-    [[nodiscard]] ptp_comparison_data_set get_comparison_data_set() const {
+    [[nodiscard]] ComparisonDataSet get_comparison_data_set() const {
         return {message, receiver_identity};
     }
 };

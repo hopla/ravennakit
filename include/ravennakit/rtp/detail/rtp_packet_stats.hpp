@@ -17,14 +17,14 @@
 
 #include <utility>
 
-namespace rav {
+namespace rav::rtp {
 
 /**
  * A class that collects statistics about RTP packets.
  */
-class rtp_packet_stats {
+class PacketStats {
   public:
-    struct counters {
+    struct Counters {
         /// The number of packets which arrived out of order, not including duplicate packets.
         uint32_t out_of_order {};
         /// The number of packets which were duplicates.
@@ -38,16 +38,16 @@ class rtp_packet_stats {
             return std::tie(out_of_order, too_late, duplicates, dropped);
         }
 
-        friend bool operator==(const counters& lhs, const counters& rhs) {
+        friend bool operator==(const Counters& lhs, const Counters& rhs) {
             return lhs.tie() == rhs.tie();
         }
 
-        friend bool operator!=(const counters& lhs, const counters& rhs) {
+        friend bool operator!=(const Counters& lhs, const Counters& rhs) {
             return lhs.tie() != rhs.tie();
         }
 
-        counters operator+(const counters other) const {
-            counters result = *this;
+        Counters operator+(const Counters other) const {
+            Counters result = *this;
             result.out_of_order += other.out_of_order;
             result.too_late += other.too_late;
             result.duplicates += other.duplicates;
@@ -63,15 +63,15 @@ class rtp_packet_stats {
         }
     };
 
-    explicit rtp_packet_stats() = default;
+    explicit PacketStats() = default;
 
     /**
      * Updates the statistics with the given packet.
      * @param sequence_number
      * @return Returns the total counts if changed.
      */
-    std::optional<counters> update(const uint16_t sequence_number) {
-        const auto packet_sequence_number = wrapping_uint16(sequence_number);
+    std::optional<Counters> update(const uint16_t sequence_number) {
+        const auto packet_sequence_number = WrappingUint16(sequence_number);
 
         if (!most_recent_sequence_number_) {
             most_recent_sequence_number_ = packet_sequence_number;
@@ -119,7 +119,7 @@ class rtp_packet_stats {
         if (!most_recent_sequence_number_) {
             return;  // Can't mark a packet too late which never arrived
         }
-        if (wrapping_uint16(sequence_number) > *most_recent_sequence_number_) {
+        if (WrappingUint16(sequence_number) > *most_recent_sequence_number_) {
             return;  // Packet is newer, or older than half the range of uint16
         }
         totals_.too_late++;
@@ -129,7 +129,7 @@ class rtp_packet_stats {
     /**
      * @return The total counts. These are the collected numbers plus the ones in the window.
      */
-    [[nodiscard]] counters get_total_counts() const {
+    [[nodiscard]] Counters get_total_counts() const {
         return totals_;
     }
 
@@ -142,8 +142,8 @@ class rtp_packet_stats {
     }
 
   private:
-    std::optional<wrapping_uint16> most_recent_sequence_number_ {};
-    counters totals_ {};
+    std::optional<WrappingUint16> most_recent_sequence_number_ {};
+    Counters totals_ {};
     bool dirty_ {};
     std::vector<uint16_t> dropped_packets_ {};
 
@@ -163,7 +163,7 @@ class rtp_packet_stats {
         const auto most_recent = *most_recent_sequence_number_;
         for (auto it = dropped_packets_.begin(); it != dropped_packets_.end();) {
             // If a packet is newer than the most recent packet, it's older than half the range of uint16.
-            if (wrapping_uint16(*it) > most_recent) {
+            if (WrappingUint16(*it) > most_recent) {
                 it = dropped_packets_.erase(it);
             } else {
                 ++it;

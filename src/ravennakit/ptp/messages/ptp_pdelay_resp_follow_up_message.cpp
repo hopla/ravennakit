@@ -10,15 +10,15 @@
 
 #include "ravennakit/ptp/messages/ptp_pdelay_resp_follow_up_message.hpp"
 
-tl::expected<rav::ptp_pdelay_resp_follow_up_message, rav::ptp_error>
-rav::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::PdelayRespFollowUpMessage, rav::ptp::Error>
+rav::ptp::PdelayRespFollowUpMessage::from_data(const BufferView<const uint8_t> data) {
     if (data.size() < k_message_size) {
-        return tl::make_unexpected(ptp_error::invalid_message_length);
+        return tl::make_unexpected(Error::invalid_message_length);
     }
 
-    ptp_pdelay_resp_follow_up_message msg;
-    msg.response_origin_timestamp = ptp_timestamp::from_data(data);
-    auto port_identity = ptp_port_identity::from_data(data.subview(ptp_timestamp::k_size));
+    PdelayRespFollowUpMessage msg;
+    msg.response_origin_timestamp = Timestamp::from_data(data);
+    auto port_identity = PortIdentity::from_data(data.subview(Timestamp::k_size));
     if (!port_identity) {
         return tl::make_unexpected(port_identity.error());
     }
@@ -26,7 +26,7 @@ rav::ptp_pdelay_resp_follow_up_message::from_data(const buffer_view<const uint8_
     return msg;
 }
 
-std::string rav::ptp_pdelay_resp_follow_up_message::to_string() const {
+std::string rav::ptp::PdelayRespFollowUpMessage::to_string() const {
     return fmt::format(
         "response_origin_timestamp={} requesting_port_identity={}", response_origin_timestamp.to_string(),
         requesting_port_identity.to_string()

@@ -16,9 +16,9 @@
     #include <timeapi.h>
 #endif
 
-rav::ravenna_transmitter::ravenna_transmitter(
-    asio::io_context& io_context, dnssd::dnssd_advertiser& advertiser, rtsp_server& rtsp_server,
-    ptp_instance& ptp_instance, rtp_transmitter& rtp_transmitter, const id id, std::string session_name,
+rav::RavennaTransmitter::RavennaTransmitter(
+    asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
+    ptp::Instance& ptp_instance, rtp::Transmitter& rtp_transmitter, const Id id, std::string session_name,
     asio::ip::address_v4 interface_address
 ) :
     advertiser_(advertiser),
@@ -49,7 +49,7 @@ rav::ravenna_transmitter::ravenna_transmitter(
     );
 
     ptp_parent_changed_slot_ =
-        ptp_instance.on_parent_changed.subscribe([this](const ptp_instance::parent_changed_event& event) {
+        ptp_instance.on_parent_changed.subscribe([this](const ptp::Instance::ParentChangedEvent& event) {
             if (grandmaster_identity_ == event.parent.grandmaster_identity) {
                 return;
             }
@@ -62,7 +62,7 @@ rav::ravenna_transmitter::ravenna_transmitter(
 #endif
 }
 
-rav::ravenna_transmitter::~ravenna_transmitter() {
+rav::RavennaTransmitter::~RavennaTransmitter() {
 #if RAV_WINDOWS
     timeEndPeriod(1);
 #endif
@@ -76,16 +76,16 @@ rav::ravenna_transmitter::~ravenna_transmitter() {
     rtsp_server_.unregister_handler(this);
 }
 
-rav::id rav::ravenna_transmitter::get_id() const {
+rav::Id rav::RavennaTransmitter::get_id() const {
     return id_;
 }
 
-std::string rav::ravenna_transmitter::session_name() const {
+std::string rav::RavennaTransmitter::session_name() const {
     return session_name_;
 }
 
-bool rav::ravenna_transmitter::set_audio_format(const audio_format format) {
-    const auto sdp_format = sdp::format::from_audio_format(format);
+bool rav::RavennaTransmitter::set_audio_format(const AudioFormat format) {
+    const auto sdp_format = sdp::Format::from_audio_format(format);
     if (!sdp_format) {
         RAV_ERROR("Failed to convert audio format to SDP format");
         return false;
@@ -100,12 +100,12 @@ bool rav::ravenna_transmitter::set_audio_format(const audio_format format) {
 
     rtp_packet_.payload_type(sdp_format_.payload_type);
     // TODO: Implement proper SSRC generation
-    rtp_packet_.ssrc(static_cast<uint32_t>(random().get_random_int(0, std::numeric_limits<int>::max())));
+    rtp_packet_.ssrc(static_cast<uint32_t>(Random().get_random_int(0, std::numeric_limits<int>::max())));
 
     return true;
 }
 
-void rav::ravenna_transmitter::set_packet_time(const aes67_packet_time packet_time) {
+void rav::RavennaTransmitter::set_packet_time(const aes67::PacketTime packet_time) {
     if (ptime_ == packet_time) {
         return;
     }
@@ -113,11 +113,11 @@ void rav::ravenna_transmitter::set_packet_time(const aes67_packet_time packet_ti
     resize_internal_buffers();
 }
 
-float rav::ravenna_transmitter::get_signaled_ptime() const {
+float rav::RavennaTransmitter::get_signaled_ptime() const {
     return ptime_.signaled_ptime(audio_format_.sample_rate);
 }
 
-void rav::ravenna_transmitter::start(const uint32_t timestamp_samples) {
+void rav::RavennaTransmitter::start(const uint32_t timestamp_samples) {
     if (running_) {
         return;
     }
@@ -128,26 +128,26 @@ void rav::ravenna_transmitter::start(const uint32_t timestamp_samples) {
     RAV_TRACE("Start transmitting at timestamp: {}", timestamp_samples);
 }
 
-void rav::ravenna_transmitter::start(const ptp_timestamp timestamp) {
+void rav::RavennaTransmitter::start(const ptp::Timestamp timestamp) {
     start(static_cast<uint32_t>(timestamp.to_samples(audio_format_.sample_rate)));
 }
 
-void rav::ravenna_transmitter::stop() {
+void rav::RavennaTransmitter::stop() {
     if (!running_) {
         return;
     }
     running_ = false;
 }
 
-bool rav::ravenna_transmitter::is_running() const {
+bool rav::RavennaTransmitter::is_running() const {
     return running_;
 }
 
-uint32_t rav::ravenna_transmitter::get_framecount() const {
+uint32_t rav::RavennaTransmitter::get_framecount() const {
     return ptime_.framecount(audio_format_.sample_rate);
 }
 
-void rav::ravenna_transmitter::on_request(rtsp_connection::request_event event) const {
+void rav::RavennaTransmitter::on_request(rtsp::Connection::RequestEvent event) const {
     const auto sdp = build_sdp();  // Should the SDP be cached and updated on changes?
     RAV_TRACE("SDP:\n{}", sdp.to_string("\n").value());
     const auto encoded = sdp.to_string();
@@ -155,58 +155,58 @@ void rav::ravenna_transmitter::on_request(rtsp_connection::request_event event) 
         RAV_ERROR("Failed to encode SDP");
         return;
     }
-    auto response = rtsp_response(200, "OK", *encoded);
-    if (const auto* cseq = event.request.headers.get("cseq")) {
-        response.headers.set(*cseq);
+    auto response = rtsp::Response(200, "OK", *encoded);
+    if (const auto* cseq = event.rtsp_request.rtsp_headers.get("cseq")) {
+        response.rtsp_headers.set(*cseq);
     }
-    response.headers.set("content-type", "application/sdp");
-    event.connection.async_send_response(response);
+    response.rtsp_headers.set("content-type", "application/sdp");
+    event.rtsp_connection.async_send_response(response);
 }
 
-void rav::ravenna_transmitter::send_announce() const {
+void rav::RavennaTransmitter::send_announce() const {
     auto sdp = build_sdp().to_string();
     if (!sdp) {
         RAV_ERROR("Failed to encode SDP: {}", sdp.error());
         return;
     }
-    rtsp_request request;
+    rtsp::Request request;
     request.method = "ANNOUNCE";
-    request.headers.set("content-type", "application/sdp");
+    request.rtsp_headers.set("content-type", "application/sdp");
     request.data = std::move(sdp.value());
-    request.uri = uri::encode(
+    request.uri = Uri::encode(
         "rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_name_
     );
     rtsp_server_.send_request(path_by_name_, request);
     request.uri =
-        uri::encode("rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_id_);
+        Uri::encode("rtsp://", interface_address_.to_string() + ":" + std::to_string(rtsp_server_.port()), path_by_id_);
     rtsp_server_.send_request(path_by_name_, request);
 }
 
-rav::sdp::session_description rav::ravenna_transmitter::build_sdp() const {
+rav::sdp::SessionDescription rav::RavennaTransmitter::build_sdp() const {
     // Connection info
-    const sdp::connection_info_field connection_info {
-        sdp::netw_type::internet, sdp::addr_type::ipv4, destination_address_.to_string(), 15, {}
+    const sdp::ConnectionInfoField connection_info {
+        sdp::NetwType::internet, sdp::AddrType::ipv4, destination_address_.to_string(), 15, {}
     };
 
     // Source filter
-    sdp::source_filter filter(
-        sdp::filter_mode::include, sdp::netw_type::internet, sdp::addr_type::ipv4, destination_address_.to_string(),
+    sdp::SourceFilter filter(
+        sdp::FilterMode::include, sdp::NetwType::internet, sdp::AddrType::ipv4, destination_address_.to_string(),
         {interface_address_.to_string()}
     );
 
     // Reference clock
-    const sdp::reference_clock ref_clock {
-        sdp::reference_clock::clock_source::ptp, sdp::reference_clock::ptp_ver::IEEE_1588_2008,
+    const sdp::ReferenceClock ref_clock {
+        sdp::ReferenceClock::ClockSource::ptp, sdp::ReferenceClock::PtpVersion::IEEE_1588_2008,
         grandmaster_identity_.to_string(), clock_domain_
     };
 
     // Media clock
     // ST 2110-30:2017 defines a constraint to use a zero offset exclusively.
-    sdp::media_clock_source media_clk {sdp::media_clock_source::clock_mode::direct, 0, {}};
+    sdp::MediaClockSource media_clk {sdp::MediaClockSource::ClockMode::direct, 0, {}};
 
-    sdp::ravenna_clock_domain clock_domain {sdp::ravenna_clock_domain::sync_source::ptp_v2, clock_domain_};
+    sdp::RavennaClockDomain clock_domain {sdp::RavennaClockDomain::SyncSource::ptp_v2, clock_domain_};
 
-    sdp::media_description media;
+    sdp::MediaDescription media;
     media.add_connection_info(connection_info);
     media.set_media_type("audio");
     media.set_port(5004);
@@ -216,15 +216,15 @@ rav::sdp::session_description rav::ravenna_transmitter::build_sdp() const {
     media.set_clock_domain(clock_domain);
     media.set_sync_time(0);
     media.set_ref_clock(ref_clock);
-    media.set_direction(sdp::media_direction::recvonly);
+    media.set_direction(sdp::MediaDirection::recvonly);
     media.set_ptime(get_signaled_ptime());
     media.set_framecount(get_framecount());
 
-    sdp::session_description sdp;
+    sdp::SessionDescription sdp;
 
     // Origin
-    const sdp::origin_field origin {
-        "-", id_.to_string(), 0, sdp::netw_type::internet, sdp::addr_type::ipv4, interface_address_.to_string()
+    const sdp::OriginField origin {
+        "-", id_.to_string(), 0, sdp::NetwType::internet, sdp::AddrType::ipv4, interface_address_.to_string()
     };
     sdp.set_origin(origin);
 
@@ -239,7 +239,7 @@ rav::sdp::session_description rav::ravenna_transmitter::build_sdp() const {
     return sdp;
 }
 
-void rav::ravenna_transmitter::start_timer() {
+void rav::RavennaTransmitter::start_timer() {
     TRACY_ZONE_SCOPED;
 
 #if RAV_WINDOWS
@@ -265,7 +265,7 @@ void rav::ravenna_transmitter::start_timer() {
     });
 }
 
-void rav::ravenna_transmitter::send_data() {
+void rav::RavennaTransmitter::send_data() {
     TRACY_ZONE_SCOPED;
 
     if (!running_) {
@@ -278,18 +278,16 @@ void rav::ravenna_transmitter::send_data() {
 
     for (auto i = 0; i < 1000; i++) {
         const auto now_samples = ptp_instance_.get_local_ptp_time().to_samples(audio_format_.sample_rate);
-        if (wrapping_uint(static_cast<uint32_t>(now_samples)) < rtp_packet_.timestamp()) {
+        if (WrappingUint(static_cast<uint32_t>(now_samples)) < rtp_packet_.timestamp()) {
             break;
         }
 
         events_.emit(
-            on_data_requested_event {rtp_packet_.timestamp().value(), buffer_view(packet_intermediate_buffer_)}
+            OnDataRequestedEvent {rtp_packet_.timestamp().value(), BufferView(packet_intermediate_buffer_)}
         );
 
-        if (audio_format_.byte_order == audio_format::byte_order::le) {
-            byte_order::swap_bytes(
-                packet_intermediate_buffer_.data(), required_amount_of_data, audio_format_.bytes_per_sample()
-            );
+        if (audio_format_.byte_order == AudioFormat::ByteOrder::le) {
+            swap_bytes(packet_intermediate_buffer_.data(), required_amount_of_data, audio_format_.bytes_per_sample());
         }
 
         send_buffer_.clear();
@@ -300,7 +298,7 @@ void rav::ravenna_transmitter::send_data() {
     }
 }
 
-void rav::ravenna_transmitter::resize_internal_buffers() {
+void rav::RavennaTransmitter::resize_internal_buffers() {
     const auto bytes_per_packet = get_framecount() * audio_format_.bytes_per_frame();
     packet_intermediate_buffer_.resize(bytes_per_packet);
 }

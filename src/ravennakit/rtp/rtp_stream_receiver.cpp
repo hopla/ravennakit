@@ -18,12 +18,12 @@
 
 namespace {
 
-bool is_connection_info_valid(const rav::sdp::connection_info_field& conn) {
-    if (conn.network_type != rav::sdp::netw_type::internet) {
+bool is_connection_info_valid(const rav::sdp::ConnectionInfoField& conn) {
+    if (conn.network_type != rav::sdp::NetwType::internet) {
         RAV_WARNING("Unsupported network type in connection_info_field");
         return false;
     }
-    if (!(conn.address_type == rav::sdp::addr_type::ipv4 || conn.address_type == rav::sdp::addr_type::ipv6)) {
+    if (!(conn.address_type == rav::sdp::AddrType::ipv4 || conn.address_type == rav::sdp::AddrType::ipv6)) {
         RAV_WARNING("Unsupported network type in connection_info_field");
         return false;
     }
@@ -38,49 +38,49 @@ bool is_connection_info_valid(const rav::sdp::connection_info_field& conn) {
 
 }  // namespace
 
-const char* rav::rtp_stream_receiver::to_string(const receiver_state state) {
+const char* rav::rtp::StreamReceiver::to_string(const ReceiverState state) {
     switch (state) {
-        case receiver_state::idle:
+        case ReceiverState::idle:
             return "idle";
-        case receiver_state::waiting_for_data:
+        case ReceiverState::waiting_for_data:
             return "waiting_for_data";
-        case receiver_state::ok:
+        case ReceiverState::ok:
             return "ok";
-        case receiver_state::ok_no_consumer:
+        case ReceiverState::ok_no_consumer:
             return "ok_no_consumer";
-        case receiver_state::inactive:
+        case ReceiverState::inactive:
             return "inactive";
         default:
             return "unknown";
     }
 }
 
-std::string rav::rtp_stream_receiver::stream_updated_event::to_string() const {
+std::string rav::rtp::StreamReceiver::StreamUpdatedEvent::to_string() const {
     return fmt::format(
         "id={}, session={}, selected_audio_format={}, packet_time_frames={}, delay_samples={}, state={}",
         receiver_id.value(), session.to_string(), selected_audio_format.to_string(), packet_time_frames, delay_samples,
-        rtp_stream_receiver::to_string(state)
+        StreamReceiver::to_string(state)
     );
 }
 
-rav::rtp_stream_receiver::rtp_stream_receiver(rtp_receiver& receiver) :
+rav::rtp::StreamReceiver::StreamReceiver(Receiver& receiver) :
     rtp_receiver_(receiver), maintenance_timer_(receiver.get_io_context()) {}
 
-rav::rtp_stream_receiver::~rtp_stream_receiver() {
+rav::rtp::StreamReceiver::~StreamReceiver() {
     if (!rtp_receiver_.unsubscribe(this)) {
         RAV_ERROR("Failed to remove subscriber");
     }
     maintenance_timer_.cancel();
 }
 
-rav::id rav::rtp_stream_receiver::get_id() const {
+rav::Id rav::rtp::StreamReceiver::get_id() const {
     return id_;
 }
 
-void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
-    const sdp::media_description* selected_media_description = nullptr;
-    const sdp::connection_info_field* selected_connection_info = nullptr;
-    std::optional<audio_format> selected_audio_format;
+void rav::rtp::StreamReceiver::update_sdp(const sdp::SessionDescription& sdp) {
+    const sdp::MediaDescription* selected_media_description = nullptr;
+    const sdp::ConnectionInfoField* selected_connection_info = nullptr;
+    std::optional<AudioFormat> selected_audio_format;
 
     for (auto& media_description : sdp.media_descriptions()) {
         if (media_description.media_type() != "audio") {
@@ -152,7 +152,7 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     uint16_t packet_time_frames = 0;
     const auto ptime = selected_media_description->ptime();
     if (ptime.has_value()) {
-        packet_time_frames = aes67_packet_time::framecount(*ptime, selected_audio_format->sample_rate);
+        packet_time_frames = aes67::PacketTime::framecount(*ptime, selected_audio_format->sample_rate);
     }
 
     if (packet_time_frames == 0) {
@@ -167,12 +167,12 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
 
     RAV_ASSERT(packet_time_frames > 0, "packet_time_frames must be greater than 0");
 
-    rtp_session session;
+    Session session;
     session.connection_address = asio::ip::make_address(selected_connection_info->address);  // TODO: Avoid exception
     session.rtp_port = selected_media_description->port();
     session.rtcp_port = session.rtp_port + 1;
 
-    rtp_filter filter(session.connection_address);
+    Filter filter(session.connection_address);
 
     const auto& source_filters = selected_media_description->source_filters();
     if (!source_filters.empty()) {
@@ -234,7 +234,7 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
 
     if (should_restart) {
         restart();
-        set_state(receiver_state::waiting_for_data, false);
+        set_state(ReceiverState::waiting_for_data, false);
     }
 
     if (should_restart || was_changed) {
@@ -245,7 +245,7 @@ void rav::rtp_stream_receiver::update_sdp(const sdp::session_description& sdp) {
     }
 }
 
-void rav::rtp_stream_receiver::set_delay(const uint32_t delay) {
+void rav::rtp::StreamReceiver::set_delay(const uint32_t delay) {
     if (delay == delay_) {
         return;
     }
@@ -259,23 +259,23 @@ void rav::rtp_stream_receiver::set_delay(const uint32_t delay) {
     }
 }
 
-uint32_t rav::rtp_stream_receiver::get_delay() const {
+uint32_t rav::rtp::StreamReceiver::get_delay() const {
     return delay_;
 }
 
-bool rav::rtp_stream_receiver::subscribe(subscriber* subscriber) {
-    if (subscribers_.add(subscriber)) {
-        subscriber->rtp_stream_receiver_updated(make_updated_event());
+bool rav::rtp::StreamReceiver::subscribe(Subscriber* subscriber_to_add) {
+    if (subscribers_.add(subscriber_to_add)) {
+        subscriber_to_add->rtp_stream_receiver_updated(make_updated_event());
         return true;
     }
     return false;
 }
 
-bool rav::rtp_stream_receiver::unsubscribe(subscriber* subscriber) {
-    return subscribers_.remove(subscriber);
+bool rav::rtp::StreamReceiver::unsubscribe(Subscriber* subscriber_to_remove) {
+    return subscribers_.remove(subscriber_to_remove);
 }
 
-std::optional<uint32_t> rav::rtp_stream_receiver::read_data_realtime(
+std::optional<uint32_t> rav::rtp::StreamReceiver::read_data_realtime(
     uint8_t* buffer, const size_t buffer_size, const std::optional<uint32_t> at_timestamp
 ) {
     TRACY_ZONE_SCOPED;
@@ -315,8 +315,8 @@ std::optional<uint32_t> rav::rtp_stream_receiver::read_data_realtime(
     return std::nullopt;
 }
 
-std::optional<uint32_t> rav::rtp_stream_receiver::read_audio_data_realtime(
-    audio_buffer_view<float> output_buffer, const std::optional<uint32_t> at_timestamp
+std::optional<uint32_t> rav::rtp::StreamReceiver::read_audio_data_realtime(
+    AudioBufferView<float> output_buffer, const std::optional<uint32_t> at_timestamp
 ) {
     TRACY_ZONE_SCOPED;
 
@@ -325,12 +325,12 @@ std::optional<uint32_t> rav::rtp_stream_receiver::read_audio_data_realtime(
     if (auto state = audio_thread_reader_.lock_realtime()) {
         const auto format = state->selected_audio_format;
 
-        if (format.byte_order != audio_format::byte_order::be) {
+        if (format.byte_order != AudioFormat::ByteOrder::be) {
             RAV_ERROR("Unexpected byte order");
             return std::nullopt;
         }
 
-        if (format.ordering != audio_format::channel_ordering::interleaved) {
+        if (format.ordering != AudioFormat::ChannelOrdering::interleaved) {
             RAV_ERROR("Unexpected channel ordering");
             return std::nullopt;
         }
@@ -348,20 +348,20 @@ std::optional<uint32_t> rav::rtp_stream_receiver::read_audio_data_realtime(
             return std::nullopt;
         }
 
-        if (format.encoding == audio_encoding::pcm_s16) {
-            const auto ok = audio_data::convert<
-                int16_t, audio_data::byte_order::be, audio_data::interleaving::interleaved, float,
-                audio_data::byte_order::ne>(
+        if (format.encoding == AudioEncoding::pcm_s16) {
+            const auto ok = AudioData::convert<
+                int16_t, AudioData::ByteOrder::Be, AudioData::Interleaving::Interleaved, float,
+                AudioData::ByteOrder::Ne>(
                 reinterpret_cast<int16_t*>(buffer.data()), output_buffer.num_frames(), output_buffer.num_channels(),
                 output_buffer.data()
             );
             if (!ok) {
                 RAV_WARNING("Failed to convert audio data");
             }
-        } else if (format.encoding == audio_encoding::pcm_s24) {
-            const auto ok = audio_data::convert<
-                int24_t, audio_data::byte_order::be, audio_data::interleaving::interleaved, float,
-                audio_data::byte_order::ne>(
+        } else if (format.encoding == AudioEncoding::pcm_s24) {
+            const auto ok = AudioData::convert<
+                int24_t, AudioData::ByteOrder::Be, AudioData::Interleaving::Interleaved, float,
+                AudioData::ByteOrder::Ne>(
                 reinterpret_cast<int24_t*>(buffer.data()), output_buffer.num_frames(), output_buffer.num_channels(),
                 output_buffer.data()
             );
@@ -379,40 +379,40 @@ std::optional<uint32_t> rav::rtp_stream_receiver::read_audio_data_realtime(
     return std::nullopt;
 }
 
-rav::rtp_stream_receiver::stream_stats rav::rtp_stream_receiver::get_session_stats() const {
+rav::rtp::StreamReceiver::StreamStats rav::rtp::StreamReceiver::get_session_stats() const {
     if (media_streams_.empty()) {
         return {};
     }
-    stream_stats s;
+    StreamStats s;
     const auto& stream = media_streams_.front();
     s.packet_stats = stream.packet_stats.get_total_counts();
     s.packet_interval_stats = stream.packet_interval_stats.get_stats();
     return s;
 }
 
-rav::rtp_packet_stats::counters rav::rtp_stream_receiver::get_packet_stats() const {
+rav::rtp::PacketStats::Counters rav::rtp::StreamReceiver::get_packet_stats() const {
     if (media_streams_.empty()) {
         return {};
     }
     return media_streams_.front().packet_stats.get_total_counts();
 }
 
-rav::sliding_stats::stats rav::rtp_stream_receiver::get_packet_interval_stats() const {
+rav::SlidingStats::Stats rav::rtp::StreamReceiver::get_packet_interval_stats() const {
     if (media_streams_.empty()) {
         return {};
     }
     return media_streams_.front().packet_interval_stats.get_stats();
 }
 
-void rav::rtp_stream_receiver::restart() {
+void rav::rtp::StreamReceiver::restart() {
     rtp_receiver_.unsubscribe(this); // This unsubscribes from all sessions
 
     if (media_streams_.empty()) {
-        set_state(receiver_state::idle, true);
+        set_state(ReceiverState::idle, true);
         return;
     }
 
-    std::optional<audio_format> selected_format;
+    std::optional<AudioFormat> selected_format;
     uint16_t packet_time_frames = 0;
 
     for (auto& stream : media_streams_) {
@@ -437,7 +437,7 @@ void rav::rtp_stream_receiver::restart() {
     const auto bytes_per_frame = selected_format->bytes_per_frame();
     RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
-    auto new_state = std::make_unique<shared_state>();
+    auto new_state = std::make_unique<SharedState>();
 
     const auto buffer_size_frames = std::max(selected_format->sample_rate * k_buffer_size_ms / 1000, 1024u);
     new_state->receiver_buffer.resize(selected_format->sample_rate * k_buffer_size_ms / 1000, bytes_per_frame);
@@ -463,8 +463,8 @@ void rav::rtp_stream_receiver::restart() {
     RAV_TRACE("(Re)Started rtp_stream_receiver");
 }
 
-std::pair<rav::rtp_stream_receiver::media_stream*, bool>
-rav::rtp_stream_receiver::find_or_create_media_stream(const rtp_session& session) {
+std::pair<rav::rtp::StreamReceiver::MediaStream*, bool>
+rav::rtp::StreamReceiver::find_or_create_media_stream(const Session& session) {
     for (auto& stream : media_streams_) {
         if (stream.session == session) {
             return std::make_pair(&stream, false);
@@ -474,12 +474,12 @@ rav::rtp_stream_receiver::find_or_create_media_stream(const rtp_session& session
     return std::make_pair(&media_streams_.emplace_back(session), true);
 }
 
-void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
-    const rtp_receiver::rtp_packet_event& event, media_stream& stream
+void rav::rtp::StreamReceiver::handle_rtp_packet_event_for_session(
+    const Receiver::RtpPacketEvent& event, MediaStream& stream
 ) {
     TRACY_ZONE_SCOPED;
 
-    const wrapping_uint32 packet_timestamp(event.packet.timestamp());
+    const WrappingUint32 packet_timestamp(event.packet.timestamp());
 
     if (!stream.first_packet_timestamp.has_value()) {
         stream.seq = event.packet.sequence_number();
@@ -507,27 +507,27 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
         RAV_TRACE("Packet interval stats: {}", stream.packet_interval_stats.to_string());
     }
 
-    if (auto shared_state = network_thread_reader_.lock_realtime()) {
-        if (shared_state->consumer_active) {
-            intermediate_packet intermediate {};
+    if (auto state = network_thread_reader_.lock_realtime()) {
+        if (state->consumer_active) {
+            IntermediatePacket intermediate {};
             intermediate.timestamp = event.packet.timestamp();
             intermediate.seq = event.packet.sequence_number();
             intermediate.data_len = static_cast<uint16_t>(payload.size_bytes());
             intermediate.packet_time_frames = stream.packet_time_frames;
             std::memcpy(intermediate.data.data(), payload.data(), intermediate.data_len);
 
-            if (!shared_state->fifo.push(intermediate)) {
+            if (!state->fifo.push(intermediate)) {
                 RAV_TRACE("Failed to push packet info FIFO, make receiver inactive");
-                shared_state->consumer_active = false;
-                set_state(receiver_state::ok_no_consumer, true);
+                state->consumer_active = false;
+                set_state(ReceiverState::ok_no_consumer, true);
             } else {
-                set_state(receiver_state::ok, true);
+                set_state(ReceiverState::ok, true);
             }
         } else {
-            set_state(receiver_state::ok_no_consumer, true);
+            set_state(ReceiverState::ok_no_consumer, true);
         }
 
-        while (auto seq = shared_state->packets_too_old.pop()) {
+        while (auto seq = state->packets_too_old.pop()) {
             stream.packet_stats.mark_packet_too_late(*seq);
         }
     }
@@ -557,7 +557,7 @@ void rav::rtp_stream_receiver::handle_rtp_packet_event_for_session(
     }
 }
 
-void rav::rtp_stream_receiver::set_state(const receiver_state new_state, const bool notify_subscribers) {
+void rav::rtp::StreamReceiver::set_state(const ReceiverState new_state, const bool notify_subscribers) {
     // TODO: Schedule this on the maintenance thread
     if (state_ == new_state) {
         return;
@@ -571,8 +571,8 @@ void rav::rtp_stream_receiver::set_state(const receiver_state new_state, const b
     }
 }
 
-rav::rtp_stream_receiver::stream_updated_event rav::rtp_stream_receiver::make_updated_event() const {
-    stream_updated_event event;
+rav::rtp::StreamReceiver::StreamUpdatedEvent rav::rtp::StreamReceiver::make_updated_event() const {
+    StreamUpdatedEvent event;
     event.receiver_id = id_;
     event.state = state_;
     event.delay_samples = delay_;
@@ -589,13 +589,13 @@ rav::rtp_stream_receiver::stream_updated_event rav::rtp_stream_receiver::make_up
     return event;
 }
 
-void rav::rtp_stream_receiver::do_maintenance() {
+void rav::rtp::StreamReceiver::do_maintenance() {
     // Check if streams became are no longer receiving data
-    if (state_ == receiver_state::ok || state_ == receiver_state::ok_no_consumer) {
-        const auto now = high_resolution_clock::now();
+    if (state_ == ReceiverState::ok || state_ == ReceiverState::ok_no_consumer) {
+        const auto now = HighResolutionClock::now();
         for (const auto& stream : media_streams_) {
             if ((stream.last_packet_time_ns + k_receive_timeout_ms * 1'000'000).value() < now) {
-                set_state(receiver_state::inactive, true);
+                set_state(ReceiverState::inactive, true);
             }
         }
     }
@@ -615,56 +615,56 @@ void rav::rtp_stream_receiver::do_maintenance() {
     });
 }
 
-void rav::rtp_stream_receiver::do_realtime_maintenance() {
-    if (auto shared_state = audio_thread_reader_.lock_realtime()) {
-        if (shared_state->consumer_active.exchange(true) == false) {
-            shared_state->fifo.pop_all();
+void rav::rtp::StreamReceiver::do_realtime_maintenance() {
+    if (auto state = audio_thread_reader_.lock_realtime()) {
+        if (state->consumer_active.exchange(true) == false) {
+            state->fifo.pop_all();
         }
 
-        while (const auto packet = shared_state->fifo.pop()) {
-            wrapping_uint32 packet_timestamp(packet->timestamp);
-            if (!shared_state->first_packet_timestamp) {
+        while (const auto packet = state->fifo.pop()) {
+            WrappingUint32 packet_timestamp(packet->timestamp);
+            if (!state->first_packet_timestamp) {
                 RAV_TRACE("First packet timestamp: {}", packet->timestamp);
-                shared_state->first_packet_timestamp = packet_timestamp;
-                shared_state->receiver_buffer.set_next_ts(packet->timestamp);
-                shared_state->next_ts = packet_timestamp - delay_.load();
+                state->first_packet_timestamp = packet_timestamp;
+                state->receiver_buffer.set_next_ts(packet->timestamp);
+                state->next_ts = packet_timestamp - delay_.load();
             }
 
             // Determine whether whole packet is too old
-            if (packet_timestamp + packet->packet_time_frames <= shared_state->next_ts) {
+            if (packet_timestamp + packet->packet_time_frames <= state->next_ts) {
                 // RAV_WARNING("Packet too late: seq={}, ts={}", packet->seq, packet->timestamp);
                 TRACY_MESSAGE("Packet too late - skipping");
-                if (!shared_state->packets_too_old.push(packet->seq)) {
+                if (!state->packets_too_old.push(packet->seq)) {
                     RAV_ERROR("Packet not enqueued to packets_too_old");
                 }
                 continue;
             }
 
             // Determine whether packet contains outdated data
-            if (packet_timestamp < shared_state->next_ts) {
+            if (packet_timestamp < state->next_ts) {
                 RAV_WARNING("Packet partly too late: seq={}, ts={}", packet->seq, packet->timestamp);
                 TRACY_MESSAGE("Packet partly too late - not skipping");
-                if (!shared_state->packets_too_old.push(packet->seq)) {
+                if (!state->packets_too_old.push(packet->seq)) {
                     RAV_ERROR("Packet not enqueued to packets_too_old");
                 }
                 // Still process the packet since it contains data that is not outdated
             }
 
-            shared_state->receiver_buffer.clear_until(packet->timestamp);
+            state->receiver_buffer.clear_until(packet->timestamp);
 
-            if (!shared_state->receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->data_len})) {
+            if (!state->receiver_buffer.write(packet->timestamp, {packet->data.data(), packet->data_len})) {
                 RAV_ERROR("Packet not written to buffer");
             }
         }
 
         TRACY_PLOT(
             "available_frames",
-            static_cast<int64_t>(shared_state->next_ts.diff(shared_state->receiver_buffer.next_ts()))
+            static_cast<int64_t>(state->next_ts.diff(state->receiver_buffer.next_ts()))
         );
     }
 }
 
-void rav::rtp_stream_receiver::on_rtp_packet(const rtp_receiver::rtp_packet_event& rtp_event) {
+void rav::rtp::StreamReceiver::on_rtp_packet(const Receiver::RtpPacketEvent& rtp_event) {
     // TODO: We should probably discard filtered packets here and not in rtp_receiver. This would also allow us to use a
     // subscriber list without context in rtp_receiver. Alternatively we could add a virtual function to
     // rtp_receiver::subscriber to determine whether the packet should be filtered or not. But since we need to call a
@@ -685,7 +685,7 @@ void rav::rtp_stream_receiver::on_rtp_packet(const rtp_receiver::rtp_packet_even
     RAV_WARNING("Packet received for unknown session");
 }
 
-void rav::rtp_stream_receiver::on_rtcp_packet(const rtp_receiver::rtcp_packet_event& rtcp_event) {
+void rav::rtp::StreamReceiver::on_rtcp_packet(const Receiver::RtcpPacketEvent& rtcp_event) {
     RAV_TRACE(
         "{} for session {} from {}:{}", rtcp_event.packet.to_string(), rtcp_event.session.to_string(),
         rtcp_event.src_endpoint.address().to_string(), rtcp_event.src_endpoint.port()

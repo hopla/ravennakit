@@ -15,12 +15,12 @@
 #include "ravennakit/core/containers/string_buffer.hpp"
 #include "ravennakit/core/events.hpp"
 
-namespace rav {
+namespace rav::rtsp {
 
 /**
  * Parses RTSP messages.
  */
-class rtsp_parser final: public events<rtsp_request, rtsp_response> {
+class Parser final: public Events<Request, Response> {
   public:
     /**
      * The status of parsing.
@@ -39,7 +39,7 @@ class rtsp_parser final: public events<rtsp_request, rtsp_response> {
         unexpected_blank_line,
     };
 
-    rtsp_parser() = default;
+    Parser() = default;
 
     /**
      * Parses the input and returns the result.
@@ -47,7 +47,7 @@ class rtsp_parser final: public events<rtsp_request, rtsp_response> {
      * @param input The input to parse.
      * @return The result of the parsing.
      */
-    result parse(string_buffer& input);
+    result parse(StringBuffer& input);
 
     /**
      * Resets the state to initial state. This also removes event subscribers.
@@ -63,11 +63,11 @@ class rtsp_parser final: public events<rtsp_request, rtsp_response> {
     } state_ {state::start};
 
     std::string start_line_;
-    rtsp_headers headers_;
+    Headers headers_;
     std::string data_;
 
-    rtsp_request request_;
-    rtsp_response response_;
+    Request request_;
+    Response response_;
 
     result handle_response();
     result handle_request();

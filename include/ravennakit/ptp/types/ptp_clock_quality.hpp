@@ -13,23 +13,23 @@
 #include "ravennakit/core/streams/output_stream.hpp"
 #include "ravennakit/ptp/ptp_definitions.hpp"
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * PTP Clock Quality
  * IEEE1588-2019 section 7.6.2.5, Table 4
  */
-struct ptp_clock_quality {
+struct ClockQuality {
     /// The clock class. Default is 248, for slave-only the value is 255.
     uint8_t clock_class {};
-    ptp_clock_accuracy clock_accuracy {ptp_clock_accuracy::unknown};
+    ClockAccuracy clock_accuracy {ClockAccuracy::unknown};
     uint16_t offset_scaled_log_variance {};
 
-    ptp_clock_quality() = default;
+    ClockQuality() = default;
 
-    explicit ptp_clock_quality(const bool slave_only) {
+    explicit ClockQuality(const bool slave_only) {
         clock_class = slave_only ? 255 : 248;
-        clock_accuracy = ptp_clock_accuracy::unknown;
+        clock_accuracy = ClockAccuracy::unknown;
         offset_scaled_log_variance = 0;
     }
 
@@ -37,7 +37,7 @@ struct ptp_clock_quality {
      * Write the ptp_announce_message to a byte buffer.
      * @param buffer The buffer to write to.
      */
-    void write_to(byte_buffer& buffer) const {
+    void write_to(ByteBuffer& buffer) const {
         buffer.write_be<uint8_t>(clock_class);
         buffer.write_be<uint8_t>(static_cast<uint8_t>(clock_accuracy));
         buffer.write_be<uint16_t>(offset_scaled_log_variance);
@@ -50,7 +50,7 @@ struct ptp_clock_quality {
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
             "clock_class={} clock_accuracy={} offset_scaled_log_variance={}", clock_class,
-            rav::to_string(clock_accuracy), offset_scaled_log_variance
+            rav::ptp::to_string(clock_accuracy), offset_scaled_log_variance
         );
     }
 };

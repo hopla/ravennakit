@@ -21,14 +21,14 @@
 #include <string>
 #include <optional>
 
-namespace rav::env {
+namespace rav {
 
 /**
  * Gets the value of an environment variable.
  * @param name The name of the variable to retrieve. Pointer must be non-null and \0 terminated.
  * @return The environment variable value, or an empty optional if the variable was not found.
  */
-inline std::optional<std::string> get(const char* name) {
+inline std::optional<std::string> get_env(const char* name) {
 #if RAV_WINDOWS
     std::string value(64, 0);
     auto length = GetEnvironmentVariableA(name, value.data(), static_cast<DWORD>(value.size()));

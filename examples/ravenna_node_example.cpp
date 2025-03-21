@@ -15,45 +15,49 @@
 
 #include <CLI/App.hpp>
 
-struct ravenna_node_example final: rav::ravenna_node::subscriber, rav::rtp_stream_receiver::subscriber {
-    explicit ravenna_node_example(const rav::rtp_receiver::configuration& config) : node(config) {
+namespace examples {
+
+struct ravenna_node final: rav::RavennaNode::Subscriber, rav::rtp::StreamReceiver::Subscriber {
+    explicit ravenna_node(const rav::rtp::Receiver::Configuration& config) : node(config) {
         node.subscribe(this).wait();
     }
 
-    ~ravenna_node_example() override {
+    ~ravenna_node() override {
         node.unsubscribe(this).wait();
     }
 
-    void ravenna_node_discovered(const rav::dnssd::dnssd_browser::service_resolved& event) override {
+    void ravenna_node_discovered(const rav::dnssd::Browser::ServiceResolved& event) override {
         RAV_INFO("RAVENNA node discovered: {}", event.description.to_string());
     }
 
-    void ravenna_node_removed(const rav::dnssd::dnssd_browser::service_removed& event) override {
+    void ravenna_node_removed(const rav::dnssd::Browser::ServiceRemoved& event) override {
         RAV_INFO("RAVENNA node removed: {}", event.description.to_string());
     }
 
-    void ravenna_session_discovered(const rav::dnssd::dnssd_browser::service_resolved& event) override {
+    void ravenna_session_discovered(const rav::dnssd::Browser::ServiceResolved& event) override {
         RAV_INFO("RAVENNA session discovered: {}", event.description.to_string());
     }
 
-    void ravenna_session_removed(const rav::dnssd::dnssd_browser::service_removed& event) override {
+    void ravenna_session_removed(const rav::dnssd::Browser::ServiceRemoved& event) override {
         RAV_INFO("RAVENNA session removed: {}", event.description.to_string());
     }
 
-    void ravenna_receiver_added(const rav::ravenna_receiver& receiver) override {
+    void ravenna_receiver_added(const rav::RavennaReceiver& receiver) override {
         RAV_INFO("RAVENNA receiver added for: {}", receiver.get_session_name());
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::StreamReceiver::StreamUpdatedEvent& event) override {
         RAV_INFO("Stream updated: {}", event.to_string());
     }
 
-    rav::ravenna_node node;
+    rav::RavennaNode node;
 };
 
+}  // namespace examples
+
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RAVENNA Receiver example"};
     argv = app.ensure_utf8(argv);
@@ -66,10 +70,10 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    rav::rtp_receiver::configuration config;
+    rav::rtp::Receiver::Configuration config;
     config.interface_address = asio::ip::make_address(interface_address);
 
-    ravenna_node_example node_example(config);
+    examples::ravenna_node node_example(config);
 
     for (auto& session : stream_names) {
         node_example.node.create_receiver(session).wait();

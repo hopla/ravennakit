@@ -25,32 +25,32 @@
 #include <asio/ip/address.hpp>
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a PTP instance as defined in IEEE 1588-2019.
  */
-class ptp_instance {
+class Instance {
   public:
-    struct parent_changed_event {
-        const ptp_parent_ds& parent;
+    struct ParentChangedEvent {
+        const ParentDs& parent;
     };
 
-    struct port_changed_state_event {
-        const ptp_port& port;
+    struct PortChangedStateEventEvent {
+        const Port& port;
     };
 
-    event_emitter<parent_changed_event> on_parent_changed;
-    event_emitter<port_changed_state_event> on_port_changed_state;
+    EventEmitter<ParentChangedEvent> on_parent_changed;
+    EventEmitter<PortChangedStateEventEvent> on_port_changed_state;
 
     /**
      * Constructs a PTP instance.
      * @param io_context The asio io context to use for networking and timers. Should be a single-threaded context,
      * multithreaded contexts are not supported and will lead to race conditions.
      */
-    explicit ptp_instance(asio::io_context& io_context);
+    explicit Instance(asio::io_context& io_context);
 
-    ~ptp_instance();
+    ~Instance();
 
     /**
      * Adds a port to the PTP instance. The port will be used to send and receive PTP messages. The clock identity of
@@ -58,17 +58,17 @@ class ptp_instance {
      * @param interface_address The address of the interface to bind the port to. The network interface must have a MAC
      * address and support multicast.
      */
-    tl::expected<void, ptp_error> add_port(const asio::ip::address& interface_address);
+    tl::expected<void, Error> add_port(const asio::ip::address& interface_address);
 
     /**
      * @return The default data set of the PTP instance.
      */
-    [[nodiscard]] const ptp_default_ds& default_ds() const;
+    [[nodiscard]] const DefaultDs& default_ds() const;
 
     /**
      * @returns The parent ds of the PTP instance.
      */
-    [[nodiscard]] const ptp_parent_ds& get_parent_ds() const;
+    [[nodiscard]] const ParentDs& get_parent_ds() const;
 
     /**
      * Updates the data sets of the PTP instance based on the state decision code.
@@ -76,7 +76,7 @@ class ptp_instance {
      * @param announce_message The announcement message to update the data sets with.
      */
     bool set_recommended_state(
-        ptp_state_decision_code state_decision_code, const std::optional<ptp_announce_message>& announce_message
+        StateDecisionCode state_decision_code, const std::optional<AnnounceMessage>& announce_message
     );
 
     /**
@@ -89,7 +89,7 @@ class ptp_instance {
      * @param header The PTP message header.
      * @return True if the PTP instance should process the message, false otherwise.
      */
-    [[nodiscard]] bool should_process_ptp_messages(const ptp_message_header& header) const;
+    [[nodiscard]] bool should_process_ptp_messages(const MessageHeader& header) const;
 
     /**
      * Determines what the state of a port should be based on the state decision code and the internal state of this
@@ -97,42 +97,42 @@ class ptp_instance {
      * @param code State decision code to determine the state for.
      * @return The state the port should be in.
      */
-    [[nodiscard]] ptp_state get_state_for_decision_code(ptp_state_decision_code code) const;
+    [[nodiscard]] State get_state_for_decision_code(StateDecisionCode code) const;
 
     /**
      * @returns The current PTP time from the local PTP clock in nanoseconds.
      */
-    [[nodiscard]] ptp_timestamp get_local_ptp_time() const;
+    [[nodiscard]] Timestamp get_local_ptp_time() const;
 
     /**
      * Returns the PTP time for given local timestamp.
      * @param local_timestamp The local timestamp.
      * @return The PTP time.
      */
-    [[nodiscard]] ptp_timestamp get_local_ptp_time(ptp_timestamp local_timestamp) const;
+    [[nodiscard]] Timestamp get_local_ptp_time(Timestamp local_timestamp) const;
 
     /**
      * Adjusts the PTP clock of the PTP instance based on the mean delay and offset from the master.
      * @param measurement The measurement data.
      */
-    void update_local_ptp_clock(const ptp_measurement<double>& measurement);
+    void update_local_ptp_clock(const Measurement<double>& measurement);
 
     /**
      * Force updates the local PTP clock to the given timestamp.
      * @param timestamp The timestamp to set the clock to.
      */
-    void force_update_local_ptp_clock(ptp_timestamp timestamp);
+    void force_update_local_ptp_clock(Timestamp timestamp);
 
   private:
     asio::io_context& io_context_;
     asio::steady_timer state_decision_timer_;
-    ptp_default_ds default_ds_;
-    ptp_current_ds current_ds_;
-    ptp_parent_ds parent_ds_;
-    ptp_time_properties_ds time_properties_ds_;
-    std::vector<std::unique_ptr<ptp_port>> ports_;
+    DefaultDs default_ds_;
+    CurrentDs current_ds_;
+    ParentDs parent_ds_;
+    TimePropertiesDs time_properties_ds_;
+    std::vector<std::unique_ptr<Port>> ports_;
     network_interface_list network_interfaces_;
-    ptp_local_ptp_clock local_ptp_clock_;
+    LocalPtpClockClock local_ptp_clock_;
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;
     void schedule_state_decision_timer();

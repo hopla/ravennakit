@@ -13,17 +13,17 @@
 
 #include <bitset>
 
-bool rav::operator==(const ptp_version& lhs, const ptp_version& rhs) {
+bool rav::ptp::operator==(const ptp::Version& lhs, const ptp::Version& rhs) {
     return lhs.major == rhs.major && lhs.minor == rhs.minor;
 }
 
-bool rav::operator!=(const ptp_version& lhs, const ptp_version& rhs) {
+bool rav::ptp::operator!=(const ptp::Version& lhs, const ptp::Version& rhs) {
     return !(lhs == rhs);
 }
 
-rav::ptp_message_header::flag_field
-rav::ptp_message_header::flag_field::from_octets(const uint8_t octet1, const uint8_t octet2) {
-    flag_field flags_field;
+rav::ptp::MessageHeader::FlagField
+rav::ptp::MessageHeader::FlagField::from_octets(const uint8_t octet1, const uint8_t octet2) {
+    FlagField flags_field;
 
     std::bitset<8> octet1_bits(octet1);
     flags_field.alternate_master_flag = octet1_bits[0];
@@ -48,7 +48,7 @@ rav::ptp_message_header::flag_field::from_octets(const uint8_t octet1, const uin
     return flags_field;
 }
 
-uint16_t rav::ptp_message_header::flag_field::to_octets() const {
+uint16_t rav::ptp::MessageHeader::FlagField::to_octets() const {
     uint16_t octets = 0;
     octets |= profile_specific_2 << 14;
     octets |= profile_specific_1 << 13;
@@ -65,32 +65,32 @@ uint16_t rav::ptp_message_header::flag_field::to_octets() const {
     return octets;
 }
 
-auto rav::ptp_message_header::flag_field::tie_members() const {
+auto rav::ptp::MessageHeader::FlagField::tie_members() const {
     return std::tie(
         alternate_master_flag, two_step_flag, unicast_flag, profile_specific_1, profile_specific_2, leap61, leap59,
         current_utc_offset_valid, ptp_timescale, time_traceable, frequency_traceable, synchronization_uncertain
     );
 }
 
-tl::expected<rav::ptp_message_header, rav::ptp_error>
-rav::ptp_message_header::from_data(buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::MessageHeader, rav::ptp::Error>
+rav::ptp::MessageHeader::from_data(BufferView<const uint8_t> data) {
     if (data.empty()) {
-        return tl::unexpected(ptp_error::invalid_data);
+        return tl::unexpected(Error::invalid_data);
     }
 
-    ptp_message_header header;
+    MessageHeader header;
     header.message_length = data.read_be<uint16_t>(2);
     if (data.size() != header.message_length) {
-        return tl::unexpected(ptp_error::invalid_message_length);
+        return tl::unexpected(Error::invalid_message_length);
     }
 
     header.sdo_id.major = (data[0] & 0b11110000) >> 4;
     header.sdo_id.minor = data[5];
-    header.message_type = static_cast<ptp_message_type>(data[0] & 0b00001111);
+    header.message_type = static_cast<MessageType>(data[0] & 0b00001111);
     header.version.major = data[1] & 0b00001111;
     header.version.minor = (data[1] & 0b11110000) >> 4;
     header.domain_number = data[4];
-    header.flags = flag_field::from_octets(data[6], data[7]);
+    header.flags = FlagField::from_octets(data[6], data[7]);
     header.correction_field = data.read_be<int64_t>(8);
     // Type specific octets are ignored (4 octets)
     std::memcpy(header.source_port_identity.clock_identity.data.data(), data.data() + 20, 8);
@@ -102,7 +102,7 @@ rav::ptp_message_header::from_data(buffer_view<const uint8_t> data) {
     return header;
 }
 
-void rav::ptp_message_header::write_to(byte_buffer& buffer) const {
+void rav::ptp::MessageHeader::write_to(ByteBuffer& buffer) const {
     // major sdo id + message type (left shift by multiplication to avoid type promotion)
     buffer.write_be<uint8_t>(((sdo_id.major & 0b00001111) * 16) | (static_cast<uint8_t>(message_type) & 0b00001111));
     // minor version ptp + version ptp (left shift by multiplication to avoid type promotion)
@@ -119,37 +119,37 @@ void rav::ptp_message_header::write_to(byte_buffer& buffer) const {
     buffer.write_be<int8_t>(log_message_interval);
 }
 
-std::string rav::ptp_message_header::to_string() const {
+std::string rav::ptp::MessageHeader::to_string() const {
     return fmt::format(
         "PTP {}: sdo_id={} version={}.{} domain_number={} sequence_id={} source_port_identity={}.{}",
-        rav::to_string(message_type), sdo_id.to_string(), version.major, version.minor, domain_number,
+        rav::ptp::to_string(message_type), sdo_id.to_string(), version.major, version.minor, domain_number,
         sequence_id.value(), source_port_identity.clock_identity.to_string(), source_port_identity.port_number
     );
 }
 
-auto rav::ptp_message_header::tie() const {
+auto rav::ptp::MessageHeader::tie() const {
     return std::tie(
         sdo_id, message_type, version, message_length, domain_number, flags, correction_field, source_port_identity,
         sequence_id, log_message_interval
     );
 }
 
-bool rav::ptp_message_header::matches(const ptp_message_header& other) const {
+bool rav::ptp::MessageHeader::matches(const MessageHeader& other) const {
     return source_port_identity == other.source_port_identity && sequence_id == other.sequence_id;
 }
 
-bool rav::operator==(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs) {
+bool rav::ptp::operator==(const MessageHeader::FlagField& lhs, const MessageHeader::FlagField& rhs) {
     return lhs.tie_members() == rhs.tie_members();
 }
 
-bool rav::operator!=(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs) {
+bool rav::ptp::operator!=(const MessageHeader::FlagField& lhs, const MessageHeader::FlagField& rhs) {
     return lhs.tie_members() != rhs.tie_members();
 }
 
-bool rav::operator==(const ptp_message_header& lhs, const ptp_message_header& rhs) {
+bool rav::ptp::operator==(const MessageHeader& lhs, const MessageHeader& rhs) {
     return lhs.tie() == rhs.tie();
 }
 
-bool rav::operator!=(const ptp_message_header& lhs, const ptp_message_header& rhs) {
+bool rav::ptp::operator!=(const MessageHeader& lhs, const MessageHeader& rhs) {
     return lhs.tie() != rhs.tie();
 }

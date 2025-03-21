@@ -10,7 +10,7 @@
 
 #include "ravennakit/rtsp/detail/rtsp_parser.hpp"
 
-rav::rtsp_parser::result rav::rtsp_parser::parse(string_buffer& input) {
+rav::rtsp::Parser::result rav::rtsp::Parser::parse(StringBuffer& input) {
     while (!input.exhausted()) {
         if (state_ == state::start) {
             const auto start_line = input.read_until_newline();
@@ -50,8 +50,8 @@ rav::rtsp_parser::result rav::rtsp_parser::parse(string_buffer& input) {
                     continue; // Next header line
                 }
 
-                rtsp_headers::header h;
-                string_parser header_parser(*header_line);
+                Headers::Header h;
+                StringParser header_parser(*header_line);
 
                 // Header name
                 if (auto name = header_parser.split(':')) {
@@ -107,8 +107,8 @@ rav::rtsp_parser::result rav::rtsp_parser::parse(string_buffer& input) {
     return result::good;
 }
 
-void rav::rtsp_parser::reset() noexcept {
-    events::reset();
+void rav::rtsp::Parser::reset() noexcept {
+    Events::reset();
     state_ = state::start;
     start_line_.clear();
     headers_.clear();
@@ -117,31 +117,31 @@ void rav::rtsp_parser::reset() noexcept {
     response_.reset();
 }
 
-rav::rtsp_parser::result rav::rtsp_parser::handle_response() {
-    string_parser parser(start_line_);
-    parser.skip("RTSP/");
-    const auto version_major = parser.read_int<int32_t>();
+rav::rtsp::Parser::result rav::rtsp::Parser::handle_response() {
+    StringParser p(start_line_);
+    p.skip("RTSP/");
+    const auto version_major = p.read_int<int32_t>();
     if (!version_major) {
         return result::bad_version;
     }
-    if (!parser.skip('.')) {
+    if (!p.skip('.')) {
         return result::bad_version;
     }
-    const auto version_minor = parser.read_int<int32_t>();
+    const auto version_minor = p.read_int<int32_t>();
     if (!version_minor) {
         return result::bad_version;
     }
-    if (!parser.skip(' ')) {
+    if (!p.skip(' ')) {
         return result::bad_status_code;
     }
-    const auto status_code = parser.read_int<int32_t>();
+    const auto status_code = p.read_int<int32_t>();
     if (!status_code) {
         return result::bad_status_code;
     }
-    if (!parser.skip(' ')) {
+    if (!p.skip(' ')) {
         return result::bad_reason_phrase;
     }
-    const auto reason_phrase = parser.read_until_end();
+    const auto reason_phrase = p.read_until_end();
     if (!reason_phrase) {
         return result::bad_reason_phrase;
     }
@@ -152,7 +152,7 @@ rav::rtsp_parser::result rav::rtsp_parser::handle_response() {
     response_.status_code = *status_code;
     response_.reason_phrase = *reason_phrase;
 
-    std::swap(response_.headers, headers_);
+    std::swap(response_.rtsp_headers, headers_);
     std::swap(response_.data, data_);
 
     emit(response_);
@@ -160,27 +160,27 @@ rav::rtsp_parser::result rav::rtsp_parser::handle_response() {
     return result::good;
 }
 
-rav::rtsp_parser::result rav::rtsp_parser::handle_request() {
-    string_parser parser(start_line_);
-    const auto method = parser.split(' ');
+rav::rtsp::Parser::result rav::rtsp::Parser::handle_request() {
+    StringParser p(start_line_);
+    const auto method = p.split(' ');
     if (!method) {
         return result::bad_method;
     }
-    const auto uri = parser.split(' ');
+    const auto uri = p.split(' ');
     if (!uri) {
         return result::bad_uri;
     }
-    if (!parser.skip("RTSP/")) {
+    if (!p.skip("RTSP/")) {
         return result::bad_protocol;
     }
-    const auto version_major = parser.read_int<int32_t>();
+    const auto version_major = p.read_int<int32_t>();
     if (!version_major) {
         return result::bad_version;
     }
-    if (!parser.skip('.')) {
+    if (!p.skip('.')) {
         return result::bad_version;
     }
-    const auto version_minor = parser.read_int<int32_t>();
+    const auto version_minor = p.read_int<int32_t>();
     if (!version_minor) {
         return result::bad_version;
     }
@@ -191,7 +191,7 @@ rav::rtsp_parser::result rav::rtsp_parser::handle_request() {
     request_.rtsp_version_major = *version_major;
     request_.rtsp_version_minor = *version_minor;
 
-    std::swap(request_.headers, headers_);
+    std::swap(request_.rtsp_headers, headers_);
     std::swap(request_.data, data_);
 
     emit(request_);

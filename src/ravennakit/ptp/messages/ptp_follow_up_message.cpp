@@ -12,18 +12,18 @@
 
 #include "ravennakit/ptp/messages/ptp_message_header.hpp"
 
-tl::expected<rav::ptp_follow_up_message, rav::ptp_error>
-rav::ptp_follow_up_message::from_data(const ptp_message_header& header, const buffer_view<const uint8_t> data) {
+tl::expected<rav::ptp::FollowUpMessage, rav::ptp::Error>
+rav::ptp::FollowUpMessage::from_data(const MessageHeader& header, const BufferView<const uint8_t> data) {
     if (data.size() < k_message_size) {
-        return tl::unexpected(ptp_error::invalid_message_length);
+        return tl::unexpected(Error::invalid_message_length);
     }
 
-    ptp_follow_up_message msg;
+    FollowUpMessage msg;
     msg.header = header;
-    msg.precise_origin_timestamp = ptp_timestamp::from_data(data);
+    msg.precise_origin_timestamp = Timestamp::from_data(data);
     return msg;
 }
 
-std::string rav::ptp_follow_up_message::to_string() const {
+std::string rav::ptp::FollowUpMessage::to_string() const {
     return fmt::format("precise_origin_timestamp={}", precise_origin_timestamp.to_string());
 }

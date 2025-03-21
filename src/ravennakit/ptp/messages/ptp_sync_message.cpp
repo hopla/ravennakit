@@ -10,23 +10,23 @@
 
 #include "ravennakit/ptp/messages/ptp_sync_message.hpp"
 
-tl::expected<rav::ptp_sync_message, rav::ptp_error>
-rav::ptp_sync_message::from_data(const ptp_message_header& header, const buffer_view<const uint8_t> data) {
-    if (data.size() < k_message_length - ptp_message_header::k_header_size) {
-        return tl::unexpected(ptp_error::invalid_message_length);
+tl::expected<rav::ptp::SyncMessage, rav::ptp::Error>
+rav::ptp::SyncMessage::from_data(const MessageHeader& header, const BufferView<const uint8_t> data) {
+    if (data.size() < k_message_length - MessageHeader::k_header_size) {
+        return tl::unexpected(Error::invalid_message_length);
     }
 
-    ptp_sync_message msg;
+    SyncMessage msg;
     msg.header = header;
-    msg.origin_timestamp = ptp_timestamp::from_data(data);
+    msg.origin_timestamp = Timestamp::from_data(data);
     return msg;
 }
 
-void rav::ptp_sync_message::write_to(byte_buffer& buffer) const {
+void rav::ptp::SyncMessage::write_to(ByteBuffer& buffer) const {
     header.write_to(buffer);
     origin_timestamp.write_to(buffer);
 }
 
-std::string rav::ptp_sync_message::to_string() const {
+std::string rav::ptp::SyncMessage::to_string() const {
     return fmt::format("origin_timestamp={}", origin_timestamp.to_string());
 }

@@ -32,12 +32,12 @@ TEST_CASE("ptp_message_header") {
             0x81,                                            // logMessageInterval
         };
 
-        auto header = rav::ptp_message_header::from_data(rav::buffer_view(data));
+        auto header = rav::ptp::MessageHeader::from_data(rav::BufferView(data));
 
         REQUIRE(header.has_value());
         REQUIRE(header->sdo_id.major == 0xf);
         REQUIRE(header->sdo_id.minor == 0x22);
-        REQUIRE(header->message_type == rav::ptp_message_type::management);
+        REQUIRE(header->message_type == rav::ptp::MessageType::management);
         REQUIRE(header->version.major == 0x2);
         REQUIRE(header->version.minor == 0x1);
         REQUIRE(header->message_length == 300);
@@ -73,10 +73,10 @@ TEST_CASE("ptp_message_header") {
     }
 
     SECTION("Write to stream") {
-        rav::ptp_message_header header;
+        rav::ptp::MessageHeader header;
         header.sdo_id.major = 0xf;
         header.sdo_id.minor = 0x22;
-        header.message_type = rav::ptp_message_type::management;
+        header.message_type = rav::ptp::MessageType::management;
         header.version.major = 0x2;
         header.version.minor = 0x1;
         header.message_length = 300;
@@ -93,12 +93,12 @@ TEST_CASE("ptp_message_header") {
         header.source_port_identity.port_number = 0xabcd;
         header.sequence_id = 0x1122;
         header.log_message_interval = -127;
-        rav::byte_buffer buffer;
+        rav::ByteBuffer buffer;
         header.write_to(buffer);
 
         REQUIRE(buffer.size() == 34);
 
-        rav::input_stream_view stream(buffer);
+        rav::InputStreamView stream(buffer);
         REQUIRE(stream.read_be<uint8_t>().value() == 0xfd);                 // majorSdoId & messageType
         REQUIRE(stream.read_be<uint8_t>().value() == 0x12);                 // minorVersionPTP & versionPTP
         REQUIRE(stream.read_be<uint16_t>().value() == 300);                 // messageLength
@@ -120,7 +120,7 @@ TEST_CASE("ptp_message_header::flag_field") {
         uint8_t octet1 = 0;
         uint8_t octet2 = 0;
 
-        auto flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        auto flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.alternate_master_flag == false);
         REQUIRE(flags.two_step_flag == false);
         REQUIRE(flags.unicast_flag == false);
@@ -135,56 +135,56 @@ TEST_CASE("ptp_message_header::flag_field") {
         REQUIRE(flags.synchronization_uncertain == false);
 
         octet1 = 1 << 0;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.alternate_master_flag == true);
 
         octet1 = 1 << 1;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.two_step_flag == true);
 
         octet1 = 1 << 2;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.unicast_flag == true);
 
         octet1 = 1 << 5;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.profile_specific_1 == true);
 
         octet1 = 1 << 6;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.profile_specific_2 == true);
 
         octet2 = 1 << 0;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.leap61 == true);
 
         octet2 = 1 << 1;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.leap59 == true);
 
         octet2 = 1 << 2;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.current_utc_offset_valid == true);
 
         octet2 = 1 << 3;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.ptp_timescale == true);
 
         octet2 = 1 << 4;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.time_traceable == true);
 
         octet2 = 1 << 5;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.frequency_traceable == true);
 
         octet2 = 1 << 6;
-        flags = rav::ptp_message_header::flag_field::from_octets(octet1, octet2);
+        flags = rav::ptp::MessageHeader::FlagField::from_octets(octet1, octet2);
         REQUIRE(flags.synchronization_uncertain == true);
     }
 
     SECTION("Pack to octets") {
-        rav::ptp_message_header::flag_field flags;
+        rav::ptp::MessageHeader::FlagField flags;
 
         SECTION("Leap 61") {
             flags.leap61 = true;
@@ -248,7 +248,7 @@ TEST_CASE("ptp_message_header::flag_field") {
     }
 
     SECTION("Pack with all fields set, make sure reserved fields are zero") {
-        rav::ptp_message_header::flag_field flags;
+        rav::ptp::MessageHeader::FlagField flags;
         flags.alternate_master_flag = true;
         flags.two_step_flag = true;
         flags.unicast_flag = true;

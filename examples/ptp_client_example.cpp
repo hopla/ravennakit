@@ -22,8 +22,8 @@
  */
 
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"PTP Client example"};
     argv = app.ensure_utf8(argv);
@@ -33,13 +33,13 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    std::vector<rav::subscription> subscriptions;
+    std::vector<rav::Subscription> subscriptions;
     asio::io_context io_context;
 
-    rav::ptp_instance ptp_instance(io_context);
+    rav::ptp::Instance ptp_instance(io_context);
     auto result = ptp_instance.add_port(asio::ip::make_address(interface_address));
     if (!result) {
-        RAV_TRACE("PTP Error: {}", static_cast<std::underlying_type_t<rav::ptp_error>>(result.error()));
+        RAV_TRACE("PTP Error: {}", static_cast<std::underlying_type_t<rav::ptp::Error>>(result.error()));
         return 1;
     }
 

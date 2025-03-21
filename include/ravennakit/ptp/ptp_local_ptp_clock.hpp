@@ -22,29 +22,29 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * A class that maintains a local PTP clock as close as possible to some grand master clock.
  * This particular implementation maintains a 'virtual' clock based on the monotonic system clock.
  */
-class ptp_local_ptp_clock {
+class LocalPtpClockClock {
   public:
-    ptp_local_ptp_clock() = default;
+    LocalPtpClockClock() = default;
 
     /**
      * @return The current system time as a PTP timestamp. The timestamp is based on the high resolution clock and bears
      * no relation to wallclock time (UTC or TAI).
      */
-    static ptp_timestamp system_monotonic_now() {
-        return ptp_timestamp(high_resolution_clock::now());
+    static Timestamp system_monotonic_now() {
+        return Timestamp(HighResolutionClock::now());
     }
 
     /**
      * @param system_timestamp The local timestamp to convert to the timescale of the grand master clock.
      * @return The best estimate of the PTP time based on given system time.
      */
-    [[nodiscard]] ptp_timestamp system_to_ptp_time(const ptp_timestamp system_timestamp) const {
+    [[nodiscard]] Timestamp system_to_ptp_time(const Timestamp system_timestamp) const {
         TRACY_ZONE_SCOPED;
         const auto elapsed = system_timestamp.total_seconds_double() - last_sync_.total_seconds_double();
         auto result = last_sync_;
@@ -56,7 +56,7 @@ class ptp_local_ptp_clock {
     /**
      * @return The best estimate of 'now' in the timescale of the grand master clock.
      */
-    [[nodiscard]] ptp_timestamp now() const {
+    [[nodiscard]] Timestamp now() const {
         TRACY_ZONE_SCOPED;
         return system_to_ptp_time(system_monotonic_now());
     }
@@ -66,7 +66,7 @@ class ptp_local_ptp_clock {
      */
     [[nodiscard]] bool is_calibrated() const {
         TRACY_ZONE_SCOPED;
-        return is_locked() && util::is_between(offset_stats_.median(), -k_calibrated_threshold, k_calibrated_threshold);
+        return is_locked() && is_between(offset_stats_.median(), -k_calibrated_threshold, k_calibrated_threshold);
     }
 
     /**
@@ -82,7 +82,7 @@ class ptp_local_ptp_clock {
      * Adjusts the speed of the clock based on the given measurement.
      * @param measurement The measurement to adjust the clock with.
      */
-    void adjust(const ptp_measurement<double>& measurement) {
+    void adjust(const Measurement<double>& measurement) {
         TRACY_ZONE_SCOPED;
 
         const auto system_now = system_monotonic_now();
@@ -162,7 +162,7 @@ class ptp_local_ptp_clock {
      * @param measurement The measurement to update the clock with.
      * @return True if the clock stepped, false otherwise.
      */
-    bool update(const ptp_measurement<double>& measurement) {
+    bool update(const Measurement<double>& measurement) {
         TRACY_ZONE_SCOPED;
 
         TRACY_PLOT("Offset from master (ms)", measurement.offset_from_master * 1000.0);
@@ -179,7 +179,7 @@ class ptp_local_ptp_clock {
      * Force updates the time of the clock to the given timestamp.
      * @param timestamp_seconds The timestamp to set the clock to.
      */
-    void force_update_time(const ptp_timestamp timestamp_seconds) {
+    void force_update_time(const Timestamp timestamp_seconds) {
         TRACY_ZONE_SCOPED;
 
         last_sync_ = system_monotonic_now();
@@ -194,13 +194,13 @@ class ptp_local_ptp_clock {
     constexpr static double k_calibrated_threshold = 0.0018;
     constexpr static int64_t k_clock_step_threshold_seconds = 1;
 
-    ptp_timestamp last_sync_ = system_monotonic_now();
+    Timestamp last_sync_ = system_monotonic_now();
     double shift_ {};
     double frequency_ratio_ = 1.0;
-    sliding_stats offset_stats_ {51};
-    sliding_stats filtered_offset_stats_ {51};
+    SlidingStats offset_stats_ {51};
+    SlidingStats filtered_offset_stats_ {51};
     size_t adjustments_since_last_step_ {};
-    throttle<void> trace_adjustments_throttle_ {std::chrono::seconds(5)};
+    Throttle<void> trace_adjustments_throttle_ {std::chrono::seconds(5)};
 };
 
 }  // namespace rav

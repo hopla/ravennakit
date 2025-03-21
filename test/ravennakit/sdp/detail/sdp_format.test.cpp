@@ -14,7 +14,7 @@
 
 TEST_CASE("media_description | format") {
     SECTION("98/L16/48000/2") {
-        auto result = rav::sdp::format::parse_new("98 L16/48000/2");
+        auto result = rav::sdp::Format::parse_new("98 L16/48000/2");
         REQUIRE(result.is_ok());
         auto fmt = result.move_ok();
         REQUIRE(fmt.payload_type == 98);
@@ -23,15 +23,15 @@ TEST_CASE("media_description | format") {
         REQUIRE(fmt.num_channels == 2);
         auto audio_format = fmt.to_audio_format();
         REQUIRE(audio_format.has_value());
-        auto expected_audio_format = rav::audio_format {
-            rav::audio_format::byte_order::be, rav::audio_encoding::pcm_s16,
-            rav::audio_format::channel_ordering::interleaved, 48000, 2
+        auto expected_audio_format = rav::AudioFormat {
+            rav::AudioFormat::ByteOrder::be, rav::AudioEncoding::pcm_s16,
+            rav::AudioFormat::ChannelOrdering::interleaved, 48000, 2
         };
         REQUIRE(*audio_format == expected_audio_format);
     }
 
     SECTION("98/L16/48000/4") {
-        auto result = rav::sdp::format::parse_new("98 L16/48000/4");
+        auto result = rav::sdp::Format::parse_new("98 L16/48000/4");
         REQUIRE(result.is_ok());
         auto fmt = result.move_ok();
         REQUIRE(fmt.payload_type == 98);
@@ -40,15 +40,15 @@ TEST_CASE("media_description | format") {
         REQUIRE(fmt.num_channels == 4);
         auto audio_format = fmt.to_audio_format();
         REQUIRE(audio_format.has_value());
-        auto expected_audio_format = rav::audio_format {
-            rav::audio_format::byte_order::be, rav::audio_encoding::pcm_s16,
-            rav::audio_format::channel_ordering::interleaved, 48000, 4
+        auto expected_audio_format = rav::AudioFormat {
+            rav::AudioFormat::ByteOrder::be, rav::AudioEncoding::pcm_s16,
+            rav::AudioFormat::ChannelOrdering::interleaved, 48000, 4
         };
         REQUIRE(*audio_format == expected_audio_format);
     }
 
     SECTION("98/L24/48000/2") {
-        auto result = rav::sdp::format::parse_new("98 L24/48000/2");
+        auto result = rav::sdp::Format::parse_new("98 L24/48000/2");
         REQUIRE(result.is_ok());
         auto fmt = result.move_ok();
         REQUIRE(fmt.payload_type == 98);
@@ -57,15 +57,15 @@ TEST_CASE("media_description | format") {
         REQUIRE(fmt.num_channels == 2);
         auto audio_format = fmt.to_audio_format();
         REQUIRE(audio_format.has_value());
-        auto expected_audio_format = rav::audio_format {
-            rav::audio_format::byte_order::be, rav::audio_encoding::pcm_s24,
-            rav::audio_format::channel_ordering::interleaved, 48000, 2
+        auto expected_audio_format = rav::AudioFormat {
+            rav::AudioFormat::ByteOrder::be, rav::AudioEncoding::pcm_s24,
+            rav::AudioFormat::ChannelOrdering::interleaved, 48000, 2
         };
         REQUIRE(*audio_format == expected_audio_format);
     }
 
     SECTION("98/L32/48000/2") {
-        auto result = rav::sdp::format::parse_new("98 L32/48000/2");
+        auto result = rav::sdp::Format::parse_new("98 L32/48000/2");
         REQUIRE(result.is_ok());
         auto fmt = result.move_ok();
         REQUIRE(fmt.payload_type == 98);
@@ -74,15 +74,15 @@ TEST_CASE("media_description | format") {
         REQUIRE(fmt.num_channels == 2);
         auto audio_format = fmt.to_audio_format();
         REQUIRE(audio_format.has_value());
-        auto expected_audio_format = rav::audio_format {
-            rav::audio_format::byte_order::be, rav::audio_encoding::pcm_s32,
-            rav::audio_format::channel_ordering::interleaved, 48000, 2
+        auto expected_audio_format = rav::AudioFormat {
+            rav::AudioFormat::ByteOrder::be, rav::AudioEncoding::pcm_s32,
+            rav::AudioFormat::ChannelOrdering::interleaved, 48000, 2
         };
         REQUIRE(*audio_format == expected_audio_format);
     }
 
     SECTION("98/NA/48000/2") {
-        auto result = rav::sdp::format::parse_new("98 NA/48000/2");
+        auto result = rav::sdp::Format::parse_new("98 NA/48000/2");
         REQUIRE(result.is_ok());
         auto fmt = result.move_ok();
         REQUIRE(fmt.payload_type == 98);

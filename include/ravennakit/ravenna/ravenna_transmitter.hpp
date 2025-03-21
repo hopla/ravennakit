@@ -26,33 +26,33 @@
 
 namespace rav {
 
-class ravenna_transmitter: public rtsp_server::path_handler {
+class RavennaTransmitter: public rtsp::Server::PathHandler {
   public:
-    struct on_data_requested_event {
+    struct OnDataRequestedEvent {
         uint32_t timestamp; // RTP timestamp
-        buffer_view<uint8_t> buffer;
+        BufferView<uint8_t> buffer;
     };
 
-    using events_type = events<on_data_requested_event>;
+    using EventsType = Events<OnDataRequestedEvent>;
 
-    ravenna_transmitter(
-        asio::io_context& io_context, dnssd::dnssd_advertiser& advertiser, rtsp_server& rtsp_server,
-        ptp_instance& ptp_instance, rtp_transmitter& rtp_transmitter, id id, std::string session_name,
+    RavennaTransmitter(
+        asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
+        ptp::Instance& ptp_instance, rtp::Transmitter& rtp_transmitter, Id id, std::string session_name,
         asio::ip::address_v4 interface_address
     );
 
-    ~ravenna_transmitter() override;
+    ~RavennaTransmitter() override;
 
-    ravenna_transmitter(const ravenna_transmitter& other) = delete;
-    ravenna_transmitter& operator=(const ravenna_transmitter& other) = delete;
+    RavennaTransmitter(const RavennaTransmitter& other) = delete;
+    RavennaTransmitter& operator=(const RavennaTransmitter& other) = delete;
 
-    ravenna_transmitter(ravenna_transmitter&& other) noexcept = delete;
-    ravenna_transmitter& operator=(ravenna_transmitter&& other) noexcept = delete;
+    RavennaTransmitter(RavennaTransmitter&& other) noexcept = delete;
+    RavennaTransmitter& operator=(RavennaTransmitter&& other) noexcept = delete;
 
     /**
      * @return The transmitter ID.
      */
-    [[nodiscard]] id get_id() const;
+    [[nodiscard]] Id get_id() const;
 
     /**
      * @return The session name.
@@ -64,13 +64,13 @@ class ravenna_transmitter: public rtsp_server::path_handler {
      * @param format The audio format to set.
      * @return True if the audio format is supported, false otherwise.
      */
-    [[nodiscard]] bool set_audio_format(audio_format format);
+    [[nodiscard]] bool set_audio_format(AudioFormat format);
 
     /**
      * Sets the packet time.
      * @param packet_time The packet time.
      */
-    void set_packet_time(aes67_packet_time packet_time);
+    void set_packet_time(aes67::PacketTime packet_time);
 
     /**
      * @return The packet time in milliseconds as signaled using SDP. If the packet time is 1ms and the sample
@@ -88,7 +88,7 @@ class ravenna_transmitter: public rtsp_server::path_handler {
      * Start the streaming.
      * @param timestamp The timestamp at which to send the first packet.
      */
-    void start(ptp_timestamp timestamp);
+    void start(ptp::Timestamp timestamp);
 
     /**
      * Stops the streaming.
@@ -111,44 +111,44 @@ class ravenna_transmitter: public rtsp_server::path_handler {
      * @param handler The handler to register.
      */
     template<class T>
-    void on(events_type::handler<T> handler) {
+    void on(EventsType::handler<T> handler) {
         events_.on(handler);
     }
 
     // rtsp_server::handler overrides
-    void on_request(rtsp_connection::request_event event) const override;
+    void on_request(rtsp::Connection::RequestEvent event) const override;
 
   private:
-    dnssd::dnssd_advertiser& advertiser_;
-    rtsp_server& rtsp_server_;
-    ptp_instance& ptp_instance_;
-    rtp_transmitter& rtp_transmitter_;
+    dnssd::Advertiser& advertiser_;
+    rtsp::Server& rtsp_server_;
+    ptp::Instance& ptp_instance_;
+    rtp::Transmitter& rtp_transmitter_;
 
-    id id_;
+    Id id_;
     std::string session_name_;
     asio::ip::address_v4 interface_address_;
     asio::ip::address_v4 destination_address_;
     std::string path_by_name_;
     std::string path_by_id_;
-    id advertisement_id_;
+    Id advertisement_id_;
     int32_t clock_domain_ {};
-    audio_format audio_format_;
-    sdp::format sdp_format_;  // I think we can compute this from audio_format_ each time we need it
-    aes67_packet_time ptime_ {aes67_packet_time::ms_1()};
+    AudioFormat audio_format_;
+    sdp::Format sdp_format_;  // I think we can compute this from audio_format_ each time we need it
+    aes67::PacketTime ptime_ {aes67::PacketTime::ms_1()};
     bool running_ {false};
-    ptp_clock_identity grandmaster_identity_;
-    rtp_packet rtp_packet_;
+    ptp::ClockIdentity grandmaster_identity_;
+    rtp::Packet rtp_packet_;
     std::vector<uint8_t> packet_intermediate_buffer_;
     asio::high_resolution_timer timer_;
-    events_type events_;
-    byte_buffer send_buffer_;
-    event_slot<ptp_instance::parent_changed_event> ptp_parent_changed_slot_;
+    EventsType events_;
+    ByteBuffer send_buffer_;
+    EventSlot<ptp::Instance::ParentChangedEvent> ptp_parent_changed_slot_;
 
     /**
      * Sends an announce request to all connected clients.
      */
     void send_announce() const;
-    [[nodiscard]] sdp::session_description build_sdp() const;
+    [[nodiscard]] sdp::SessionDescription build_sdp() const;
     void start_timer();
     void send_data();
     void resize_internal_buffers();

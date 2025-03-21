@@ -8,11 +8,6 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-/**
- * This examples demonstrates how to create a source and send audio onto the network. It does this by reading audio from
- * a wav file on disk and sending it as multicast audio packets.
- */
-
 #include "ravennakit/core/file.hpp"
 #include "ravennakit/core/log.hpp"
 #include "ravennakit/core/system.hpp"
@@ -26,27 +21,28 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
+namespace examples {
 /**
  * Holds the logic for transmitting a wav file over the network.
  */
 class wav_file_player {
   public:
     explicit wav_file_player(
-        asio::io_context& io_context, rav::dnssd::dnssd_advertiser& advertiser, rav::rtsp_server& rtsp_server,
-        rav::ptp_instance& ptp_instance, rav::rtp_transmitter& rtp_transmitter, rav::id::generator& id_generator,
-        const asio::ip::address_v4& interface_address, const rav::file& file_to_play, const std::string& session_name
+        asio::io_context& io_context, rav::dnssd::Advertiser& advertiser, rav::rtsp::Server& rtsp_server,
+        rav::ptp::Instance& ptp_instance, rav::rtp::Transmitter& rtp_transmitter, rav::Id::Generator& id_generator,
+        const asio::ip::address_v4& interface_address, const rav::File& file_to_play, const std::string& session_name
     ) {
         if (!file_to_play.exists()) {
             throw std::runtime_error("File does not exist: " + file_to_play.path().string());
         }
 
-        auto transmitter = std::make_unique<rav::ravenna_transmitter>(
+        auto transmitter = std::make_unique<rav::RavennaTransmitter>(
             io_context, advertiser, rtsp_server, ptp_instance, rtp_transmitter, id_generator.next(), session_name,
             interface_address
         );
 
-        auto file_input_stream = std::make_unique<rav::file_input_stream>(file_to_play);
-        auto reader = std::make_unique<rav::wav_audio_format::reader>(std::move(file_input_stream));
+        auto file_input_stream = std::make_unique<rav::FileInputStream>(file_to_play);
+        auto reader = std::make_unique<rav::WavAudioFormat::Reader>(std::move(file_input_stream));
 
         const auto format = reader->get_audio_format();
         if (!format) {
@@ -60,7 +56,7 @@ class wav_file_player {
         reader_ = std::move(reader);
         transmitter_ = std::move(transmitter);
 
-        transmitter_->on<rav::ravenna_transmitter::on_data_requested_event>([this](auto event) {
+        transmitter_->on<rav::RavennaTransmitter::OnDataRequestedEvent>([this](auto event) {
             TRACY_ZONE_SCOPED;
 
             if (reader_->remaining_audio_data() == 0) {
@@ -69,7 +65,7 @@ class wav_file_player {
 
             auto result = reader_->read_audio_data(event.buffer.data(), event.buffer.size_bytes());
             if (!result) {
-                RAV_ERROR("Failed to read audio data: {}", rav::input_stream::to_string(result.error()));
+                RAV_ERROR("Failed to read audio data: {}", rav::InputStream::to_string(result.error()));
                 return;
             }
             auto read = result.value();
@@ -83,18 +79,24 @@ class wav_file_player {
         });
     }
 
-    void start(const rav::ptp_timestamp at) const {
+    void start(const rav::ptp::Timestamp at) const {
         transmitter_->start(at);
     }
 
   private:
-    std::unique_ptr<rav::wav_audio_format::reader> reader_;
-    std::unique_ptr<rav::ravenna_transmitter> transmitter_;
+    std::unique_ptr<rav::WavAudioFormat::Reader> reader_;
+    std::unique_ptr<rav::RavennaTransmitter> transmitter_;
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to create a source and send audio onto the network. It does this by reading audio from
+ * a wav file on disk and sending it as multicast audio packets.
+ */
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RAVENNA Player example"};
     argv = app.ensure_utf8(argv);
@@ -111,16 +113,16 @@ int main(int const argc, char* argv[]) {
 
     asio::io_context io_context;
 
-    std::vector<std::unique_ptr<wav_file_player>> wav_file_players;
+    std::vector<std::unique_ptr<examples::wav_file_player>> wav_file_players;
 
-    auto advertiser = rav::dnssd::dnssd_advertiser::create(io_context);
-    rav::rtsp_server rtsp_server(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005));
-    rav::rtp_transmitter rtp_transmitter(io_context, interface_address);
+    auto advertiser = rav::dnssd::Advertiser::create(io_context);
+    rav::rtsp::Server rtsp_server(io_context, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 5005));
+    rav::rtp::Transmitter rtp_transmitter(io_context, interface_address);
 
     // PTP
-    rav::ptp_instance ptp_instance(io_context);
+    rav::ptp::Instance ptp_instance(io_context);
     auto slot = ptp_instance.on_port_changed_state.subscribe([&ptp_instance, &wav_file_players](auto event) {
-        if (event.port.state() == rav::ptp_state::slave) {
+        if (event.port.state() == rav::ptp::State::slave) {
             RAV_INFO("Port state changed to slave, start players");
             auto start_at = ptp_instance.get_local_ptp_time();
             start_at.add_seconds(0.5);
@@ -135,14 +137,14 @@ int main(int const argc, char* argv[]) {
     }
 
     // ID generator
-    rav::id::generator id_generator;
+    rav::Id::Generator id_generator;
 
     for (auto& file_path : file_paths) {
-        auto file = rav::file(file_path);
+        auto file = rav::File(file_path);
         const auto file_session_name = file.path().filename().string();
 
         wav_file_players.emplace_back(
-            std::make_unique<wav_file_player>(
+            std::make_unique<examples::wav_file_player>(
                 io_context, *advertiser, rtsp_server, ptp_instance, rtp_transmitter, id_generator, interface_address,
                 file, file_session_name + " " + std::to_string(wav_file_players.size() + 1)
             )

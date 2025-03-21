@@ -23,23 +23,23 @@
 #include <cstdint>
 #include <tl/expected.hpp>
 
-namespace rav {
+namespace rav::ptp {
 
-struct ptp_version {
+struct Version {
     uint8_t major {};
     uint8_t minor {};
 };
 
-bool operator==(const ptp_version& lhs, const ptp_version& rhs);
-bool operator!=(const ptp_version& lhs, const ptp_version& rhs);
+bool operator==(const Version& lhs, const Version& rhs);
+bool operator!=(const Version& lhs, const Version& rhs);
 
 /**
  * Provides a view over given data, interpreting it as a PTP message header.
  */
-struct ptp_message_header {
+struct MessageHeader {
     constexpr static size_t k_header_size = 34;
 
-    struct flag_field {
+    struct FlagField {
         bool alternate_master_flag {};      // Announce, Sync, Follow_Up, Delay_Resp
         bool two_step_flag {};              // Sync, Pdelay_resp
         bool unicast_flag {};               // All
@@ -53,21 +53,21 @@ struct ptp_message_header {
         bool frequency_traceable {};        // Announce
         bool synchronization_uncertain {};  // Announce
 
-        static flag_field from_octets(uint8_t octet1, uint8_t octet2);
+        static FlagField from_octets(uint8_t octet1, uint8_t octet2);
         [[nodiscard]] uint16_t to_octets() const;
 
         [[nodiscard]] auto tie_members() const;
     };
 
-    ptp_sdo_id sdo_id;
-    ptp_message_type message_type {};
-    ptp_version version;
+    SdoId sdo_id;
+    MessageType message_type {};
+    Version version;
     uint16_t message_length {};
     uint8_t domain_number {};
-    flag_field flags;
+    FlagField flags;
     int64_t correction_field {};
-    ptp_port_identity source_port_identity;
-    wrapping_uint<uint16_t> sequence_id {};
+    PortIdentity source_port_identity;
+    WrappingUint<uint16_t> sequence_id {};
     int8_t log_message_interval {};
 
     /**
@@ -75,13 +75,13 @@ struct ptp_message_header {
      * @param data The data to interpret as a PTP message header.
      * @return A PTP message header if the data is valid, otherwise an error.
      */
-    static tl::expected<ptp_message_header, ptp_error> from_data(buffer_view<const uint8_t> data);
+    static tl::expected<MessageHeader, Error> from_data(BufferView<const uint8_t> data);
 
     /**
      * Write the ptp_announce_message to a byte buffer.
      * @param buffer The buffer to write to.
      */
-    void write_to(byte_buffer& buffer) const;
+    void write_to(ByteBuffer& buffer) const;
 
     /**
      * Converts the PTP message header to a human-readable string.
@@ -99,13 +99,13 @@ struct ptp_message_header {
      * @param other The other header to compare to.
      * @returns True if the two headers match, false otherwise.
      */
-    [[nodiscard]] bool matches(const ptp_message_header& other) const;
+    [[nodiscard]] bool matches(const MessageHeader& other) const;
 };
 
-bool operator==(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs);
-bool operator!=(const ptp_message_header::flag_field& lhs, const ptp_message_header::flag_field& rhs);
+bool operator==(const MessageHeader::FlagField& lhs, const MessageHeader::FlagField& rhs);
+bool operator!=(const MessageHeader::FlagField& lhs, const MessageHeader::FlagField& rhs);
 
-bool operator==(const ptp_message_header& lhs, const ptp_message_header& rhs);
-bool operator!=(const ptp_message_header& lhs, const ptp_message_header& rhs);
+bool operator==(const MessageHeader& lhs, const MessageHeader& rhs);
+bool operator!=(const MessageHeader& lhs, const MessageHeader& rhs);
 
 }  // namespace rav

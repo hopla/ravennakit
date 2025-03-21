@@ -14,12 +14,12 @@
 
 #include <cstdint>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents the data set as described in IEEE1588-2019: 8.2.2.
  */
-struct ptp_current_ds {
+struct CurrentDs {
     uint16_t steps_removed {0};
     int64_t offset_from_master{};
     int64_t mean_delay{};

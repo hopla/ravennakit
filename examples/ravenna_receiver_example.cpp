@@ -20,14 +20,7 @@
 #include <asio/io_context.hpp>
 #include <utility>
 
-/**
- * This examples demonstrates how to receive audio streams from a RAVENNA device. It sets up a RAVENNA sink that listens
- * for announcements from a RAVENNA device and starts receiving audio data. It will play the audio to the selected audio
- * device using portaudio.
- * Warning! No drift correction is done between the sender and receiver. At some point buffers will overflow or
- * underflow.
- */
-
+namespace examples {
 constexpr int k_block_size = 256;
 
 class portaudio {
@@ -166,27 +159,27 @@ class portaudio_stream {
     }
 };
 
-class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
+class ravenna_receiver: public rav::rtp::StreamReceiver::Subscriber {
   public:
-    explicit ravenna_receiver_example(
+    explicit ravenna_receiver(
         const std::string& stream_name, std::string audio_device_name, const std::string& interface_address
     ) :
         audio_device_name_(std::move(audio_device_name)) {
-        rtsp_client_ = std::make_unique<rav::ravenna_rtsp_client>(io_context_, browser_);
+        rtsp_client_ = std::make_unique<rav::RavennaRtspClient>(io_context_, browser_);
 
-        rav::rtp_receiver::configuration config;
+        rav::rtp::Receiver::Configuration config;
         config.interface_address = asio::ip::make_address(interface_address);
-        rtp_receiver_ = std::make_unique<rav::rtp_receiver>(io_context_, config);
+        rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(io_context_, config);
 
-        ravenna_receiver_ = std::make_unique<rav::ravenna_receiver>(*rtsp_client_, *rtp_receiver_);
+        ravenna_receiver_ = std::make_unique<rav::RavennaReceiver>(*rtsp_client_, *rtp_receiver_);
         ravenna_receiver_->set_delay(480);
         if (!ravenna_receiver_->subscribe(this)) {
             RAV_WARNING("Failed to add subscriber");
         }
-        ravenna_receiver_->subscribe_to_session(stream_name);
+        std::ignore = ravenna_receiver_->subscribe_to_session(stream_name);
     }
 
-    ~ravenna_receiver_example() override {
+    ~ravenna_receiver() override {
         if (ravenna_receiver_) {
             if (!ravenna_receiver_->unsubscribe(this)) {
                 RAV_WARNING("Failed to remove subscriber");
@@ -203,7 +196,7 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         portaudio_stream_.stop();
     }
 
-    void rtp_stream_receiver_updated(const rav::rtp_stream_receiver::stream_updated_event& event) override {
+    void rtp_stream_receiver_updated(const rav::rtp::StreamReceiver::StreamUpdatedEvent& event) override {
         if (!event.selected_audio_format.is_valid() || audio_format_ == event.selected_audio_format) {
             return;
         }
@@ -216,21 +209,21 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         }
         portaudio_stream_.open_output_stream(
             audio_device_name_, audio_format_.sample_rate, static_cast<int>(audio_format_.num_channels), *sample_format,
-            &ravenna_receiver_example::stream_callback, this
+            &ravenna_receiver::stream_callback, this
         );
     }
 
-    void on_data_ready([[maybe_unused]] rav::wrapping_uint32 timestamp) override {}
+    void on_data_ready([[maybe_unused]] rav::WrappingUint32 timestamp) override {}
 
   private:
     asio::io_context io_context_;
-    rav::ravenna_browser browser_ {io_context_};
-    std::unique_ptr<rav::ravenna_rtsp_client> rtsp_client_;
-    std::unique_ptr<rav::rtp_receiver> rtp_receiver_;
-    std::unique_ptr<rav::ravenna_receiver> ravenna_receiver_;
+    rav::RavennaBrowser browser_ {io_context_};
+    std::unique_ptr<rav::RavennaRtspClient> rtsp_client_;
+    std::unique_ptr<rav::rtp::Receiver> rtp_receiver_;
+    std::unique_ptr<rav::RavennaReceiver> ravenna_receiver_;
     std::string audio_device_name_;
     portaudio_stream portaudio_stream_;
-    rav::audio_format audio_format_;
+    rav::AudioFormat audio_format_;
 
     int stream_callback(
         const void* input, void* output, const unsigned long frame_count, const PaStreamCallbackTimeInfo* time_info,
@@ -250,8 +243,8 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
             return paContinue;
         }
 
-        if (audio_format_.byte_order == rav::audio_format::byte_order::be) {
-            rav::byte_order::swap_bytes(static_cast<uint8_t*>(output), buffer_size, audio_format_.bytes_per_sample());
+        if (audio_format_.byte_order == rav::AudioFormat::ByteOrder::be) {
+            rav::swap_bytes(static_cast<uint8_t*>(output), buffer_size, audio_format_.bytes_per_sample());
         }
 
         return paContinue;
@@ -261,18 +254,18 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
         const void* input, void* output, const unsigned long frameCount, const PaStreamCallbackTimeInfo* timeInfo,
         const PaStreamCallbackFlags statusFlags, void* userData
     ) {
-        return static_cast<ravenna_receiver_example*>(userData)->stream_callback(
+        return static_cast<ravenna_receiver*>(userData)->stream_callback(
             input, output, frameCount, timeInfo, statusFlags
         );
     }
 
-    static std::optional<uint32_t> get_sample_format_for_audio_format(const rav::audio_format& audio_format) {
-        std::array<std::pair<rav::audio_encoding, uint32_t>, 5> pairs {
-            {{rav::audio_encoding::pcm_u8, paUInt8},
-             {rav::audio_encoding::pcm_s8, paInt8},
-             {rav::audio_encoding::pcm_s16, paInt16},
-             {rav::audio_encoding::pcm_s24, paInt24},
-             {rav::audio_encoding::pcm_s32, paInt32}},
+    static std::optional<uint32_t> get_sample_format_for_audio_format(const rav::AudioFormat& audio_format) {
+        std::array<std::pair<rav::AudioEncoding, uint32_t>, 5> pairs {
+            {{rav::AudioEncoding::pcm_u8, paUInt8},
+             {rav::AudioEncoding::pcm_s8, paInt8},
+             {rav::AudioEncoding::pcm_s16, paInt16},
+             {rav::AudioEncoding::pcm_s24, paInt24},
+             {rav::AudioEncoding::pcm_s32, paInt32}},
         };
         for (auto& pair : pairs) {
             if (pair.first == audio_format.encoding) {
@@ -283,9 +276,18 @@ class ravenna_receiver_example: public rav::rtp_stream_receiver::subscriber {
     }
 };
 
+}  // namespace examples
+
+/**
+ * This examples demonstrates how to receive audio streams from a RAVENNA device. It sets up a RAVENNA sink that listens
+ * for announcements from a RAVENNA device and starts receiving audio data. It will play the audio to the selected audio
+ * device using portaudio.
+ * Warning! No drift correction is done between the sender and receiver. At some point buffers will overflow or
+ * underflow.
+ */
 int main(int const argc, char* argv[]) {
-    rav::log::set_level_from_env();
-    rav::system::do_system_checks();
+    rav::set_log_level_from_env();
+    rav::do_system_checks();
 
     CLI::App app {"RAVENNA Receiver example"};
     argv = app.ensure_utf8(argv);
@@ -301,9 +303,9 @@ int main(int const argc, char* argv[]) {
 
     CLI11_PARSE(app, argc, argv);
 
-    portaudio_stream::print_devices();
+    examples::portaudio_stream::print_devices();
 
-    ravenna_receiver_example receiver_example(stream_name, audio_output_device, interface_address);
+    examples::ravenna_receiver receiver_example(stream_name, audio_output_device, interface_address);
 
     std::thread cin_thread([&receiver_example] {
         fmt::println("Press return key to stop...");

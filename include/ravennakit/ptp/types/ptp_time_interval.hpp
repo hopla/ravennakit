@@ -15,14 +15,14 @@
 #include <cstdint>
 #include <cmath>
 
-namespace rav {
+namespace rav::ptp {
 
 /**
  * Represents a point in time. It stores this point as a combination of seconds + nanoseconds + fraction.
  */
-class ptp_time_interval {
+class TimeInterval {
   public:
-    ptp_time_interval() = default;
+    TimeInterval() = default;
 
     /**
      * Constructs a ptp_time_interval from nanoseconds and fraction.
@@ -31,7 +31,7 @@ class ptp_time_interval {
      * @param nanos The number of nanoseconds.
      * @param fraction The nanosecond fraction part.
      */
-    ptp_time_interval(const int64_t seconds, const int32_t nanos, const uint16_t fraction) :
+    TimeInterval(const int64_t seconds, const int32_t nanos, const uint16_t fraction) :
         seconds_(seconds), nanos_(nanos) {
         seconds_ = seconds;
         nanos_ = nanos * k_fractional_scale + fraction;
@@ -93,7 +93,7 @@ class ptp_time_interval {
      * @param value The wire format value.
      * @return The ptp_time_interval.
      */
-    static ptp_time_interval from_wire_format(const int64_t value) {
+    static TimeInterval from_wire_format(const int64_t value) {
         auto nanoseconds = value >> 16;
         const auto seconds = nanoseconds / 1'000'000'000;
         nanoseconds -= seconds * 1'000'000'000;
@@ -106,18 +106,18 @@ class ptp_time_interval {
      * @return The wire format value.
      */
     [[nodiscard]] int64_t to_wire_format() const {
-        const auto r = safe_int64(seconds_) * 1'000'000'000 * k_fractional_scale + nanos_;
+        const auto r = SafeInt64(seconds_) * 1'000'000'000 * k_fractional_scale + nanos_;
 
         if (r.expected()) {
             return r.value();
         }
 
         switch (r.error()) {
-            case safe_int_error::overflow:
+            case SafeIntError::overflow:
                 return std::numeric_limits<int64_t>::max();
-            case safe_int_error::underflow:
+            case SafeIntError::underflow:
                 return std::numeric_limits<int64_t>::min();
-            case safe_int_error::div_by_zero:
+            case SafeIntError::div_by_zero:
             default:
                 RAV_ASSERT_FALSE("Division by zero when converting to wire format");
                 return {};
@@ -129,8 +129,8 @@ class ptp_time_interval {
      * @param other The time interval to add.
      * @return The sum of the two time intervals.
      */
-    ptp_time_interval operator+(const ptp_time_interval& other) const {
-        ptp_time_interval r;
+    TimeInterval operator+(const TimeInterval& other) const {
+        TimeInterval r;
         r.seconds_ = seconds_ + other.seconds_;
         r.nanos_ = nanos_ + other.nanos_;
         r.normalize();
@@ -142,8 +142,8 @@ class ptp_time_interval {
      * @param other The time interval to subtract.
      * @return The difference of the two time intervals.
      */
-    ptp_time_interval operator-(const ptp_time_interval& other) const {
-        ptp_time_interval r;
+    TimeInterval operator-(const TimeInterval& other) const {
+        TimeInterval r;
         r.seconds_ = seconds_ - other.seconds_;
         r.nanos_ = nanos_ - other.nanos_;
         r.normalize();
@@ -155,8 +155,8 @@ class ptp_time_interval {
      * @param other The scalar to divide by.
      * @return A reference to this object.
      */
-    ptp_time_interval operator/(const int64_t& other) const {
-        ptp_time_interval r = *this;
+    TimeInterval operator/(const int64_t& other) const {
+        TimeInterval r = *this;
         r /= other;
         return r;
     }
@@ -166,8 +166,8 @@ class ptp_time_interval {
      * @param other The scalar to multiply by.
      * @return A reference to this object.
      */
-    ptp_time_interval operator*(const int64_t& other) const {
-        ptp_time_interval r = *this;
+    TimeInterval operator*(const int64_t& other) const {
+        TimeInterval r = *this;
         r *= other;
         return r;
     }
@@ -177,7 +177,7 @@ class ptp_time_interval {
      * @param other The time interval to add.
      * @return A reference to this object.
      */
-    ptp_time_interval& operator+=(const ptp_time_interval& other) {
+    TimeInterval& operator+=(const TimeInterval& other) {
         seconds_ += other.seconds_;
         nanos_ += other.nanos_;
         normalize();
@@ -189,7 +189,7 @@ class ptp_time_interval {
      * @param other The time interval to subtract.
      * @return A reference to this object.
      */
-    ptp_time_interval& operator-=(const ptp_time_interval& other) {
+    TimeInterval& operator-=(const TimeInterval& other) {
         seconds_ -= other.seconds_;
         nanos_ -= other.nanos_;
         normalize();
@@ -201,7 +201,7 @@ class ptp_time_interval {
      * @param other The scalar to divide by.
      * @return A reference to this object.
      */
-    ptp_time_interval& operator/=(const int64_t& other) {
+    TimeInterval& operator/=(const int64_t& other) {
         nanos_ += seconds_ % other * 1'000'000'000 * k_fractional_scale;
         seconds_ /= other;
         nanos_ /= other;
@@ -214,7 +214,7 @@ class ptp_time_interval {
      * @param other The scalar to multiply by.
      * @return A reference to this object.
      */
-    ptp_time_interval& operator*=(const int64_t& other) {
+    TimeInterval& operator*=(const int64_t& other) {
         seconds_ *= other;
         const auto fraction = static_cast<uint16_t>(nanos_ & 0xffff) * std::abs(other);
         nanos_ = (nanos_ >> 16 << 16) * other;
@@ -228,7 +228,7 @@ class ptp_time_interval {
      * @param other The time interval to compare to.
      * @return True if the time intervals are equal, false otherwise.
      */
-    bool operator==(const ptp_time_interval& other) const {
+    bool operator==(const TimeInterval& other) const {
         return seconds_ == other.seconds_ && nanos_ == other.nanos_;
     }
 
@@ -237,7 +237,7 @@ class ptp_time_interval {
      * @param other The time interval to compare to.
      * @return True if the time intervals are not equal, false otherwise.
      */
-    bool operator!=(const ptp_time_interval& other) const {
+    bool operator!=(const TimeInterval& other) const {
         return !(*this == other);
     }
 

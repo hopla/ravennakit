@@ -19,10 +19,15 @@
 #include "ravenna_browser.hpp"
 #include "ravenna_rtsp_client.hpp"
 #include "ravenna_receiver.hpp"
+#include "ravenna_sender.hpp"
 #include "ravennakit/core/audio/audio_buffer_view.hpp"
 #include "ravennakit/core/sync/realtime_shared_object.hpp"
 #include "ravennakit/core/util/id.hpp"
+#include "ravennakit/dnssd/dnssd_advertiser.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
+#include "ravennakit/ptp/ptp_instance.hpp"
+#include "ravennakit/rtp/detail/rtp_sender.hpp"
+#include "ravennakit/rtsp/rtsp_server.hpp"
 
 #include <string>
 
@@ -60,6 +65,20 @@ class RavennaNode {
          * @param receiver_id The id of the receiver.
          */
         virtual void ravenna_receiver_removed([[maybe_unused]] Id receiver_id) {}
+
+        /**
+         * Called when a sender is added to the node, or when subscribing.
+         * Called from the maintenance thread.
+         * @param sender The id of the sender.
+         */
+        virtual void ravenna_sender_added([[maybe_unused]] const RavennaSender& sender) {}
+
+        /**
+         * Called when a sender is removed from the node.
+         * Called from the maintenance thread.
+         * @param sender_id The id of the sender.
+         */
+        virtual void ravenna_sender_removed([[maybe_unused]] Id sender_id) {}
     };
 
     explicit RavennaNode(rtp::Receiver::Configuration config);
@@ -87,6 +106,20 @@ class RavennaNode {
      * receiver was not found.
      */
     [[nodiscard]] std::future<bool> set_receiver_delay(Id receiver_id, uint32_t delay_samples);
+
+    /**
+     * Creates a sender for the given session.
+     * @param session_name The name of the session to create a sender for.
+     * @return The ID of the created sender, which might be invalid if the sender couldn't be created.
+     */
+    std::future<Id> create_sender(const std::string& session_name);
+
+    /**
+     * Removes the sender with the given id.
+     * @param sender_id The id of the sender to remove.
+     * @return A future that will be set when the operation is complete.
+     */
+    std::future<void> remove_sender(Id sender_id);
 
     /**
      * Adds a subscriber to the node.
@@ -226,13 +259,19 @@ class RavennaNode {
     asio::io_context io_context_;
     std::thread maintenance_thread_;
     std::thread::id maintenance_thread_id_;
-    asio::ip::address interface_address;
+    asio::ip::address interface_address_;
 
     RavennaBrowser browser_ {io_context_};
     RavennaRtspClient rtsp_client_ {io_context_, browser_};
     std::unique_ptr<rtp::Receiver> rtp_receiver_;
-
     std::vector<std::unique_ptr<RavennaReceiver>> receivers_;
+
+    std::unique_ptr<dnssd::Advertiser> advertiser_;
+    rtsp::Server rtsp_server_;
+    ptp::Instance ptp_instance_;
+    rtp::Sender rtp_sender_;
+    std::vector<std::unique_ptr<RavennaSender>> senders_;
+
     SubscriberList<Subscriber> subscribers_;
 
     RealtimeSharedObject<realtime_shared_context> realtime_shared_context_;

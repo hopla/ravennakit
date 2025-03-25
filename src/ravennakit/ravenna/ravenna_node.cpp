@@ -9,8 +9,13 @@
  */
 
 #include "ravennakit/ravenna/ravenna_node.hpp"
+#include "ravennakit/ravenna/ravenna_sender.hpp"
 
-rav::RavennaNode::RavennaNode(rtp::Receiver::Configuration config) {
+rav::RavennaNode::RavennaNode(rtp::Receiver::Configuration config) :
+    interface_address_(config.interface_address),
+    rtsp_server_(io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 0)),
+    ptp_instance_(io_context_),
+    rtp_sender_(io_context_, config.interface_address.to_v4()) {
     rtp_receiver_ = std::make_unique<rtp::Receiver>(io_context_, std::move(config));
 
     std::promise<std::thread::id> promise;
@@ -20,10 +25,13 @@ rav::RavennaNode::RavennaNode(rtp::Receiver::Configuration config) {
 #if RAV_APPLE
         pthread_setname_np("ravenna_node_maintenance");
 #endif
-        try {
-            io_context_.run();
-        } catch (const std::exception& e) {
-            RAV_ERROR("Exception in maintenance thread: {}", e.what());
+        while (true) {
+            try {
+                io_context_.run();
+                break;
+            } catch (const std::exception& e) {
+                RAV_ERROR("Unhandled exception in maintenance thread: {}", e.what());
+            }
         }
     });
     maintenance_thread_id_ = f.get();
@@ -67,7 +75,7 @@ std::future<void> rav::RavennaNode::remove_receiver(Id receiver_id) {
                     s->ravenna_receiver_removed(receiver_id);
                 }
                 if (!update_realtime_shared_context()) {
-                    // If this happens we're out of luck, because the object will be deleted.
+                    // If this happens we're out of luck, because the object will be deleted after this.
                     RAV_ERROR("Failed to update realtime shared context");
                 }
                 return;
@@ -86,6 +94,50 @@ std::future<bool> rav::RavennaNode::set_receiver_delay(Id receiver_id, uint32_t 
             }
         }
         return false;
+    };
+    return asio::dispatch(io_context_, asio::use_future(work));
+}
+
+std::future<rav::Id> rav::RavennaNode::create_sender(const std::string& session_name) {
+    auto work = [this, session_name]() mutable {
+        if (advertiser_ == nullptr) {
+            advertiser_ = dnssd::Advertiser::create(io_context_);
+        }
+
+        auto new_sender = std::make_unique<RavennaSender>(
+            io_context_, *advertiser_, rtsp_server_, ptp_instance_, rtp_sender_, Id::next_process_wide_unique_id(),
+            session_name, interface_address_.to_v4()
+        );
+        const auto& it = senders_.emplace_back(std::move(new_sender));
+        for (const auto& s : subscribers_) {
+            s->ravenna_sender_added(*it);
+        }
+        if (!update_realtime_shared_context()) {
+            RAV_ERROR("Failed to update realtime shared context");
+        }
+        return it->get_id();
+    };
+    return asio::dispatch(io_context_, asio::use_future(work));
+}
+
+std::future<void> rav::RavennaNode::remove_sender(Id sender_id) {
+    auto work = [this, sender_id]() mutable {
+        for (auto it = senders_.begin(); it != senders_.end(); ++it) {
+            if ((*it)->get_id() == sender_id) {
+                // Extend the lifetime until after the realtime context is updated:
+                const std::unique_ptr<RavennaSender> tmp = std::move(*it);
+                RAV_ASSERT(tmp != nullptr, "Receiver expected to be valid");
+                senders_.erase(it); // It is empty by now
+                for (const auto& s : subscribers_) {
+                    s->ravenna_sender_removed(sender_id);
+                }
+                if (!update_realtime_shared_context()) {
+                    // If this happens we're out of luck, because the object will be deleted after this.
+                    RAV_ERROR("Failed to update realtime shared context");
+                }
+                return;
+            }
+        }
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }

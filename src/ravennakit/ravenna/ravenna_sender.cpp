@@ -80,7 +80,7 @@ rav::Id rav::RavennaSender::get_id() const {
     return id_;
 }
 
-std::string rav::RavennaSender::session_name() const {
+const std::string& rav::RavennaSender::get_session_name() const {
     return session_name_;
 }
 

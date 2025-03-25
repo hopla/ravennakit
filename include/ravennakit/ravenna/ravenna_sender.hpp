@@ -11,9 +11,6 @@
 #pragma once
 
 #include "ravennakit/aes67/aes67_packet_time.hpp"
-
-#include <utility>
-
 #include "ravennakit/core/uri.hpp"
 #include "ravennakit/core/containers/fifo_buffer.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
@@ -29,7 +26,7 @@ namespace rav {
 class RavennaSender: public rtsp::Server::PathHandler {
   public:
     struct OnDataRequestedEvent {
-        uint32_t timestamp; // RTP timestamp
+        uint32_t timestamp;  // RTP timestamp
         BufferView<uint8_t> buffer;
     };
 
@@ -37,7 +34,7 @@ class RavennaSender: public rtsp::Server::PathHandler {
 
     RavennaSender(
         asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
-        ptp::Instance& ptp_instance, rtp::Sender& rtp_transmitter, Id id, std::string session_name,
+        ptp::Instance& ptp_instance, rtp::Sender& rtp_sender, Id id, std::string session_name,
         asio::ip::address_v4 interface_address
     );
 
@@ -57,7 +54,7 @@ class RavennaSender: public rtsp::Server::PathHandler {
     /**
      * @return The session name.
      */
-    [[nodiscard]] std::string session_name() const;
+    [[nodiscard]] const std::string& get_session_name() const;
 
     /**
      * Sets the audio format for the transmitter.

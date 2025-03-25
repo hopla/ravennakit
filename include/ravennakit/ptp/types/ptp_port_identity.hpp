@@ -17,7 +17,7 @@
 #include "ravennakit/core/streams/output_stream.hpp"
 #include "ravennakit/ptp/ptp_error.hpp"
 
-#include <tl/expected.hpp>
+#include "ravennakit/core/expected.hpp"
 
 namespace rav::ptp {
 

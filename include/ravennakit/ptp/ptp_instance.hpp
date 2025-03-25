@@ -21,9 +21,9 @@
 #include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/core/events/event_emitter.hpp"
 #include "ravennakit/core/net/interfaces/network_interface_list.hpp"
+#include "ravennakit/core/expected.hpp"
 
 #include <asio/ip/address.hpp>
-#include <tl/expected.hpp>
 
 namespace rav::ptp {
 
@@ -138,4 +138,4 @@ class Instance {
     void schedule_state_decision_timer();
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

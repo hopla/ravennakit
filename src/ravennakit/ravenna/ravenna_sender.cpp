@@ -35,6 +35,7 @@ rav::RavennaSender::RavennaSender(
     configuration_.audio_format.ordering = AudioFormat::ChannelOrdering::interleaved;
     configuration_.audio_format.sample_rate = 48'000;
     configuration_.audio_format.num_channels = 2;
+    configuration_.audio_format.encoding = AudioEncoding::pcm_s16;
     configuration_.enabled = false;
 
     // Construct a multicast address from the interface address
@@ -161,28 +162,39 @@ tl::expected<void, std::string> rav::RavennaSender::update_configuration(const C
         schedule_announce = true;
     }
 
-    RAV_ASSERT(!configuration_.session_name.empty(), "Session name should not be empty");
-    RAV_ASSERT(configuration_.audio_format.is_valid(), "Audio format should be valid");
-    RAV_ASSERT(configuration_.destination_address.is_multicast(), "Destination address should be multicast");
-    RAV_ASSERT(configuration_.packet_time.is_valid(), "Packet time should be valid");
-    RAV_ASSERT(configuration_.ttl > 0, "TTL should be greater than 0");
+    if (update.enabled.has_value()) {
+        configuration_.enabled = *update.enabled;
+    }
 
-    if (update_advertisement || !configuration_.enabled) {
+    const bool should_be_running = configuration_.enabled && !configuration_.session_name.empty()
+        && configuration_.audio_format.is_valid() && configuration_.destination_address.is_multicast()
+        && configuration_.packet_time.is_valid() && configuration_.ttl > 0;
+
+    if (update_advertisement || !should_be_running) {
         RAV_ASSERT(
             rtsp_path_by_id_.empty() == rtsp_path_by_name_.empty(), "Paths should be either both empty or both set"
         );
-        rtsp_server_.unregister_handler(this);
-        rtsp_path_by_name_.clear();
-        rtsp_path_by_id_.clear();
+
+        if (!rtsp_path_by_id_.empty()) {
+            RAV_TRACE("Unregistering RTSP path handler");
+            rtsp_server_.unregister_handler(this);
+            rtsp_path_by_name_.clear();
+            rtsp_path_by_id_.clear();
+        }
 
         // Stop DNS-SD advertisement
         if (advertisement_id_.is_valid()) {
+            RAV_TRACE("Unregistering sender advertisement");
             advertiser_.unregister_service(advertisement_id_);
             advertisement_id_ = {};
         }
     }
 
-    if (configuration_.enabled == false) {
+    for (const auto& subscriber : subscribers_) {
+        subscriber->ravenna_sender_configuration_updated(id_, configuration_);
+    }
+
+    if (!should_be_running) {
         return {};  // Done here
     }
 
@@ -195,11 +207,14 @@ tl::expected<void, std::string> rav::RavennaSender::update_configuration(const C
         rtsp_path_by_name_ = fmt::format("/by-name/{}", configuration_.session_name);
         rtsp_path_by_id_ = fmt::format("/by-id/{}", id_.to_string());
 
+        RAV_TRACE("Registering RTSP path handler for paths {} and {}", rtsp_path_by_name_, rtsp_path_by_id_);
+
         rtsp_server_.register_handler(rtsp_path_by_name_, this);
         rtsp_server_.register_handler(rtsp_path_by_id_, this);
     }
 
     if (!advertisement_id_.is_valid()) {
+        RAV_TRACE("Registering sender advertisement");
         advertisement_id_ = advertiser_.register_service(
             "_rtsp._tcp,_ravenna_session", configuration_.session_name.c_str(), nullptr, rtsp_server_.port(), {}, false,
             false
@@ -228,7 +243,11 @@ float rav::RavennaSender::get_signaled_ptime() const {
 }
 
 bool rav::RavennaSender::subscribe(Subscriber* subscriber) {
-    return subscribers_.add(subscriber);
+    if (subscribers_.add(subscriber)) {
+        subscriber->ravenna_sender_configuration_updated(id_, configuration_);
+        return true;
+    }
+    return false;
 }
 
 bool rav::RavennaSender::unsubscribe(Subscriber* subscriber) {
@@ -291,7 +310,7 @@ rav::sdp::SessionDescription rav::RavennaSender::build_sdp() const {
         return {};
     }
 
-    if (!configuration_.session_name.empty()) {
+    if (configuration_.session_name.empty()) {
         RAV_ERROR("Session name not set");
         return {};
     }

@@ -140,6 +140,19 @@ std::future<void> rav::RavennaNode::remove_sender(Id sender_id) {
     return asio::dispatch(io_context_, asio::use_future(work));
 }
 
+std::future<tl::expected<void, std::string>>
+rav::RavennaNode::update_sender_configuration(Id sender_id, RavennaSender::ConfigurationUpdate update) {
+    auto work = [this, sender_id, u = std::move(update)]() -> tl::expected<void, std::string> {
+        for (const auto& sender : senders_) {
+            if (sender->get_id() == sender_id) {
+                return sender->update_configuration(u);
+            }
+        }
+        return tl::unexpected("Sender not found");
+    };
+    return asio::dispatch(io_context_, asio::use_future(work));
+}
+
 std::future<void> rav::RavennaNode::subscribe(Subscriber* subscriber) {
     RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber] {

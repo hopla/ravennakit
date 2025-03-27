@@ -38,20 +38,21 @@ class RavennaSender: public rtsp::Server::PathHandler {
     struct Configuration {
         std::string session_name;
         asio::ip::address_v4 destination_address;
-        int32_t ttl;
-        uint8_t payload_type;
+        int32_t ttl {};
+        uint8_t payload_type {};
         AudioFormat audio_format;
         aes67::PacketTime packet_time;
-        bool enabled;
+        bool enabled {};
     };
 
     /**
-     * Field to update in the configuration. Only the fields that are set are updated, which allows for partial updates.
+     * Field to update in the configuration. Only the fields that are set are taken into account, which allows for
+     * partial updates.
      */
     struct ConfigurationUpdate {
         std::optional<std::string> session_name;
         std::optional<asio::ip::address_v4> destination_address;
-        std::optional<int32_t> ttl; // How and where is this used?
+        std::optional<int32_t> ttl;
         std::optional<uint8_t> payload_type;
         std::optional<AudioFormat> audio_format;
         std::optional<aes67::PacketTime> packet_time;

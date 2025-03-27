@@ -122,6 +122,14 @@ class RavennaNode {
     std::future<void> remove_sender(Id sender_id);
 
     /**
+     * Updates the configuration of the sender with the given id.
+     * @param sender_id
+     * @param update The configuration changes to apply.
+     * @return A future that will be set when the operation is complete.
+     */
+    std::future<tl::expected<void, std::string>> update_sender_configuration(Id sender_id, RavennaSender::ConfigurationUpdate update);
+
+    /**
      * Adds a subscriber to the node.
      * This method can be called from any thread, and will wait until the operation is complete.
      * @param subscriber The subscriber to add.

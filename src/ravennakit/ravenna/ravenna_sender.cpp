@@ -84,6 +84,8 @@ rav::Id rav::RavennaSender::get_id() const {
 }
 
 tl::expected<void, std::string> rav::RavennaSender::update_configuration(const ConfigurationUpdate& update) {
+    std::ignore = realtime_context_.reclaim(); // TODO: Do somewhere else, maybe on a timer or something.
+
     // Session name
     if (update.session_name.has_value()) {
         if (update.session_name->empty()) {
@@ -202,6 +204,7 @@ tl::expected<void, std::string> rav::RavennaSender::update_configuration(const C
     }
 
     if (!should_be_running) {
+        realtime_context_.clear();
         return {};  // Done here
     }
 
@@ -280,38 +283,36 @@ bool rav::RavennaSender::send_data_realtime(BufferView<uint8_t> buffer, const st
         const auto framecount = lock->packet_time_frames;
         const auto size_per_packet = framecount * lock->audio_format.bytes_per_frame();
 
-        if (state_ == State::Initial) {
-            rtp_packet_.timestamp(
-                static_cast<uint32_t>(ptp_instance_.get_local_ptp_time().to_samples(lock->audio_format.sample_rate))
-            );
-            state_ = State::Sending;
-        }
-
         RAV_ASSERT(lock->outgoing_packet_buffer_.size() >= size_per_packet, "Buffer size mismatch");
 
         lock->outgoing_data_.write(buffer.data(), buffer.size_bytes());
 
-        const auto ptp_ts =
-            static_cast<uint32_t>(ptp_instance_.get_local_ptp_time().to_samples(lock->audio_format.sample_rate));
-
-        TRACY_PLOT("ts diff", static_cast<int64_t>(WrappingUint32(ptp_ts).diff(rtp_packet_.timestamp())));
-
-        if (rtp_packet_.timestamp() < WrappingUint32(ptp_ts)) {
-            rtp_packet_.timestamp(ptp_ts);
-            RAV_TRACE("Timestamp updated to {}", ptp_ts);
-        }
-
         while (lock->outgoing_data_.size() >= size_per_packet) {
+            auto ptp_ts =
+                static_cast<uint32_t>(ptp_instance_.get_local_ptp_time().to_samples(lock->audio_format.sample_rate));
+
+            if (state_ == State::Initial) {
+                rtp_packet_.timestamp(ptp_ts);
+                state_ = State::Sending;
+            }
+
+            TRACY_PLOT("ts diff", static_cast<int64_t>(WrappingUint32(ptp_ts).diff(rtp_packet_.timestamp())));
+
+            if (rtp_packet_.timestamp() < WrappingUint32(ptp_ts) - framecount) {
+                rtp_packet_.timestamp(ptp_ts);
+                RAV_TRACE("Timestamp updated to {}", ptp_ts);
+            }
+
             lock->outgoing_data_.read(lock->outgoing_packet_buffer_.data(), size_per_packet);
+
+            if (rtp_packet_.timestamp() > WrappingUint32(ptp_ts) + framecount) {
+                continue;  // Skip this packet to time align
+            }
 
             lock->send_buffer_.clear();
 
             if (timestamp.has_value()) {
                 rtp_packet_.timestamp(*timestamp);
-            }
-
-            if (rtp_packet_.timestamp() < WrappingUint32(ptp_ts)) {
-                RAV_WARNING("Timestamp is in the future: {}", (rtp_packet_.timestamp() - ptp_ts).value());
             }
 
             rtp_packet_.encode(lock->outgoing_packet_buffer_.data(), size_per_packet, lock->send_buffer_);
@@ -336,6 +337,10 @@ bool rav::RavennaSender::send_data_realtime(BufferView<uint8_t> buffer, const st
 bool rav::RavennaSender::send_audio_data_realtime(
     const AudioBufferView<const float>& input_buffer, const std::optional<uint32_t> timestamp
 ) {
+    if (input_buffer.find_max_abs() > 1.0f) {
+        RAV_WARNING("Audio overload");
+    }
+
     if (auto realtime_lock = audio_thread_reader_.lock_realtime()) {
         auto audio_format = realtime_lock->audio_format;
         if (audio_format.num_channels != input_buffer.num_channels()) {

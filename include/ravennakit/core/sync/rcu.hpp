@@ -205,7 +205,9 @@ class Rcu {
         std::atomic<int64_t> num_locks_ {0};
     };
 
-    Rcu() = default;
+    Rcu() {
+        update({});
+    }
 
     /**
      * Constructs an rcu object with a new value.

@@ -202,6 +202,8 @@ class WrappingUint {
 
     /**
      * Calculates the difference between two sequence numbers, taking into account wraparound.
+     * The value will be positive if the other sequence number is newer than this one, and negative if this one is
+     * newer.
      * @param other The other sequence number.
      * @return The difference between the two sequence numbers.
      */

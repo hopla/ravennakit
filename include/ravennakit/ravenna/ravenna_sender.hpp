@@ -165,11 +165,6 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
     void on_request(rtsp::Connection::RequestEvent event) const override;
 
   private:
-    enum class State {
-        Initial,
-        Sending,
-    };
-
     dnssd::Advertiser& advertiser_;
     rtsp::Server& rtsp_server_;
     ptp::Instance& ptp_instance_;
@@ -181,9 +176,8 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
     Id advertisement_id_;
     int32_t clock_domain_ {};
     ptp::ClockIdentity grandmaster_identity_;
+    std::mutex mutex_;
 
-    State state_ {State::Initial};
-    rtp::Packet rtp_packet_;
     asio::high_resolution_timer timer_;
     OnDataRequestedHandler on_data_requested_handler_;
     EventSlot<ptp::Instance::ParentChangedEvent> ptp_parent_changed_slot_;
@@ -195,15 +189,16 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
         asio::ip::udp::endpoint destination_endpoint;
         AudioFormat audio_format;
         uint32_t packet_time_frames;
-        FifoBuffer<uint8_t, Fifo::Single> outgoing_data_;
+        rtp::Packet rtp_packet;
+        FifoBuffer<uint8_t, Fifo::Spsc> outgoing_data_;
         std::vector<uint8_t> intermediate_audio_buffer;
         std::vector<uint8_t> intermediate_send_buffer;
         ByteBuffer rtp_packet_buffer;
     };
 
     Rcu<RealtimeContext> realtime_context_;
-    Rcu<RealtimeContext>::Reader audio_thread_reader_ {realtime_context_.create_reader()};
-    Rcu<RealtimeContext>::Reader network_thread_reader_ {realtime_context_.create_reader()};
+    Rcu<RealtimeContext>::Reader send_data_realtime_reader_ {realtime_context_.create_reader()};
+    Rcu<RealtimeContext>::Reader send_outgoing_data_reader_ {realtime_context_.create_reader()};
 
     /**
      * Sends an announce request to all connected clients.
@@ -211,6 +206,8 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
     void send_announce() const;
     [[nodiscard]] sdp::SessionDescription build_sdp() const;
     void start_timer();
+    void stop_timer();
+    void send_outgoing_data();
     void update_realtime_context();
 };
 

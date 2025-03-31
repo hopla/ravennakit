@@ -132,7 +132,7 @@ class Instance {
     TimePropertiesDs time_properties_ds_;
     std::vector<std::unique_ptr<Port>> ports_;
     network_interface_list network_interfaces_;
-    LocalPtpClockClock local_ptp_clock_;
+    LocalPtpClock local_ptp_clock_;
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;
     void schedule_state_decision_timer();

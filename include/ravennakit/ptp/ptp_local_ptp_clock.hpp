@@ -28,9 +28,9 @@ namespace rav::ptp {
  * A class that maintains a local PTP clock as close as possible to some grand master clock.
  * This particular implementation maintains a 'virtual' clock based on the monotonic system clock.
  */
-class LocalPtpClockClock {
+class LocalPtpClock {
   public:
-    LocalPtpClockClock() = default;
+    LocalPtpClock() = default;
 
     /**
      * @return The current system time as a PTP timestamp. The timestamp is based on the high resolution clock and bears

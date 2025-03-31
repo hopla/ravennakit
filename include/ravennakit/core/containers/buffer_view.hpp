@@ -165,6 +165,13 @@ class BufferView {
     }
 
     /**
+     * @return A new buffer_view pointing to the same data, but reinterpreted as a const type.
+     */
+    BufferView<std::add_const_t<Type>> const_view() const {
+        return BufferView<std::add_const_t<Type>>(data_, size_);
+    }
+
+    /**
      * Returns a new buffer_view pointing to the same data, but reinterpreted as a different type.
      * WARNING! Reinterpreting data can potentially lead to undefined behavior. Rules for reinterpret_cast apply.
      * @tparam NewType The type of the reinterpretation.

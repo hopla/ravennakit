@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ravennakit/aes67/aes67_constants.hpp"
 #include "ravennakit/aes67/aes67_packet_time.hpp"
 #include "ravennakit/core/uri.hpp"
 #include "ravennakit/core/audio/audio_buffer_view.hpp"
@@ -21,6 +22,7 @@
 #include "ravennakit/ptp/types/ptp_timestamp.hpp"
 #include "ravennakit/rtp/rtp_packet.hpp"
 #include "ravennakit/rtp/rtp_stream_sender.hpp"
+#include "ravennakit/rtp/detail/rtp_buffer.hpp"
 #include "ravennakit/rtp/detail/rtp_sender.hpp"
 #include "ravennakit/rtsp/rtsp_server.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
@@ -55,6 +57,11 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
         AudioFormat audio_format;
         aes67::PacketTime packet_time;
         bool enabled {};
+        /// When enabled, the sender will adjust the timestamps of the packets to match the PTP time. It does this by
+        /// skipping or jumping packets when the difference becomes greater than 1 packet period. It's a very rough way
+        /// of synchronizing, but can be useful as a quick-and-dirty way of synchronizing data which is not related to
+        /// the PTP time.
+        bool adjust_timestamps {};
     };
 
     /**
@@ -69,6 +76,7 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
         std::optional<AudioFormat> audio_format;
         std::optional<aes67::PacketTime> packet_time;
         std::optional<bool> enabled;
+        std::optional<bool> adjust_timestamps;
     };
 
     class Subscriber {
@@ -83,7 +91,8 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
 
     RavennaSender(
         asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
-        ptp::Instance& ptp_instance, Id id, const asio::ip::address_v4& interface_address
+        ptp::Instance& ptp_instance, Id id, const asio::ip::address_v4& interface_address,
+        ConfigurationUpdate initial_config = {}
     );
 
     ~RavennaSender() override;
@@ -116,14 +125,14 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
      * @param subscriber The subscriber to subscribe.
      * @return True if the subscriber was successfully subscribed, false otherwise.
      */
-    bool subscribe(Subscriber* subscriber);
+    [[nodiscard]] bool subscribe(Subscriber* subscriber);
 
     /**
      * Unsubscribes from the sender.
      * @param subscriber The subscriber to unsubscribe.
      * @return
      */
-    bool unsubscribe(Subscriber* subscriber);
+    [[nodiscard]] bool unsubscribe(Subscriber* subscriber);
 
     /**
      * @return The packet time in milliseconds as signaled using SDP. If the packet time is 1ms and the sample
@@ -143,7 +152,7 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
      * @param timestamp The timestamp of the buffer.
      * @returns True if the buffer was sent, or false if something went wrong.
      */
-    bool send_data_realtime(BufferView<uint8_t> buffer, std::optional<uint32_t> timestamp);
+    [[nodiscard]] bool send_data_realtime(BufferView<const uint8_t> buffer, uint32_t timestamp);
 
     /**
      * Schedules audio data for sending. A call to this function is realtime safe and thread safe as long as only one
@@ -152,7 +161,8 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
      * @param timestamp The timestamp of the buffer.
      * @return True if the buffer was sent, or false if something went wrong.
      */
-    bool send_audio_data_realtime(const AudioBufferView<const float>& input_buffer, std::optional<uint32_t> timestamp);
+    [[nodiscard]] bool
+    send_audio_data_realtime(const AudioBufferView<const float>& input_buffer, uint32_t timestamp);
 
     /**
      * Sets a handler for when data is requested. The handler should fill the buffer with audio data and return true if
@@ -185,20 +195,33 @@ class RavennaSender: public rtp::StreamSender, public rtsp::Server::PathHandler 
     SubscriberList<Subscriber> subscribers_;
     std::atomic<bool> ptp_stable_ {false};
 
-    struct RealtimeContext {
-        asio::ip::udp::endpoint destination_endpoint;
-        AudioFormat audio_format;
-        uint32_t packet_time_frames;
-        rtp::Packet rtp_packet;
-        FifoBuffer<uint8_t, Fifo::Spsc> outgoing_data_;
-        std::vector<uint8_t> intermediate_audio_buffer;
-        std::vector<uint8_t> intermediate_send_buffer;
-        ByteBuffer rtp_packet_buffer;
+    struct Packet {
+        uint32_t rtp_timestamp {};
+        uint32_t payload_size_bytes {};
+        std::array<uint8_t, aes67::constants::k_max_payload> payload {};
     };
 
-    Rcu<RealtimeContext> realtime_context_;
-    Rcu<RealtimeContext>::Reader send_data_realtime_reader_ {realtime_context_.create_reader()};
-    Rcu<RealtimeContext>::Reader send_outgoing_data_reader_ {realtime_context_.create_reader()};
+    struct SharedContext {
+        // Network thread:
+        asio::ip::udp::endpoint destination_endpoint;
+
+        // Audio thread:
+        bool adjust_timestamps {};
+        ByteBuffer rtp_packet_buffer;
+        std::vector<uint8_t> intermediate_send_buffer;
+        std::vector<uint8_t> intermediate_audio_buffer;
+        uint32_t packet_time_frames;
+        rtp::Packet rtp_packet;
+        AudioFormat audio_format;
+        rtp::Buffer rtp_buffer;
+
+        // Audio thread writes and network thread reads:
+        FifoBuffer<Packet, Fifo::Spsc> outgoing_data;
+    };
+
+    Rcu<SharedContext> shared_context_;
+    Rcu<SharedContext>::Reader send_data_realtime_reader_ {shared_context_.create_reader()};
+    Rcu<SharedContext>::Reader send_outgoing_data_reader_ {shared_context_.create_reader()};
 
     /**
      * Sends an announce request to all connected clients.

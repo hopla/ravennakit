@@ -111,7 +111,7 @@ class RavennaNode {
      * Creates a sender for the given session.
      * @return The ID of the created sender, which might be invalid if the sender couldn't be created.
      */
-    std::future<Id> create_sender();
+    std::future<Id> create_sender(const RavennaSender::ConfigurationUpdate& initial_config = {});
 
     /**
      * Removes the sender with the given id.
@@ -126,7 +126,8 @@ class RavennaNode {
      * @param update The configuration changes to apply.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<tl::expected<void, std::string>> update_sender_configuration(Id sender_id, RavennaSender::ConfigurationUpdate update);
+    std::future<tl::expected<void, std::string>>
+    update_sender_configuration(Id sender_id, RavennaSender::ConfigurationUpdate update);
 
     /**
      * Adds a subscriber to the node.
@@ -148,8 +149,7 @@ class RavennaNode {
      * @param subscriber The subscriber to add.
      * @return A future that will be set when the operation is complete.
      */
-    [[nodiscard]] std::future<void>
-    subscribe_to_receiver(Id receiver_id, rtp::StreamReceiver::Subscriber* subscriber);
+    [[nodiscard]] std::future<void> subscribe_to_receiver(Id receiver_id, rtp::StreamReceiver::Subscriber* subscriber);
 
     /**
      * Removes a subscriber from the receiver with the given id.
@@ -189,8 +189,7 @@ class RavennaNode {
      * @param receiver_id The id of the receiver to get the receiver for.
      * @param update_function The function to call with the receiver.
      */
-    [[nodiscard]] std::future<bool>
-    get_receiver(Id receiver_id, std::function<void(RavennaReceiver&)> update_function);
+    [[nodiscard]] std::future<bool> get_receiver(Id receiver_id, std::function<void(RavennaReceiver&)> update_function);
 
     /**
      * Get the SDP for the receiver with the given id.
@@ -237,7 +236,7 @@ class RavennaNode {
      * @param buffer The buffer to send.
      * @param timestamp The timestamp of the data.
      */
-    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<uint8_t> buffer, uint32_t timestamp);
+    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
 
     /**
      * Schedules audio data to be sent onto the network.
@@ -246,9 +245,7 @@ class RavennaNode {
      * @param timestamp The timestamp of the data.
      * @return True if the data was sent, false if something went wrong.
      */
-    [[nodiscard]] bool send_audio_data_realtime(
-        Id sender_id, const AudioBufferView<const float>& buffer, std::optional<uint32_t> timestamp
-    );
+    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
 
     /**
      * @return True if this method is called on the maintenance thread, false otherwise.

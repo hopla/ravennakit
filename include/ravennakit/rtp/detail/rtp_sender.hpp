@@ -9,8 +9,10 @@
  */
 
 #pragma once
+
 #include "udp_sender_receiver.hpp"
 #include "ravennakit/rtp/rtp_packet.hpp"
+#include "ravennakit/core/containers/buffer_view.hpp"
 
 namespace rav::rtp {
 
@@ -38,6 +40,29 @@ class Sender {
         RAV_ASSERT(packet.data() != nullptr, "Packet data is null");
         RAV_ASSERT(packet.size() > 0, "Packet size is 0");
         socket_.send_to(asio::buffer(packet.data(), packet.size()), endpoint);
+    }
+
+    /**
+     * Sends given data as an RTP packet.
+     * @param packet Encoded RTP packet.
+     * @param endpoint The endpoint to send the packet to.
+     */
+    void send_to(const BufferView<const uint8_t>& packet, const asio::ip::udp::endpoint& endpoint) {
+        RAV_ASSERT(packet.data() != nullptr, "Packet data is null");
+        RAV_ASSERT(!packet.empty(), "Packet is empty");
+        socket_.send_to(asio::buffer(packet.data(), packet.size()), endpoint);
+    }
+
+    /**
+     * Sends given data as an RTP packet.
+     * @param data Pointer to the data to send.
+     * @param data_size The size of the data to send.
+     * @param endpoint The endpoint to send the packet to.
+     */
+    void send_to(const uint8_t* data, const size_t data_size, const asio::ip::udp::endpoint& endpoint) {
+        RAV_ASSERT(data != nullptr, "Packet data is null");
+        RAV_ASSERT(data_size != 0, "Packet is empty");
+        socket_.send_to(asio::buffer(data, data_size), endpoint);
     }
 
     /**

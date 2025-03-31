@@ -108,15 +108,15 @@ std::future<bool> rav::RavennaNode::set_receiver_delay(Id receiver_id, uint32_t 
     return asio::dispatch(io_context_, asio::use_future(work));
 }
 
-std::future<rav::Id> rav::RavennaNode::create_sender() {
-    auto work = [this]() mutable {
+std::future<rav::Id> rav::RavennaNode::create_sender(const RavennaSender::ConfigurationUpdate& initial_config) {
+    auto work = [this, initial_config]() mutable {
         if (advertiser_ == nullptr) {
             advertiser_ = dnssd::Advertiser::create(io_context_);
         }
 
         auto new_sender = std::make_unique<RavennaSender>(
             io_context_, *advertiser_, rtsp_server_, ptp_instance_, Id::get_next_process_wide_unique_id(),
-            interface_address_
+            interface_address_, std::move(initial_config)
         );
         const auto& it = senders_.emplace_back(std::move(new_sender));
         for (const auto& s : subscribers_) {
@@ -340,7 +340,7 @@ std::optional<uint32_t> rav::RavennaNode::read_audio_data_realtime(
 }
 
 bool rav::RavennaNode::send_data_realtime(
-    const Id sender_id, const BufferView<uint8_t> buffer, const uint32_t timestamp
+    const Id sender_id, const BufferView<const uint8_t> buffer, const uint32_t timestamp
 ) {
     const auto lock = realtime_shared_context_.lock_realtime();
 
@@ -354,7 +354,7 @@ bool rav::RavennaNode::send_data_realtime(
 }
 
 bool rav::RavennaNode::send_audio_data_realtime(
-    const Id sender_id, const AudioBufferView<const float>& buffer, const std::optional<uint32_t> timestamp
+    const Id sender_id, const AudioBufferView<const float>& buffer, const uint32_t timestamp
 ) {
     const auto lock = realtime_shared_context_.lock_realtime();
 

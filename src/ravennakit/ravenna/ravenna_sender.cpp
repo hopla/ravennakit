@@ -564,8 +564,13 @@ void rav::RavennaSender::send_outgoing_data() {
         const auto packet = lock->outgoing_data.pop();
 
         if (!packet.has_value()) {
-            return; // Nothing to do here
+            return;  // Nothing to do here
         }
+
+        const auto ptp_ts =
+            static_cast<uint32_t>(ptp_instance_.get_local_ptp_time().to_samples(lock->audio_format.sample_rate));
+
+        TRACY_PLOT("ts diff", static_cast<int64_t>(WrappingUint32(ptp_ts).diff(WrappingUint32(packet->rtp_timestamp))));
 
         RAV_ASSERT(packet->payload_size_bytes <= aes67::constants::k_max_payload, "Payload size exceeds maximum");
 

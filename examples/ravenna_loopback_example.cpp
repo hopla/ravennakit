@@ -99,13 +99,16 @@ class loopback: public rav::rtp::StreamReceiver::Subscriber {
     }
 
     void on_data_ready(rav::WrappingUint32 timestamp) override {
-        timestamp += ravenna_receiver_->get_delay();
-
         if (!ravenna_receiver_->read_data_realtime(buffer_.data(), buffer_.size(), timestamp.value())) {
             RAV_ERROR("Failed to read data from receiver");
             return;
         }
 
+        timestamp += ravenna_receiver_->get_delay();
+
+        // Note: incoming packets are being forwarded right away, but this discards any
+        // out-or-order-but-within-deadline-packets. The proper way to do this is to send the packet only after the PTP
+        // time has been reached.
         std::ignore = sender_->send_data_realtime(rav::BufferView(buffer_).const_view(), timestamp.value());
     }
 

@@ -292,10 +292,6 @@ std::optional<uint32_t> rav::rtp::StreamReceiver::read_data_realtime(
             return std::nullopt;
         }
 
-        if (!lock->first_packet_timestamp.has_value()) {
-            return std::nullopt;
-        }
-
         if (at_timestamp.has_value()) {
             lock->next_ts = *at_timestamp;
         }
@@ -449,7 +445,6 @@ void rav::rtp::StreamReceiver::restart() {
 
     shared_state_.update(std::move(new_state));
 
-    // TODO: Synchronize with the network thread
     for (auto& stream : media_streams_) {
         stream.first_packet_timestamp.reset();
         stream.packet_stats.reset();

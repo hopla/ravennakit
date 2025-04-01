@@ -1,0 +1,39 @@
+/*
+ * Owllab License Agreement
+ *
+ * This software is provided by Owllab and may not be used, copied, modified,
+ * merged, published, distributed, sublicensed, or sold without a valid and
+ * explicit agreement with Owllab.
+ *
+ * Copyright (c) 2025 Owllab. All rights reserved.
+ */
+
+#include "ravennakit/core/sync/double_buffer.hpp"
+
+#include <catch2/catch_all.hpp>
+#include <thread>
+
+TEST_CASE("DoubleBuffer") {
+    static constexpr int k_num_iterations = 500000;
+
+    rav::DoubleBuffer<int> buffer;
+
+    std::thread producer([&] {
+        for (int i = 0; i < k_num_iterations; ++i) {
+            buffer.update(i);
+        }
+    });
+
+    std::thread consumer([&] {
+        int prev = -1;
+        for (int i = 0; i < k_num_iterations; ++i) {
+            if (auto value = buffer.get()) {
+                REQUIRE(*value > prev);
+                prev = *value;
+            }
+        }
+    });
+
+    producer.join();
+    consumer.join();
+}

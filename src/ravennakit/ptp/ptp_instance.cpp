@@ -209,7 +209,7 @@ rav::ptp::State rav::ptp::Instance::get_state_for_decision_code(const StateDecis
 }
 
 rav::ptp::Timestamp rav::ptp::Instance::get_local_ptp_time() const {
-    return local_ptp_clock_.now();
+    return local_clock_.now();
 }
 
 void rav::ptp::Instance::update_local_ptp_clock(const Measurement<double>& measurement) {

@@ -28,6 +28,12 @@ class DoubleBuffer {
   public:
     DoubleBuffer() = default;
 
+    DoubleBuffer(const DoubleBuffer&) = delete;
+    DoubleBuffer& operator=(const DoubleBuffer&) = delete;
+
+    DoubleBuffer(DoubleBuffer&&) = delete;
+    DoubleBuffer& operator=(DoubleBuffer&&) = delete;
+
     /**
      * Updates the value.
      * @param value The new value.

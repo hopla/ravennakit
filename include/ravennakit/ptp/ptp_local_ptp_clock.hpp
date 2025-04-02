@@ -152,21 +152,10 @@ class LocalPtpClock {
         double frequency_ratio_adjustment = {};
 
         if (is_locked()) {
-            constexpr double base = 1.5;         // The higher the value, the faster the clock will adjust (>= 1.0)
-            constexpr double max_ratio = 0.5;    // +/-
-            constexpr double max_step = 0.0001;  // Maximum step size
-            const auto nominal_ratio =
-                std::clamp(std::pow(base, -measurement.offset_from_master), 1.0 - max_ratio, 1 + max_ratio);
-
-            if (std::fabs(nominal_ratio - frequency_ratio) > max_step) {
-                if (frequency_ratio < nominal_ratio) {
-                    frequency_ratio_adjustment = max_step;
-                } else {
-                    frequency_ratio_adjustment = -max_step;
-                }
-            } else {
-                frequency_ratio_adjustment = nominal_ratio - frequency_ratio;
-            }
+            constexpr double max_ratio = 0.5;  // +/-
+            auto nominal_ratio = 0.001 * std::pow(-measurement.offset_from_master, 3) + 1.0;
+            nominal_ratio = std::clamp(nominal_ratio, 1.0 - max_ratio, 1 + max_ratio);
+            frequency_ratio_adjustment = nominal_ratio - frequency_ratio;
         } else {
             adjustments_since_last_step_++;
             frequency_ratio_adjustment = 1.0 - frequency_ratio;
@@ -228,7 +217,6 @@ class LocalPtpClock {
     SlidingStats filtered_offset_stats_ {51};
     size_t adjustments_since_last_step_ {};
     Throttle<void> trace_adjustments_throttle_ {std::chrono::seconds(5)};
-    Timestamp last_sync_ = local_clock_.now();
 };
 
 }  // namespace rav::ptp

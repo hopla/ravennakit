@@ -105,13 +105,6 @@ class Instance {
     [[nodiscard]] Timestamp get_local_ptp_time() const;
 
     /**
-     * Returns the PTP time for given local timestamp.
-     * @param local_timestamp The local timestamp.
-     * @return The PTP time.
-     */
-    [[nodiscard]] Timestamp get_local_ptp_time(Timestamp local_timestamp) const;
-
-    /**
      * Adjusts the PTP clock of the PTP instance based on the mean delay and offset from the master.
      * @param measurement The measurement data.
      */

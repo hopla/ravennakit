@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "ptp_local_clock.hpp"
 #include "detail/ptp_basic_filter.hpp"
 #include "detail/ptp_measurement.hpp"
 #include "ravennakit/core/tracy.hpp"
@@ -24,91 +25,13 @@
 
 namespace rav::ptp {
 
-class LocalSystemClock {
-  public:
-    /**
-     * @return The best estimate of 'now' in the timescale of the grand master clock.
-     */
-    [[nodiscard]] Timestamp now() const {
-        return get_ptp_time(system_monotonic_now());
-    }
-
-    /**
-     * @param system_time The local timestamp to convert to the timescale of the grand master clock.
-     * @return The best estimate of the PTP time based on given system time.
-     */
-    [[nodiscard]] Timestamp get_ptp_time(const Timestamp system_time) const {
-        TRACY_ZONE_SCOPED;
-        const auto elapsed = system_time.total_seconds_double() - last_sync_.total_seconds_double();
-        auto result = last_sync_;
-        result.add_seconds(elapsed * frequency_ratio_);
-        result.add_seconds(shift_);
-        return result;
-    }
-
-    /**
-     * Adjusts the correction of this clock by adding the given shift and frequency ratio.
-     * @param offset_from_master The shift to apply to the clock.
-     */
-    void adjust(const double offset_from_master) {
-        TRACY_ZONE_SCOPED;
-        last_sync_ = system_monotonic_now();
-        shift_ += -offset_from_master;
-
-        constexpr double max_ratio = 0.5;  // +/-
-        const auto nominal_ratio = 0.001 * std::pow(-offset_from_master, 3) + 1.0;
-        frequency_ratio_ = std::clamp(nominal_ratio, 1.0 - max_ratio, 1 + max_ratio);
-    }
-
-    /**
-     * Steps the clock to the given offset from the master clock. This is used when the clock is out of sync and needs
-     * to be reset.
-     * @param offset_from_master The offset from the master clock in seconds.
-     */
-    void step(const double offset_from_master) {
-        TRACY_ZONE_SCOPED;
-        last_sync_ = system_monotonic_now();
-        shift_ = -offset_from_master;
-        frequency_ratio_ = 1.0;
-    }
-
-    /**
-     * @return The current shift of the clock.
-     */
-    [[nodiscard]] double get_frequency_ratio() const {
-        return frequency_ratio_;
-    }
-
-  private:
-    Timestamp last_sync_ = system_monotonic_now();
-    double shift_ {};
-    double frequency_ratio_ = 1.0;
-
-    /**
-     * @return The current system time as a PTP timestamp. The timestamp is based on the high resolution clock and bears
-     * no relation to wallclock time (UTC or TAI).
-     */
-    static Timestamp system_monotonic_now() {
-        return Timestamp(HighResolutionClock::now());
-    }
-};
-
 /**
  * A class that maintains a local PTP clock as close as possible to some grand master clock.
  * This particular implementation maintains a 'virtual' clock based on the monotonic system clock.
  */
 class LocalPtpClock {
   public:
-    explicit LocalPtpClock(LocalSystemClock& local_clock) : local_clock_(local_clock) {}
-
-    /**
-     * @param local_time The local timestamp to convert to the timescale of the grand master clock.
-     * @return The best estimate of the PTP time based on given system time.
-     */
-    [[nodiscard]] Timestamp system_to_ptp_time(const Timestamp local_time) const {
-        TRACY_ZONE_SCOPED;
-        return local_clock_.get_ptp_time(local_time);
-    }
+    explicit LocalPtpClock(LocalClock& local_clock) : local_clock_(local_clock) {}
 
     /**
      * @return The best estimate of 'now' in the timescale of the grand master clock.
@@ -212,7 +135,7 @@ class LocalPtpClock {
     constexpr static double k_calibrated_threshold = 0.0018;
     constexpr static int64_t k_clock_step_threshold_seconds = 1;
 
-    LocalSystemClock& local_clock_;
+    LocalClock& local_clock_;
 
     SlidingStats offset_stats_ {51};
     SlidingStats filtered_offset_stats_ {51};

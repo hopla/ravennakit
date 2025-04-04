@@ -98,10 +98,6 @@ class loopback: public rav::rtp::StreamReceiver::Subscriber, public rav::ptp::In
         }
 
         timestamp += ravenna_receiver_->get_delay();
-
-        // Note: incoming packets are being forwarded right away, but this discards any
-        // out-or-order-but-within-deadline-packets. The proper way to do this is to send the packet only after the PTP
-        // time has been reached.
         std::ignore = sender_->send_data_realtime(rav::BufferView(buffer_).const_view(), timestamp.value());
     }
 

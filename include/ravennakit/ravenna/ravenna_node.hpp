@@ -86,10 +86,10 @@ class RavennaNode {
 
     /**
      * Creates a new receiver for the given session.
-     * @param session_name The name of the session to create a receiver for. May be empty.
+     * @param initial_config The initial configuration for the receiver. Optional.
      * @return The ID of the created receiver, which might be invalid if the receiver couldn't be created.
      */
-    [[nodiscard]] std::future<Id> create_receiver(const std::string& session_name);
+    [[nodiscard]] std::future<Id> create_receiver(const RavennaReceiver::ConfigurationUpdate& initial_config = {});
 
     /**
      * Removes the receiver with the given id.

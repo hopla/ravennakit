@@ -51,11 +51,9 @@ rav::RavennaNode::~RavennaNode() {
     }
 }
 
-std::future<rav::Id> rav::RavennaNode::create_receiver(const std::string& session_name) {
-    auto work = [this, session_name]() mutable {
-        RavennaReceiver::ConfigurationUpdate config;
-        config.session_name = session_name;
-        auto new_receiver = std::make_unique<RavennaReceiver>(rtsp_client_, *rtp_receiver_, config);
+std::future<rav::Id> rav::RavennaNode::create_receiver(const RavennaReceiver::ConfigurationUpdate& initial_config) {
+    auto work = [this, initial_config]() mutable {
+        auto new_receiver = std::make_unique<RavennaReceiver>(rtsp_client_, *rtp_receiver_, initial_config);
         const auto& it = receivers_.emplace_back(std::move(new_receiver));
         for (const auto& s : subscribers_) {
             s->ravenna_receiver_added(*it);

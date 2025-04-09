@@ -15,16 +15,17 @@
 namespace rav {
 
 /**
- * A list of network interfaces on the system.
+ * A list of network interfaces with some convenience functions to operate on them.
  */
-class network_interface_list {
+class NetworkInterfaceList {
   public:
-    network_interface_list();
+    NetworkInterfaceList();
 
     /**
-     * Refreshes the list with interfaces on the system.
+     * Constructor that takes a vector of network interfaces.
+     * @param interfaces The vector of network interfaces.
      */
-    void refresh_system_interfaces();
+    explicit NetworkInterfaceList(std::vector<NetworkInterface> interfaces);
 
     /**
      * Finds a network interface by the given string. The string can be the identifier, display name, description, MAC
@@ -46,8 +47,24 @@ class network_interface_list {
      */
     [[nodiscard]] const std::vector<NetworkInterface>& interfaces() const;
 
+    /**
+     * Retrieves the list of network interfaces on the system. This is a static function that returns a singleton
+     * instance of the NetworkInterfaceList. This will return an updated list when the ttl has expired or if the
+     * force_refresh parameter is set to true.
+     * @throws std::runtime_error if the list cannot be retrieved.
+     * @param force_refresh If true, the list is refreshed even if the ttl has not expired.
+     * @return The list of network interfaces on the system.
+     */
+    static const NetworkInterfaceList& get_system_interfaces(bool force_refresh = false);
+
   private:
+    static constexpr auto k_ttl = std::chrono::seconds(5);
     std::vector<NetworkInterface> interfaces_;
+
+    /**
+     * Refreshes the list with interfaces on the system.
+     */
+    void repopulate_with_system_interfaces();
 };
 
 }  // namespace rav

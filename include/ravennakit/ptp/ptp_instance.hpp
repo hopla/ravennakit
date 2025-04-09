@@ -155,7 +155,6 @@ class Instance {
     ParentDs parent_ds_;
     TimePropertiesDs time_properties_ds_;
     std::vector<std::unique_ptr<Port>> ports_;
-    network_interface_list network_interfaces_;
     LocalClock local_clock_;
     LocalPtpClock local_ptp_clock_ {local_clock_};
     SubscriberList<Subscriber> subscribers_;

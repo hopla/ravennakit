@@ -12,11 +12,14 @@
 
 #include "ravennakit/core/log.hpp"
 
-rav::network_interface_list::network_interface_list() {
-    refresh_system_interfaces();
+rav::NetworkInterfaceList::NetworkInterfaceList() {
+    repopulate_with_system_interfaces();
 }
 
-const rav::NetworkInterface* rav::network_interface_list::find_by_string(const std::string& search_string) const {
+rav::NetworkInterfaceList::NetworkInterfaceList(std::vector<NetworkInterface> interfaces) :
+    interfaces_(std::move(interfaces)) {}
+
+const rav::NetworkInterface* rav::NetworkInterfaceList::find_by_string(const std::string& search_string) const {
     if (search_string.empty()) {
         return nullptr;
     }
@@ -62,7 +65,7 @@ const rav::NetworkInterface* rav::network_interface_list::find_by_string(const s
     return nullptr;
 }
 
-const rav::NetworkInterface* rav::network_interface_list::find_by_address(const asio::ip::address& address) const {
+const rav::NetworkInterface* rav::NetworkInterfaceList::find_by_address(const asio::ip::address& address) const {
     for (auto& interface : interfaces_) {
         for (const auto& addr : interface.get_addresses()) {
             if (addr == address) {
@@ -73,7 +76,7 @@ const rav::NetworkInterface* rav::network_interface_list::find_by_address(const 
     return nullptr;
 }
 
-void rav::network_interface_list::refresh_system_interfaces() {
+void rav::NetworkInterfaceList::repopulate_with_system_interfaces() {
     auto result = NetworkInterface::get_all();
     if (!result) {
         RAV_ERROR("Failed to get network interfaces: {}", result.error());
@@ -82,6 +85,17 @@ void rav::network_interface_list::refresh_system_interfaces() {
     interfaces_ = std::move(result.value());
 }
 
-const std::vector<rav::NetworkInterface>& rav::network_interface_list::interfaces() const {
+const std::vector<rav::NetworkInterface>& rav::NetworkInterfaceList::interfaces() const {
     return interfaces_;
+}
+
+const rav::NetworkInterfaceList& rav::NetworkInterfaceList::get_system_interfaces(const bool force_refresh) {
+    static NetworkInterfaceList instance(NetworkInterface::get_all().value());
+    static std::chrono::steady_clock::time_point last_refresh_time = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
+    if (force_refresh || std::chrono::steady_clock::now() > last_refresh_time + k_ttl) {
+        instance.repopulate_with_system_interfaces();
+        last_refresh_time = now;
+    }
+    return instance;
 }

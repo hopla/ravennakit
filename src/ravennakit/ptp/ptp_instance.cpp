@@ -56,8 +56,8 @@ tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_port(const asio::ip:
         return tl::unexpected(Error::only_ordinary_clock_supported);
     }
 
-    network_interfaces_.refresh_system_interfaces();
-    auto* iface = network_interfaces_.find_by_address(interface_address);
+    const auto interfaces = NetworkInterfaceList::get_system_interfaces(false);
+    auto* iface = interfaces.find_by_address(interface_address);
     if (!iface) {
         return tl::unexpected(Error::network_interface_not_found);
     }

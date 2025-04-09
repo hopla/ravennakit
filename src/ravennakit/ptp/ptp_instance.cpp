@@ -100,6 +100,10 @@ tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_port(const asio::ip:
     return {};
 }
 
+size_t rav::ptp::Instance::get_port_count() const {
+    return ports_.size();
+}
+
 const rav::ptp::DefaultDs& rav::ptp::Instance::default_ds() const {
     return default_ds_;
 }

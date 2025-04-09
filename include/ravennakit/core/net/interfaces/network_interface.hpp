@@ -135,10 +135,10 @@ class NetworkInterface {
     /**
      * @return The first IPv4 address of the interface, or nullopt if the interface does not have an IPv4 address.
      */
-    asio::ip::address get_first_ipv4_address() const {
+    asio::ip::address_v4 get_first_ipv4_address() const {
         for (const auto& addr : addresses_) {
             if (addr.is_v4()) {
-                return addr;
+                return addr.to_v4();
             }
         }
         return {};

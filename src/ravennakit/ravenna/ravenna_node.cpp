@@ -13,13 +13,9 @@
 #include <utility>
 #include "ravennakit/ravenna/ravenna_sender.hpp"
 
-rav::RavennaNode::RavennaNode(asio::ip::address_v4 interface_address) :
-    interface_address_(std::move(interface_address)),
-    rtsp_server_(io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 0)),
-    ptp_instance_(io_context_) {
+rav::RavennaNode::RavennaNode() :
+    rtsp_server_(io_context_, asio::ip::tcp::endpoint(asio::ip::address_v4::any(), 0)), ptp_instance_(io_context_) {
     rtp_receiver_ = std::make_unique<rtp::Receiver>(io_context_);
-
-    ptp_instance_.add_port(interface_address_);
 
     std::promise<std::thread::id> promise;
     auto f = promise.get_future();
@@ -107,7 +103,8 @@ std::future<rav::Id> rav::RavennaNode::create_sender(const RavennaSender::Config
 
         auto new_sender = std::make_unique<RavennaSender>(
             io_context_, *advertiser_, rtsp_server_, ptp_instance_, Id::get_next_process_wide_unique_id(),
-            interface_address_, std::move(initial_config)
+            config_.network_interfaces.get_ipv4_address(RavennaConfig::NetworkInterfaceConfig::Rank::primary),
+            std::move(initial_config)
         );
         const auto& it = senders_.emplace_back(std::move(new_sender));
         for (const auto& s : subscribers_) {
@@ -372,7 +369,17 @@ rav::RavennaNode::set_network_interface_config(RavennaConfig::NetworkInterfaceCo
         if (config_.network_interfaces.primary != config.primary) {
             config_.network_interfaces.primary = config.primary;
             changed = true;
-            update_rtp_receiver_interface(config_.network_interfaces.primary, *rtp_receiver_);
+            const auto interface_address =
+                config_.network_interfaces.get_ipv4_address(RavennaConfig::NetworkInterfaceConfig::Rank::primary);
+            rtp_receiver_->set_interface(interface_address);
+
+            for (const auto& sender : senders_) {
+                sender->set_interface(interface_address);
+            }
+
+            if (ptp_instance_.get_port_count() == 0) {
+                ptp_instance_.add_port(interface_address);
+            }
         }
 
         if (config_.network_interfaces.secondary != config.secondary) {
@@ -407,21 +414,4 @@ bool rav::RavennaNode::update_realtime_shared_context() {
         new_context->senders.emplace_back(sender.get());
     }
     return realtime_shared_context_.update(std::move(new_context));
-}
-
-void rav::RavennaNode::update_rtp_receiver_interface(
-    const std::optional<NetworkInterface::Identifier>& interface_id, rtp::Receiver& rtp_receiver
-) {
-    const auto& interfaces = NetworkInterfaceList::get_system_interfaces();
-
-    do {
-        if (interface_id) {
-            if (auto* interface = interfaces.get_interface(*interface_id)) {
-                rtp_receiver.set_interface(interface->get_first_ipv4_address());
-                break;
-            }
-        }
-
-        rtp_receiver.set_interface({});  // Leave existing multicast groups
-    } while (false);
 }

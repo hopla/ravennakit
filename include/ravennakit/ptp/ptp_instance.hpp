@@ -98,6 +98,11 @@ class Instance {
     tl::expected<void, Error> add_port(const asio::ip::address& interface_address);
 
     /**
+     * @return The amount of ports in the PTP instance.
+     */
+    size_t get_port_count() const;
+
+    /**
      * @return The default data set of the PTP instance.
      */
     [[nodiscard]] const DefaultDs& default_ds() const;

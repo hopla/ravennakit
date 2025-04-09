@@ -91,7 +91,7 @@ class RavennaNode {
         }
     };
 
-    explicit RavennaNode(asio::ip::address_v4 interface_address);
+    explicit RavennaNode();
     ~RavennaNode();
 
     /**
@@ -322,7 +322,6 @@ class RavennaNode {
     asio::io_context io_context_;
     std::thread maintenance_thread_;
     std::thread::id maintenance_thread_id_;
-    asio::ip::address_v4 interface_address_;
 
     RavennaBrowser browser_ {io_context_};
     RavennaRtspClient rtsp_client_ {io_context_, browser_};
@@ -339,9 +338,6 @@ class RavennaNode {
     RavennaConfig config_;
 
     [[nodiscard]] bool update_realtime_shared_context();
-    static void update_rtp_receiver_interface(
-        const std::optional<NetworkInterface::Identifier>& interface_id, rtp::Receiver& rtp_receiver
-    );
 };
 
 }  // namespace rav

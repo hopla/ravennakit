@@ -12,6 +12,8 @@
 
 #include "network_interface.hpp"
 
+#include <chrono>
+
 namespace rav {
 
 /**

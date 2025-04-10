@@ -409,9 +409,9 @@ bool rav::RavennaNode::is_maintenance_thread() const {
 
 std::future<nlohmann::json> rav::RavennaNode::to_json() {
     auto work = [this] {
-        nlohmann::json j;
-        j["config"] = config_.to_json();
-        return j;
+        nlohmann::json root;
+        root["config"] = config_.to_json();
+        return root;
     };
     return asio::dispatch(io_context_, asio::use_future(work));
 }

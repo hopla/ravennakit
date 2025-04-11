@@ -54,7 +54,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
         /**
          * @return The configuration as a JSON object.
          */
-        nlohmann::json to_json() const;
+        [[nodiscard]] nlohmann::json to_json() const;
     };
 
     /**
@@ -195,14 +195,13 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     ptp::Instance& ptp_instance_;
 
     Id id_;
-    uint32_t session_id_{};
+    uint32_t session_id_ {};
     Configuration configuration_;
     std::string rtsp_path_by_name_;
     std::string rtsp_path_by_id_;
     Id advertisement_id_;
     int32_t clock_domain_ {};
     ptp::ClockIdentity grandmaster_identity_;
-    std::mutex timer_mutex_;
     rtp::Sender rtp_sender_;
 
     asio::high_resolution_timer timer_;

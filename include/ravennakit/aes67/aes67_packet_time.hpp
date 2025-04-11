@@ -120,7 +120,7 @@ class PacketTime {
     /**
      * @return A JSON object representing this AudioFormat.
      */
-    nlohmann::json to_json() const {
+    [[nodiscard]] nlohmann::json to_json() const {
         return nlohmann::json {fraction_.numerator, fraction_.denominator};
     }
 
@@ -134,7 +134,7 @@ class PacketTime {
             const auto numerator = json.at(0).get<uint8_t>();
             const auto denominator = json.at(1).get<uint8_t>();
             return PacketTime {numerator, denominator};
-        } catch (const std::exception& e) {
+        } catch (const std::exception&) {
             return std::nullopt;
         }
     }

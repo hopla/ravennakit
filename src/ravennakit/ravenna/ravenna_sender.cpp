@@ -627,15 +627,19 @@ void rav::RavennaSender::start_timer() {
             RAV_ERROR("Timer error: {}", ec.message());
             return;
         }
-        std::lock_guard lock(timer_mutex_);
         send_outgoing_data();
         start_timer();
     });
 }
 
 void rav::RavennaSender::stop_timer() {
-    std::lock_guard lock(timer_mutex_);
-    timer_.cancel();
+    asio::dispatch(
+        io_context_, asio::use_future([this] {
+            // Break the timer chain by replacing the completion token with a dummy one
+            timer_.async_wait([](asio::error_code) {});
+            timer_.cancel();
+        })
+    ).wait();
 }
 
 void rav::RavennaSender::send_outgoing_data() {

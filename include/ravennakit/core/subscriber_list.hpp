@@ -260,7 +260,7 @@ class SubscriberList<T, void> {
      * @param subscriber The subscriber to remove.
      * @returns true if the subscriber was removed, or false if it was not in the list.
      */
-    [[nodiscard]] bool remove(T* subscriber) {
+    [[nodiscard]] bool remove(const T* subscriber) {
         auto it = std::find(subscribers_.begin(), subscribers_.end(), subscriber);
         if (it == subscribers_.end()) {
             return false;

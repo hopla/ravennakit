@@ -41,7 +41,7 @@ asio::io_context& rav::rtp::Receiver::get_io_context() const {
     return io_context_;
 }
 
-bool rav::rtp::Receiver::subscribe(Subscriber* subscriber, const Session& session, const Filter& filter) {
+bool rav::rtp::Receiver::subscribe(Subscriber* subscriber, const Session& session) {
     auto* context = find_or_create_session_context(session);
 
     if (context == nullptr) {
@@ -51,7 +51,7 @@ bool rav::rtp::Receiver::subscribe(Subscriber* subscriber, const Session& sessio
 
     RAV_ASSERT(context != nullptr, "Expecting valid session at this point");
 
-    return context->subscribers.add_or_update_context(subscriber, SubscriberContext {filter});
+    return context->subscribers.add(subscriber);
 }
 
 bool rav::rtp::Receiver::unsubscribe(const Subscriber* subscriber) {
@@ -204,28 +204,28 @@ void rav::rtp::Receiver::handle_incoming_rtp_data(const ExtendedUdpSocket::recv_
     for (auto& context : sessions_contexts_) {
         if (context.session.connection_address == event.dst_endpoint.address()
             && context.session.rtp_port == event.dst_endpoint.port()) {
-            const RtpPacketEvent rtp_event {packet, context.session, event.src_endpoint, event.recv_time};
+            const RtpPacketEvent rtp_event {
+                packet, context.session, event.src_endpoint, event.dst_endpoint, event.recv_time
+            };
 
             bool did_find_stream = false;
 
-            for (auto& state : context.stream_states) {
-                if (state.ssrc() == packet.ssrc()) {
+            for (auto& state : context.synchronization_sources) {
+                if (state.get_ssrc() == packet.ssrc()) {
                     did_find_stream = true;
                 }
             }
 
             if (!did_find_stream) {
-                auto& it = context.stream_states.emplace_back(packet.ssrc());
+                auto& it = context.synchronization_sources.emplace_back(packet.ssrc());
                 RAV_TRACE(
-                    "Added new stream with SSRC {} from {}:{}", it.ssrc(), event.src_endpoint.address().to_string(),
+                    "Added new stream with SSRC {} from {}:{}", it.get_ssrc(), event.src_endpoint.address().to_string(),
                     event.src_endpoint.port()
                 );
             }
 
-            for (auto& [sub, ctx] : context.subscribers) {
-                if (ctx.filter.is_valid_source(event.dst_endpoint.address(), event.src_endpoint.address())) {
-                    sub->on_rtp_packet(rtp_event);
-                }
+            for (auto* s : context.subscribers) {
+                s->on_rtp_packet(rtp_event);
             }
         }
     }

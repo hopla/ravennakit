@@ -308,7 +308,7 @@ void rav::RavennaReceiver::MediaStream::start() {
     is_running_ = true;
     rtp_ts_.reset();
     packet_stats_.reset();
-    rtp_receiver_.subscribe(this, parameters_.session, parameters_.filter);
+    rtp_receiver_.subscribe(this, parameters_.session);
 }
 
 void rav::RavennaReceiver::MediaStream::stop() {
@@ -320,12 +320,11 @@ void rav::RavennaReceiver::MediaStream::stop() {
 }
 
 void rav::RavennaReceiver::MediaStream::on_rtp_packet(const rtp::Receiver::RtpPacketEvent& rtp_event) {
-    // TODO: We should probably discard filtered packets here and not in rtp_receiver. This would also allow us to use a
-    // subscriber list without context in rtp_receiver. Alternatively we could add a virtual function to
-    // rtp_receiver::subscriber to determine whether the packet should be filtered or not. But since we need to call a
-    // virtual function anyway (this one) we might as well filter it here.
-
     TRACY_ZONE_SCOPED;
+
+    if (!parameters_.filter.is_valid_source(rtp_event.dst_endpoint.address(), rtp_event.src_endpoint.address())) {
+        return;  // This packet is not for us
+    }
 
     const WrappingUint32 packet_timestamp(rtp_event.packet.timestamp());
 

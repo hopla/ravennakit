@@ -34,6 +34,7 @@ class Receiver {
         const PacketView& packet;
         const Session& session;
         const asio::ip::udp::endpoint& src_endpoint;
+        const asio::ip::udp::endpoint& dst_endpoint;
         uint64_t recv_time;  // Monotonically increasing time in nanoseconds with arbitrary starting point.
     };
 
@@ -41,6 +42,7 @@ class Receiver {
         const rtcp::PacketView& packet;
         const Session& session;
         const asio::ip::udp::endpoint& src_endpoint;
+        const asio::ip::udp::endpoint& dst_endpoint;
     };
 
     /**
@@ -95,10 +97,9 @@ class Receiver {
      * Adds a subscriber to the receiver.
      * @param subscriber The subscriber to add
      * @param session The session to subscribe to.
-     * @param filter The filter to apply to the session.
      * @return true if the subscriber was added, or false if it was already in the list.
      */
-    bool subscribe(Subscriber* subscriber, const Session& session, const Filter& filter);
+    bool subscribe(Subscriber* subscriber, const Session& session);
 
     /**
      * Removes a subscriber from all sessions of the receiver.
@@ -115,15 +116,11 @@ class Receiver {
     void set_interface(const asio::ip::address& interface_address);
 
   private:
-    struct SubscriberContext {
-        Filter filter;
-    };
-
-    class StreamState {
+    class SynchronizationSource {
       public:
-        explicit StreamState(const uint32_t ssrc) : ssrc_(ssrc) {}
+        explicit SynchronizationSource(const uint32_t ssrc) : ssrc_(ssrc) {}
 
-        [[nodiscard]] uint32_t ssrc() const {
+        [[nodiscard]] uint32_t get_ssrc() const {
             return ssrc_;
         }
 
@@ -133,8 +130,8 @@ class Receiver {
 
     struct SessionContext {
         Session session;
-        std::vector<StreamState> stream_states;
-        SubscriberList<Subscriber, SubscriberContext> subscribers;
+        std::vector<SynchronizationSource> synchronization_sources;
+        SubscriberList<Subscriber> subscribers;
         std::shared_ptr<ExtendedUdpSocket> rtp_sender_receiver;
         std::shared_ptr<ExtendedUdpSocket> rtcp_sender_receiver;
         Subscription rtp_multicast_subscription;

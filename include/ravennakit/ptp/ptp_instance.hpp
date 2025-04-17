@@ -87,7 +87,7 @@ class Instance {
      * @param subscriber The subscriber to remove.
      * @return True if the subscriber was removed successfully, false if the subscriber was not found.
      */
-    [[nodiscard]] bool unsubscribe(Subscriber* subscriber);
+    [[nodiscard]] bool unsubscribe(const Subscriber* subscriber);
 
     /**
      * Adds a port to the PTP instance. The port will be used to send and receive PTP messages. The clock identity of
@@ -95,7 +95,7 @@ class Instance {
      * @param interface_address The address of the interface to bind the port to. The network interface must have a MAC
      * address and support multicast.
      */
-    tl::expected<void, Error> add_port(const asio::ip::address& interface_address);
+    tl::expected<void, Error> add_port(const asio::ip::address_v4& interface_address);
 
     /**
      * @return The amount of ports in the PTP instance.

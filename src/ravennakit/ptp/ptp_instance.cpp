@@ -47,11 +47,11 @@ bool rav::ptp::Instance::subscribe(Subscriber* subscriber) {
     return false;
 }
 
-bool rav::ptp::Instance::unsubscribe(Subscriber* subscriber) {
+bool rav::ptp::Instance::unsubscribe(const Subscriber* subscriber) {
     return subscribers_.remove(subscriber);
 }
 
-tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_port(const asio::ip::address& interface_address) {
+tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_port(const asio::ip::address_v4& interface_address) {
     if (!ports_.empty()) {
         return tl::unexpected(Error::only_ordinary_clock_supported);
     }

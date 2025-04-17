@@ -30,37 +30,28 @@ constexpr auto k_ptp_general_port = 320;
 }  // namespace
 
 rav::ptp::Port::Port(
-    Instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
+    Instance& parent, asio::io_context& io_context, const asio::ip::address_v4& interface_address,
     const PortIdentity port_identity
 ) :
     parent_(parent),
     announce_receipt_timeout_timer_(io_context),
     event_send_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
     general_send_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
+    RAV_ASSERT(!interface_address.is_unspecified(), "Interface address must not be unspecified");
+    RAV_ASSERT(!interface_address.is_multicast(), "Interface address must not be multicast");
+
     // Initialize the port data set
     port_ds_.port_identity = port_identity;
     port_ds_.delay_mechanism = DelayMechanism::e2e;  // TODO: Make this configurable
     set_state(State::initializing);
 
-    event_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address.to_v4());
-    general_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address.to_v4());
+    set_interface(interface_address);
 
     if (const auto ec = event_send_socket_.set_multicast_loopback(false)) {
         RAV_WARNING("Failed to set multicast loopback for event socket: {}", ec.message());
     }
     if (const auto ec = general_send_socket_.set_multicast_loopback(false)) {
         RAV_WARNING("Failed to set multicast loopback for general socket: {}", ec.message());
-    }
-
-    if (interface_address.is_v4()) {
-        if (const auto ec = event_send_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
-            RAV_ERROR("Failed to set multicast outbound interface for event socket: {}", ec.message());
-        }
-        if (const auto ec = general_send_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
-            RAV_ERROR("Failed to set multicast outbound interface for general socket: {}", ec.message());
-        }
-    } else {
-        RAV_WARNING("Interface address is not IPv4. Cannot set multicast outbound interface.");
     }
 
     event_send_socket_.set_dscp_value(46);    // Default AES67 value
@@ -346,15 +337,37 @@ void rav::ptp::Port::on_state_changed(std::function<void(const Port&)> callback)
 }
 
 void rav::ptp::Port::set_interface(const asio::ip::address_v4& interface_address) {
-    event_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address);
-    general_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address);
+    RAV_ASSERT(!interface_address.is_multicast(), "Interface address should not be multicast");
 
-    auto ec = event_send_socket_.set_multicast_outbound_interface(interface_address);
-    if (ec) {
+    if (interface_address == interface_address_) {
+        return;
+    }
+
+    if (!interface_address_.is_unspecified()) {
+        if (const auto ec = event_send_socket_.leave_multicast_group(k_ptp_multicast_address, interface_address_)) {
+            RAV_ERROR("Failed to leave multicast group for event socket: {}", ec.message());
+        }
+        if (const auto ec = general_send_socket_.leave_multicast_group(k_ptp_multicast_address, interface_address_)) {
+            RAV_ERROR("Failed to leave multicast group for general socket: {}", ec.message());
+        }
+    }
+
+    interface_address_ = interface_address;
+
+    if (interface_address_.is_unspecified()) {
+        return;
+    }
+
+    if (const auto ec = event_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address_)) {
+        RAV_ERROR("Failed to join multicast group for event socket: {}", ec.message());
+    }
+    if (const auto ec = general_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address_)) {
+        RAV_ERROR("Failed to join multicast group for general socket: {}", ec.message());
+    }
+    if (const auto ec = event_send_socket_.set_multicast_outbound_interface(interface_address_)) {
         RAV_ERROR("Failed to set multicast outbound interface for event socket: {}", ec.message());
     }
-    ec = general_send_socket_.set_multicast_outbound_interface(interface_address);
-    if (ec) {
+    if (const auto ec = general_send_socket_.set_multicast_outbound_interface(interface_address_)) {
         RAV_ERROR("Failed to set multicast outbound interface for general socket: {}", ec.message());
     }
 }

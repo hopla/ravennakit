@@ -25,6 +25,7 @@
 #include "messages/ptp_sync_message.hpp"
 #include "ravennakit/core/containers/ring_buffer.hpp"
 #include "ravennakit/core/net/sockets/extended_udp_socket.hpp"
+#include "ravennakit/core/net/sockets/udp_receiver.hpp"
 #include "types/ptp_port_identity.hpp"
 
 #include <map>
@@ -38,7 +39,7 @@ class Instance;
 class Port {
   public:
     Port(
-        Instance& parent, asio::io_context& io_context, const asio::ip::address& interface_address,
+        Instance& parent, asio::io_context& io_context, const asio::ip::address_v4& interface_address,
         PortIdentity port_identity
     );
 
@@ -101,6 +102,7 @@ class Port {
 
   private:
     Instance& parent_;
+    asio::ip::address_v4 interface_address_;
     PortDs port_ds_;
     asio::steady_timer announce_receipt_timeout_timer_;
     ExtendedUdpSocket event_send_socket_;

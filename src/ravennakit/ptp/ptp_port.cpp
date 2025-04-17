@@ -24,7 +24,7 @@
 #include <random>
 
 namespace {
-const auto k_ptp_multicast_address = asio::ip::make_address("224.0.1.129");
+const auto k_ptp_multicast_address = asio::ip::make_address_v4("224.0.1.129");
 constexpr auto k_ptp_event_port = 319;
 constexpr auto k_ptp_general_port = 320;
 }  // namespace
@@ -35,43 +35,43 @@ rav::ptp::Port::Port(
 ) :
     parent_(parent),
     announce_receipt_timeout_timer_(io_context),
-    event_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
-    general_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
+    event_send_socket_(io_context, asio::ip::address_v4(), k_ptp_event_port),
+    general_send_socket_(io_context, asio::ip::address_v4(), k_ptp_general_port) {
     // Initialize the port data set
     port_ds_.port_identity = port_identity;
     port_ds_.delay_mechanism = DelayMechanism::e2e;  // TODO: Make this configurable
     set_state(State::initializing);
 
-    subscriptions_.push_back(event_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
-    subscriptions_.push_back(general_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
+    event_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address.to_v4());
+    general_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address.to_v4());
 
-    if (const auto ec = event_socket_.set_multicast_loopback(false)) {
+    if (const auto ec = event_send_socket_.set_multicast_loopback(false)) {
         RAV_WARNING("Failed to set multicast loopback for event socket: {}", ec.message());
     }
-    if (const auto ec = general_socket_.set_multicast_loopback(false)) {
+    if (const auto ec = general_send_socket_.set_multicast_loopback(false)) {
         RAV_WARNING("Failed to set multicast loopback for general socket: {}", ec.message());
     }
 
     if (interface_address.is_v4()) {
-        if (const auto ec = event_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
+        if (const auto ec = event_send_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
             RAV_ERROR("Failed to set multicast outbound interface for event socket: {}", ec.message());
         }
-        if (const auto ec = general_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
+        if (const auto ec = general_send_socket_.set_multicast_outbound_interface(interface_address.to_v4())) {
             RAV_ERROR("Failed to set multicast outbound interface for general socket: {}", ec.message());
         }
     } else {
         RAV_WARNING("Interface address is not IPv4. Cannot set multicast outbound interface.");
     }
 
-    event_socket_.set_dscp_value(46);    // Default AES67 value
-    general_socket_.set_dscp_value(46);  // Default AES67 value
+    event_send_socket_.set_dscp_value(46);    // Default AES67 value
+    general_send_socket_.set_dscp_value(46);  // Default AES67 value
 
-    auto handler = [this](const ExtendedUdpSocket::recv_event& event) {
+    auto handler = [this](const ExtendedUdpSocket::RecvEvent& event) {
         handle_recv_event(event);
     };
 
-    event_socket_.start(handler);
-    general_socket_.start(handler);
+    event_send_socket_.start(handler);
+    general_send_socket_.start(handler);
 
     set_state(State::listening);
 
@@ -274,7 +274,7 @@ void rav::ptp::Port::send_delay_req_message(RequestResponseDelaySequence& sequen
     send_buffer_.clear();
     msg.write_to(send_buffer_);
     tracy_point();
-    event_socket_.send(send_buffer_.data(), send_buffer_.size(), {k_ptp_multicast_address, k_ptp_event_port});
+    event_send_socket_.send(send_buffer_.data(), send_buffer_.size(), {k_ptp_multicast_address, k_ptp_event_port});
     tracy_point();
     sequence.set_delay_req_sent_time(parent_.get_local_ptp_time());
 }
@@ -346,22 +346,20 @@ void rav::ptp::Port::on_state_changed(std::function<void(const Port&)> callback)
 }
 
 void rav::ptp::Port::set_interface(const asio::ip::address_v4& interface_address) {
-    subscriptions_.clear();
+    event_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address);
+    general_send_socket_.join_multicast_group(k_ptp_multicast_address, interface_address);
 
-    subscriptions_.push_back(event_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
-    subscriptions_.push_back(general_socket_.join_multicast_group(k_ptp_multicast_address, interface_address));
-
-    auto ec = event_socket_.set_multicast_outbound_interface(interface_address);
+    auto ec = event_send_socket_.set_multicast_outbound_interface(interface_address);
     if (ec) {
         RAV_ERROR("Failed to set multicast outbound interface for event socket: {}", ec.message());
     }
-    ec = general_socket_.set_multicast_outbound_interface(interface_address);
+    ec = general_send_socket_.set_multicast_outbound_interface(interface_address);
     if (ec) {
         RAV_ERROR("Failed to set multicast outbound interface for general socket: {}", ec.message());
     }
 }
 
-void rav::ptp::Port::handle_recv_event(const ExtendedUdpSocket::recv_event& event) {
+void rav::ptp::Port::handle_recv_event(const ExtendedUdpSocket::RecvEvent& event) {
     TRACY_ZONE_SCOPED;
 
     const BufferView data(event.data, event.size);

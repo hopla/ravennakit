@@ -179,6 +179,10 @@ nlohmann::json rav::RavennaReceiver::to_json() const {
     return root;
 }
 
+void rav::RavennaReceiver::set_interface(const asio::ip::address_v4& interface_address) {
+
+}
+
 std::string rav::RavennaReceiver::StreamParameters::to_string() const {
     return fmt::format(
         "session={}, selected_audio_format={}, packet_time_frames={}", session.to_string(), audio_format.to_string(),

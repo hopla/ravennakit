@@ -10,18 +10,14 @@
 
 #pragma once
 
-#include "rtp_filter.hpp"
 #include "../rtcp_packet_view.hpp"
 #include "../rtp_packet_view.hpp"
 #include "rtp_session.hpp"
-#include "ravennakit/core/events.hpp"
-#include "ravennakit/core/linked_node.hpp"
 #include "ravennakit/core/subscriber_list.hpp"
 #include "ravennakit/core/net/sockets/extended_udp_socket.hpp"
-#include "ravennakit/sdp/sdp_media_description.hpp"
+#include "ravennakit/core/net/sockets/udp_receiver.hpp"
 
 #include <asio.hpp>
-#include <utility>
 
 namespace rav::rtp {
 
@@ -134,8 +130,6 @@ class Receiver {
         SubscriberList<Subscriber> subscribers;
         std::shared_ptr<ExtendedUdpSocket> rtp_sender_receiver;
         std::shared_ptr<ExtendedUdpSocket> rtcp_sender_receiver;
-        Subscription rtp_multicast_subscription;
-        Subscription rtcp_multicast_subscription;
     };
 
     struct Configuration {
@@ -143,6 +137,7 @@ class Receiver {
     };
 
     asio::io_context& io_context_;
+    UdpReceiver udp_receiver_;
     Configuration config_;
     std::vector<SessionContext> sessions_contexts_;
 
@@ -152,8 +147,8 @@ class Receiver {
     std::shared_ptr<ExtendedUdpSocket> find_rtp_sender_receiver(uint16_t port);
     std::shared_ptr<ExtendedUdpSocket> find_rtcp_sender_receiver(uint16_t port);
 
-    void handle_incoming_rtp_data(const ExtendedUdpSocket::recv_event& event);
-    void handle_incoming_rtcp_data(const ExtendedUdpSocket::recv_event& event);
+    void handle_incoming_rtp_data(const ExtendedUdpSocket::RecvEvent& event);
+    void handle_incoming_rtcp_data(const ExtendedUdpSocket::RecvEvent& event);
 };
 
 }  // namespace rav::rtp

@@ -20,6 +20,7 @@
 #include "ravennakit/core/util/id.hpp"
 #include "ravennakit/core/util/throttle.hpp"
 #include "ravennakit/rtp/detail/rtp_buffer.hpp"
+#include "ravennakit/rtp/detail/rtp_filter.hpp"
 #include "ravennakit/rtp/detail/rtp_packet_stats.hpp"
 #include "ravennakit/rtp/detail/rtp_receiver.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
@@ -269,6 +270,12 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
      * @return A JSON representation of the sender.
      */
     nlohmann::json to_json() const;
+
+    /**
+     * Sets the interface to use for this sender.
+     * @param interface_address The address of the interface to use.
+     */
+    void set_interface(const asio::ip::address_v4& interface_address);
 
     // ravenna_rtsp_client::subscriber overrides
     void on_announced(const RavennaRtspClient::AnnouncedEvent& event) override;

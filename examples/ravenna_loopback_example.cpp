@@ -80,21 +80,19 @@ class loopback: public rav::RavennaReceiver::Subscriber, public rav::ptp::Instan
         }
     }
 
-    void ravenna_receiver_streams_updated(const std::vector<rav::rtp::AudioReceiver::Stream>& streams) override {
-        if (streams.empty()) {
+    void ravenna_receiver_parameters_updated(const rav::rtp::AudioReceiver::Parameters& parameters) override {
+        if (parameters.streams.empty()) {
             RAV_WARNING("No streams available");
             return;
         }
 
-        auto& stream = streams.front();
+        RAV_ASSERT(parameters.audio_format.is_valid(), "Invalid audio format");
 
-        RAV_ASSERT(stream.audio_format.is_valid(), "Invalid audio format");
-
-        buffer_.resize(stream.audio_format.bytes_per_frame() * stream.packet_time_frames);
+        buffer_.resize(parameters.audio_format.bytes_per_frame() * parameters.streams.front().packet_time_frames);
 
         rav::RavennaSender::ConfigurationUpdate update;
         update.session_name = stream_name_ + "_loopback";
-        update.audio_format = stream.audio_format;
+        update.audio_format = parameters.audio_format;
         update.enabled = true;
 
         auto result = sender_->set_configuration(update);

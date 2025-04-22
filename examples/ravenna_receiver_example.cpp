@@ -205,19 +205,17 @@ class ravenna_receiver: public rav::RavennaReceiver::Subscriber {
         portaudio_stream_.stop();
     }
 
-    void ravenna_receiver_streams_updated(const std::vector<rav::rtp::AudioReceiver::Stream>& streams) override {
-        if (streams.empty()) {
+    void ravenna_receiver_parameters_updated(const rav::rtp::AudioReceiver::Parameters& parameters) override {
+        if (parameters.streams.empty()) {
             RAV_WARNING("No streams available");
             return;
         }
 
-        auto& stream = streams.front();
-
-        if (!stream.audio_format.is_valid() || audio_format_ == stream.audio_format) {
+        if (!parameters.audio_format.is_valid() || audio_format_ == parameters.audio_format) {
             return;
         }
 
-        audio_format_ = stream.audio_format;
+        audio_format_ = parameters.audio_format;
         const auto sample_format = get_sample_format_for_audio_format(audio_format_);
         if (!sample_format.has_value()) {
             RAV_TRACE("Skipping stream update because audio format is invalid: {}", audio_format_.to_string());

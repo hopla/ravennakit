@@ -127,8 +127,8 @@ void rav::RavennaReceiver::on_announced(const RavennaRtspClient::AnnouncedEvent&
 }
 
 namespace {
-tl::expected<std::vector<rav::rtp::AudioReceiver::Stream>, std::string>
-find_stream_sessions(const rav::sdp::SessionDescription& sdp) {
+tl::expected<rav::rtp::AudioReceiver::Parameters, std::string>
+find_receiver_parameters(const rav::sdp::SessionDescription& sdp) {
     std::optional<rav::AudioFormat> selected_audio_format;
     const rav::sdp::MediaDescription* selected_media_description = nullptr;
     const rav::sdp::ConnectionInfoField* selected_connection_info = nullptr;
@@ -236,25 +236,24 @@ find_stream_sessions(const rav::sdp::SessionDescription& sdp) {
         }
     }
 
-    std::vector<rav::rtp::AudioReceiver::Stream> sessions;
-    sessions.push_back(
-        rav::rtp::AudioReceiver::Stream {session, filter, *selected_audio_format, packet_time_frames, rav::Rank(0)}
-    );
-    return sessions;
+    rav::rtp::AudioReceiver::Parameters parameters;
+    parameters.audio_format = *selected_audio_format;
+    parameters.streams.push_back(rav::rtp::AudioReceiver::Stream {session, filter, packet_time_frames, rav::Rank(0)});
+    return parameters;
 }
 }  // namespace
 
 void rav::RavennaReceiver::update_sdp(const sdp::SessionDescription& sdp) {
-    auto primary = find_stream_sessions(sdp);
+    auto parameters = find_receiver_parameters(sdp);
 
-    if (!primary) {
-        RAV_ERROR("Failed to find primary stream parameters: {}", primary.error());
+    if (!parameters) {
+        RAV_ERROR("Failed to find primary stream parameters: {}", parameters.error());
         return;
     }
 
-    if (rtp_audio_receiver_.set_streams(*primary)) {
+    if (rtp_audio_receiver_.set_parameters(*parameters)) {
         for (auto* subscriber : subscribers_) {
-            subscriber->ravenna_receiver_streams_updated(rtp_audio_receiver_.get_streams());
+            subscriber->ravenna_receiver_parameters_updated(*parameters);
         }
     }
 }
@@ -310,9 +309,9 @@ const rav::RavennaReceiver::Configuration& rav::RavennaReceiver::get_configurati
 bool rav::RavennaReceiver::subscribe(Subscriber* subscriber) {
     if (subscribers_.add(subscriber)) {
         subscriber->ravenna_receiver_configuration_updated(get_id(), configuration_);
-        const auto streams = rtp_audio_receiver_.get_streams();
-        subscriber->ravenna_receiver_streams_updated(streams);
-        for (auto& stream : streams) {
+        const auto parameters = rtp_audio_receiver_.get_parameters();
+        subscriber->ravenna_receiver_parameters_updated(parameters);
+        for (auto& stream : parameters.streams) {
             const auto state = rtp_audio_receiver_.get_state_for_stream(stream.session);
             if (!state) {
                 RAV_ERROR("Failed to get state for stream {}", stream.session.to_string());

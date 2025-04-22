@@ -58,16 +58,31 @@ class AudioReceiver: public Receiver::Subscriber {
     struct Stream {
         Session session;
         Filter filter;
-        AudioFormat audio_format;
         uint16_t packet_time_frames = 0;
         Rank rank;
 
         friend bool operator==(const Stream& lhs, const Stream& rhs) {
             return lhs.session == rhs.session && lhs.filter == rhs.filter && lhs.rank == rhs.rank
-                && lhs.audio_format == rhs.audio_format && lhs.packet_time_frames == rhs.packet_time_frames;
+                && lhs.packet_time_frames == rhs.packet_time_frames;
         }
 
         friend bool operator!=(const Stream& lhs, const Stream& rhs) {
+            return !(lhs == rhs);
+        }
+    };
+
+    /**
+     * Struct to hold the parameters of the receiver.
+     */
+    struct Parameters {
+        AudioFormat audio_format;
+        std::vector<Stream> streams;
+
+        friend bool operator==(const Parameters& lhs, const Parameters& rhs) {
+            return std::tie(lhs.audio_format, lhs.streams) == std::tie(rhs.audio_format, rhs.streams);
+        }
+
+        friend bool operator!=(const Parameters& lhs, const Parameters& rhs) {
             return !(lhs == rhs);
         }
     };
@@ -92,17 +107,17 @@ class AudioReceiver: public Receiver::Subscriber {
     AudioReceiver& operator=(AudioReceiver&&) noexcept = delete;
 
     /**
-     * Sets the streams to receive. This will also start the receiver if it is not already running and the
+     * Sets the parameters of the receiver. This will also start the receiver if it is not already running and the
      * receiver will be restarted if necessary.
-     * @param new_streams The new streams to receive.
-     * @return True if the streams were changed, false if not.
+     * @param new_parameters The new parameters.
+     * @return True if the parameters were changed, false if not.
      */
-    bool set_streams(const std::vector<Stream>& new_streams);
+    bool set_parameters(Parameters new_parameters);
 
     /**
      * @return The current parameters of the stream.
      */
-    std::vector<Stream> get_streams() const;
+    const Parameters& get_parameters() const;
 
     /**
      * Reads data from the buffer at the given timestamp.
@@ -231,10 +246,11 @@ class AudioReceiver: public Receiver::Subscriber {
     asio::steady_timer maintenance_timer_;
     ExclusiveAccessGuard realtime_access_guard_;
 
+    Parameters parameters_;
     uint32_t delay_frames_ {};
     bool enabled_ {};
 
-    std::vector<std::unique_ptr<StreamContext>> stream_contexts_;
+    std::vector<StreamContext> stream_contexts_;
 
     bool is_running_ {false};
     std::optional<WrappingUint32> rtp_ts_;
@@ -258,7 +274,8 @@ class AudioReceiver: public Receiver::Subscriber {
     void set_state(StreamContext& stream_context, State new_state) const;
     void start();
     void stop();
-    StreamContext* find_stream_context(const Session& session) const;
+    StreamContext* find_stream_context(const Session& session);
+    const StreamContext* find_stream_context(const Session& session) const;
 };
 
 }  // namespace rav::rtp

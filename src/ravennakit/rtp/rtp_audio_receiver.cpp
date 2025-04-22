@@ -24,21 +24,16 @@ rav::rtp::AudioReceiver::~AudioReceiver() {
     rtp_receiver_.unsubscribe(this);
 }
 
-bool rav::rtp::AudioReceiver::set_streams(const std::vector<Stream>& new_streams) {
-    // Test if any of the streams have changed
-    if (new_streams.size() == stream_contexts_.size()) {
-        for (size_t i = 0; i < stream_contexts_.size(); ++i) {
-            if (stream_contexts_[i]->stream_info != new_streams[i]) {
-                break;
-            }
-        }
-        return false;  // No change in sessions
+bool rav::rtp::AudioReceiver::set_parameters(Parameters new_parameters) {
+    if (new_parameters == parameters_) {
+        return false;  // No change in parameters
     }
 
+    parameters_ = std::move(new_parameters);
     stream_contexts_.clear();
 
-    for (const auto& session_info : new_streams) {
-        stream_contexts_.emplace_back(std::make_unique<StreamContext>(session_info));
+    for (const auto& stream : parameters_.streams) {
+        stream_contexts_.emplace_back(stream);
     }
 
     stop();
@@ -51,13 +46,8 @@ bool rav::rtp::AudioReceiver::set_streams(const std::vector<Stream>& new_streams
     return true;
 }
 
-std::vector<rav::rtp::AudioReceiver::Stream> rav::rtp::AudioReceiver::get_streams() const {
-    std::vector<Stream> sessions_;
-    sessions_.reserve(stream_contexts_.size());
-    for (auto& session_context : stream_contexts_) {
-        sessions_.emplace_back(session_context->stream_info);
-    }
-    return sessions_;
+const rav::rtp::AudioReceiver::Parameters& rav::rtp::AudioReceiver::get_parameters() const {
+    return parameters_;
 }
 
 std::optional<uint32_t> rav::rtp::AudioReceiver::read_data_realtime(
@@ -163,8 +153,8 @@ std::optional<uint32_t> rav::rtp::AudioReceiver::read_audio_data_realtime(
 rav::rtp::AudioReceiver::SessionStats rav::rtp::AudioReceiver::get_session_stats() const {
     SessionStats s;
     for (auto& session_context : stream_contexts_) {
-        s.packet_stats = session_context->packet_stats.get_total_counts();
-        s.packet_interval_stats = session_context->packet_interval_stats.get_stats();
+        s.packet_stats = session_context.packet_stats.get_total_counts();
+        s.packet_interval_stats = session_context.packet_interval_stats.get_stats();
         break;
     }
     return s;
@@ -294,9 +284,7 @@ void rav::rtp::AudioReceiver::on_rtp_packet(const Receiver::RtpPacketEvent& rtp_
 
         if (const auto stats = stream_context->packet_stats.update(rtp_event.packet.sequence_number())) {
             if (auto v = packet_stats_throttle_.update(*stats)) {
-                RAV_WARNING(
-                    "Stats for stream {}: {}", stream_context->stream_info.session.to_string(), v->to_string()
-                );
+                RAV_WARNING("Stats for stream {}: {}", stream_context->stream_info.session.to_string(), v->to_string());
             }
         }
 
@@ -336,44 +324,40 @@ void rav::rtp::AudioReceiver::update_shared_context() {
         return;
     }
 
-    const AudioFormat* audio_format = nullptr;
-    uint16_t packet_time_frames = 0;
-
-    for (const auto& session_context : stream_contexts_) {
-        if (!session_context->stream_info.audio_format.is_valid()) {
-            RAV_ERROR("Invalid audio format - clearing shared context");
-            shared_context_.clear();
-            return;
-        }
-        if (audio_format == nullptr) {
-            audio_format = &session_context->stream_info.audio_format;
-            packet_time_frames = session_context->stream_info.packet_time_frames;
-        } else if (*audio_format != session_context->stream_info.audio_format
-                   || packet_time_frames != session_context->stream_info.packet_time_frames) {
-            RAV_ERROR("Audio formats do not match - clearing shared context");
-            shared_context_.clear();
-            return;
-        }
-    }
-
-    if (audio_format == nullptr) {
-        RAV_ERROR("No audio format found - clearing shared context");
+    if (parameters_.streams.empty()) {
+        RAV_ERROR("No streams available - clearing shared context");
         shared_context_.clear();
         return;
     }
 
-    const auto bytes_per_frame = audio_format->bytes_per_frame();
+    if (!parameters_.audio_format.is_valid()) {
+        RAV_ERROR("Invalid audio format - clearing shared context");
+        shared_context_.clear();
+        return;
+    }
+
+    // Find the smallest packet time frames
+    uint16_t packet_time_frames = parameters_.streams.front().packet_time_frames;
+    for (const auto& stream : parameters_.streams) {
+        if (stream.packet_time_frames < packet_time_frames) {
+            packet_time_frames = stream.packet_time_frames;
+        }
+    }
+
+    const auto bytes_per_frame = parameters_.audio_format.bytes_per_frame();
     RAV_ASSERT(bytes_per_frame > 0, "bytes_per_frame must be greater than 0");
 
     auto new_context = std::make_unique<SharedContext>();
 
-    const auto buffer_size_frames = std::max(audio_format->sample_rate * k_buffer_size_ms / 1000, 1024u);
-    new_context->receiver_buffer.resize(audio_format->sample_rate * k_buffer_size_ms / 1000, bytes_per_frame);
+    const auto buffer_size_frames = std::max(parameters_.audio_format.sample_rate * k_buffer_size_ms / 1000, 1024u);
+    new_context->receiver_buffer.resize(
+        parameters_.audio_format.sample_rate * k_buffer_size_ms / 1000, bytes_per_frame
+    );
     new_context->read_buffer.resize(buffer_size_frames * bytes_per_frame);
     const auto buffer_size_packets = buffer_size_frames / packet_time_frames;
     new_context->fifo.resize(buffer_size_packets);
     new_context->packets_too_old.resize(buffer_size_packets);
-    new_context->selected_audio_format = *audio_format;
+    new_context->selected_audio_format = parameters_.audio_format;
     new_context->delay_frames = delay_frames_;
 
     shared_context_.update(std::move(new_context));
@@ -386,11 +370,10 @@ void rav::rtp::AudioReceiver::do_maintenance() {
     // TODO: Make this global for all streams or stream specific
     const auto now = HighResolutionClock::now();
 
-    for (const auto& session_context : stream_contexts_) {
-        RAV_ASSERT(session_context != nullptr, "Session context must not be nullptr");
-        if (session_context->state == State::ok || session_context->state == State::ok_no_consumer) {
-            if ((session_context->last_packet_time_ns + k_receive_timeout_ms * 1'000'000).value() < now) {
-                set_state(*session_context, State::inactive);
+    for (auto& stream_context : stream_contexts_) {
+        if (stream_context.state == State::ok || stream_context.state == State::ok_no_consumer) {
+            if ((stream_context.last_packet_time_ns + k_receive_timeout_ms * 1'000'000).value() < now) {
+                set_state(stream_context, State::inactive);
             }
         }
     }
@@ -473,9 +456,9 @@ void rav::rtp::AudioReceiver::start() {
     rtp_ts_.reset();
 
     for (const auto& stream : stream_contexts_) {
-        if (stream->stream_info.session.valid()) {
+        if (stream.stream_info.session.valid()) {
             // Multiple streams might have the same session, but since we only subscribe once there is no need to check.
-            std::ignore = rtp_receiver_.subscribe(this, stream->stream_info.session);
+            std::ignore = rtp_receiver_.subscribe(this, stream.stream_info.session);
         }
     }
 
@@ -490,10 +473,20 @@ void rav::rtp::AudioReceiver::stop() {
     rtp_receiver_.unsubscribe(this);
 }
 
-rav::rtp::AudioReceiver::StreamContext* rav::rtp::AudioReceiver::find_stream_context(const Session& session) const {
+rav::rtp::AudioReceiver::StreamContext* rav::rtp::AudioReceiver::find_stream_context(const Session& session) {
     for (auto& context : stream_contexts_) {
-        if (context->stream_info.session == session) {
-            return context.get();
+        if (context.stream_info.session == session) {
+            return &context;
+        }
+    }
+    return nullptr;
+}
+
+const rav::rtp::AudioReceiver::StreamContext*
+rav::rtp::AudioReceiver::find_stream_context(const Session& session) const {
+    for (auto& context : stream_contexts_) {
+        if (context.stream_info.session == session) {
+            return &context;
         }
     }
     return nullptr;

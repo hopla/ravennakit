@@ -64,10 +64,10 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
 
         /**
          * Called when the stream has changed.
-         * @param streams The stream parameters.
+         * @param parameters The stream parameters.
          */
-        virtual void ravenna_receiver_streams_updated(const std::vector<rtp::AudioReceiver::Stream>& streams) {
-            std::ignore = streams;
+        virtual void ravenna_receiver_parameters_updated(const rtp::AudioReceiver::Parameters& parameters) {
+            std::ignore = parameters;
         }
 
         /**

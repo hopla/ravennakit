@@ -193,7 +193,7 @@ void rav::RavennaRtspClient::update_session_with_service(
     session.host_target = service.host_target;
     session.port = service.port;
 
-    const auto& connection = find_or_create_connection(service.host_target, service.port);
+    auto& connection = find_or_create_connection(service.host_target, service.port);
     connection.client.async_describe(fmt::format("/by-name/{}", session.session_name));
 }
 
@@ -201,7 +201,7 @@ void rav::RavennaRtspClient::do_maintenance() {
     for (auto& session : sessions_) {
         if (session.subscribers.empty()) {
             if (!session.host_target.empty() && session.port != 0) {
-                if (const auto* connection = find_connection(session.host_target, session.port)) {
+                if (auto* connection = find_connection(session.host_target, session.port)) {
                     connection->client.async_teardown(fmt::format("/by-name/{}", session.session_name));
                 }
             }

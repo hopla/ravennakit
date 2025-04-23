@@ -89,9 +89,10 @@ class Receiver {
      * Adds a subscriber to the receiver.
      * @param subscriber The subscriber to add
      * @param session The session to subscribe to.
+     * @param interface_address The interface address to receive rtp packets on.
      * @return true if the subscriber was added, or false if it was already in the list.
      */
-    bool subscribe(Subscriber* subscriber, const Session& session);
+    bool subscribe(Subscriber* subscriber, const Session& session, const asio::ip::address_v4& interface_address);
 
     /**
      * Removes a subscriber from all sessions of the receiver.
@@ -100,14 +101,8 @@ class Receiver {
      */
     bool unsubscribe(const Subscriber* subscriber);
 
-    /**
-     * Sets the interface address to join multicast groups on. If the address is empty existing multicast groups are
-     * left.
-     * @param interface_address The address to bind to.
-     */
-    void set_interface(const asio::ip::address_v4& interface_address);
-
   private:
+    // TODO: Remove
     class SynchronizationSource {
       public:
         explicit SynchronizationSource(const uint32_t ssrc) : ssrc_(ssrc) {}
@@ -122,18 +117,16 @@ class Receiver {
 
     class SessionContext: UdpReceiver::Subscriber {
       public:
-        explicit SessionContext(
-            UdpReceiver& udp_receiver, Session session, const asio::ip::address_v4& interface_address
-        );
+        explicit SessionContext(UdpReceiver& udp_receiver, Session session, asio::ip::address_v4 interface_address);
         ~SessionContext() override;
 
         [[nodiscard]] bool add_subscriber(Receiver::Subscriber* subscriber);
         [[nodiscard]] bool remove_subscriber(const Receiver::Subscriber* subscriber);
 
-        [[nodiscard]] bool empty() const;
-        [[nodiscard]] const Session& get_session() const;
+        [[nodiscard]] size_t get_subscriber_count() const;
 
-        void set_interface(const asio::ip::address_v4& interface_address);
+        [[nodiscard]] const Session& get_session() const;
+        [[nodiscard]] const asio::ip::address_v4& interface_address() const;
 
         // UdpReceiver::Subscriber overrides
         void on_receive(const ExtendedUdpSocket::RecvEvent& event) override;
@@ -141,6 +134,7 @@ class Receiver {
       private:
         UdpReceiver& udp_receiver_;
         Session session_;
+        asio::ip::address_v4 interface_address_;
         std::vector<SynchronizationSource> synchronization_sources_;
         SubscriberList<Receiver::Subscriber> subscribers_;
 
@@ -148,17 +142,14 @@ class Receiver {
         void subscribe_to_udp_receiver(const asio::ip::address_v4& interface_address);
     };
 
-    struct Configuration {
-        asio::ip::address interface_address {};
-    };
-
     UdpReceiver& udp_receiver_;
-    Configuration config_;
     std::vector<std::unique_ptr<SessionContext>> sessions_contexts_;
 
-    [[nodiscard]] SessionContext* find_session_context(const Session& session) const;
-    SessionContext* create_new_session_context(const Session& session);
-    SessionContext* find_or_create_session_context(const Session& session);
+    [[nodiscard]] SessionContext*
+    find_session_context(const Session& session, const asio::ip::address_v4& interface_address) const;
+    SessionContext* create_new_session_context(const Session& session, const asio::ip::address_v4& interface_address);
+    SessionContext*
+    find_or_create_session_context(const Session& session, const asio::ip::address_v4& interface_address);
 };
 
 }  // namespace rav::rtp

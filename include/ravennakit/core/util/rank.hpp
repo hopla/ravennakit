@@ -36,13 +36,54 @@ class Rank {
     }
 
     friend bool operator!=(const Rank& lhs, const Rank& rhs) {
-        return !(lhs == rhs);
+        return lhs.rank_ != rhs.rank_;
     }
 
+    friend bool operator==(const Rank& lhs, const uint8_t rhs) {
+        return lhs.rank_ == rhs;
+    }
+
+    friend bool operator!=(const Rank& lhs, const uint8_t rhs) {
+        return lhs.rank_ != rhs;
+    }
+
+    friend bool operator==(const uint8_t lhs, const Rank& rhs) {
+        return lhs == rhs.rank_;
+    }
+
+    friend bool operator!=(const uint8_t lhs, const Rank& rhs) {
+        return lhs != rhs.rank_;
+    }
+
+    friend bool operator<(const Rank& lhs, const Rank& rhs) {
+        return lhs.rank_ < rhs.rank_;
+    }
+
+    friend bool operator<(const uint8_t lhs, const Rank& rhs) {
+        return lhs < rhs.rank_;
+    }
+
+    friend bool operator<(const Rank& lhs, const uint8_t rhs) {
+        return lhs.rank_ < rhs;
+    }
+
+    /**
+     * Postfix increment operator.
+     * @return The rank before incrementing.
+     */
     Rank operator++(int) {
         const Rank temp = *this;
         ++rank_;
         return temp;
+    }
+
+    /**
+     * Prefix increment operator.
+     * @return The rank after incrementing.
+     */
+    Rank& operator++() {
+        ++rank_;
+        return *this;
     }
 
     /**
@@ -118,6 +159,14 @@ class Rank {
             default:
                 return "N/A";
         }
+    }
+
+    static Rank primary() {
+        return Rank(0);
+    }
+
+    static Rank secondary() {
+        return Rank(1);
     }
 
   private:

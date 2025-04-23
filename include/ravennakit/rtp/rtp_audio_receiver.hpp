@@ -170,6 +170,13 @@ class AudioReceiver: public Receiver::Subscriber {
     void set_enabled(bool enabled);
 
     /**
+     * Sets the interface address for the receiver. If the address is unspecified, it will be removed.
+     * @param rank The rank of the interface address (primary, secondary).
+     * @param interface_address The interface address to set. Must be a valid IPv4 address.
+     */
+    void set_interface(Rank rank, asio::ip::address_v4 interface_address);
+
+    /**
      * Sets a callback for when data is received.
      * The timestamp will monotonically increase, but might have gaps because out-of-order and dropped packets.
      * @param callback The callback to call when data is received.
@@ -250,6 +257,7 @@ class AudioReceiver: public Receiver::Subscriber {
     uint32_t delay_frames_ {};
     bool enabled_ {};
 
+    std::map<Rank, asio::ip::address_v4> interface_addresses_;
     std::vector<StreamContext> stream_contexts_;
 
     bool is_running_ {false};

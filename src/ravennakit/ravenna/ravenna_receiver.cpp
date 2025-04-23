@@ -408,3 +408,7 @@ std::optional<rav::sdp::SessionDescription> rav::RavennaReceiver::get_sdp() cons
 std::optional<std::string> rav::RavennaReceiver::get_sdp_text() const {
     return rtsp_client_.get_sdp_text_for_session(configuration_.session_name);
 }
+
+void rav::RavennaReceiver::set_interface(const Rank rank, asio::ip::address_v4 interface_address) {
+    rtp_audio_receiver_.set_interface(rank, std::move(interface_address));
+}

@@ -20,7 +20,7 @@ rav::rtp::AudioReceiver::AudioReceiver(asio::io_context& io_context, Receiver& r
 
 rav::rtp::AudioReceiver::~AudioReceiver() {
     maintenance_timer_.cancel();  // TODO: I don't think this is safe. The completion token might outlive this object.
-                                  // The timer has a low interval and therefore we might not have run into this yet.
+                                  // The timer has a low interval which might the reason that we haven't run into this.
     rtp_receiver_.unsubscribe(this);
 }
 
@@ -38,10 +38,7 @@ bool rav::rtp::AudioReceiver::set_parameters(Parameters new_parameters) {
 
     stop();
     update_shared_context();
-
-    if (enabled_) {
-        start();
-    }
+    start();
 
     return true;
 }
@@ -181,6 +178,27 @@ void rav::rtp::AudioReceiver::set_enabled(const bool enabled) {
     }
     enabled_ = enabled;
     enabled_ ? start() : stop();
+}
+
+void rav::rtp::AudioReceiver::set_interface(const Rank rank, asio::ip::address_v4 interface_address) {
+    RAV_ASSERT(!interface_address.is_multicast(), "Interface address must not be multicast");
+    bool changed = false;
+    if (interface_address.is_unspecified()) {
+        if (interface_addresses_.erase(rank) > 0) {
+            changed = true;
+        }
+    } else {
+        auto& it = interface_addresses_[rank];
+        if (it != interface_address) {
+            changed = true;
+            it = std::move(interface_address);
+        }
+    }
+    if (!changed) {
+        return;
+    }
+    stop();
+    start();
 }
 
 void rav::rtp::AudioReceiver::on_data_received(std::function<void(WrappingUint32 packet_timestamp)> callback) {
@@ -451,16 +469,27 @@ void rav::rtp::AudioReceiver::set_state(StreamContext& stream_context, const Sta
 
 void rav::rtp::AudioReceiver::start() {
     if (is_running_) {
+        RAV_ASSERT(enabled_, "Receiver is running while not enabled");
+        return;
+    }
+    if (!enabled_) {
         return;
     }
     rtp_ts_.reset();
 
     for (const auto& stream : stream_contexts_) {
-        if (stream.stream_info.session.valid()) {
-            // Multiple streams might have the same session, but subscribing more than once for the same session has no
-            // effect, so no need to check.
-            std::ignore = rtp_receiver_.subscribe(this, stream.stream_info.session);
+        if (!stream.stream_info.session.valid()) {
+            continue;
         }
+        auto iface = interface_addresses_.find(stream.stream_info.rank);
+        if (iface == interface_addresses_.end()) {
+            continue;  // No interface address available for this stream
+        }
+        RAV_ASSERT(!iface->second.is_unspecified(), "Interface address must not be unspecified");
+        RAV_ASSERT(!iface->second.is_multicast(), "Interface address must not be multicast");
+        // Multiple streams might have the same session, but subscribing more than once for the same session has no
+        // effect, so no need to do clever stuff here.
+        std::ignore = rtp_receiver_.subscribe(this, stream.stream_info.session, iface->second);
     }
 
     is_running_ = true;

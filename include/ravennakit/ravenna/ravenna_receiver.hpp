@@ -169,6 +169,13 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     [[nodiscard]] std::optional<std::string> get_sdp_text() const;
 
     /**
+     * Sets the interface address for the receiver.
+     * @param rank The rank of the interface address (primary, secondary).
+     * @param interface_address The interface address to set. Must be a valid IPv4 address.
+     */
+    void set_interface(Rank rank, asio::ip::address_v4 interface_address);
+
+    /**
      * @return A JSON representation of the sender.
      */
     nlohmann::json to_json() const;

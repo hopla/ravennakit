@@ -14,21 +14,20 @@
 
 TEST_CASE("Rank") {
     rav::Rank rank(0);
-    CHECK(rank.value() == 0);
-
-    rank++;
-    CHECK(rank.value() == 1);
-
-    rank++;
-    CHECK(rank.value() == 2);
+    REQUIRE(rank.value() == 0);
+    REQUIRE(rank++ == 0);
+    REQUIRE(rank++ == 1);
+    REQUIRE(++rank == 3);
+    REQUIRE(++rank == 4);
 
     rank = rav::Rank(5);
-    CHECK(rank.value() == 5);
+    REQUIRE(rank == 5);
 
     rank = rav::Rank(10);
-    CHECK(rank.value() == 10);
+    REQUIRE(rank == 10);
 
     rav::Rank rank2;
     rank2 = rank++;
-    CHECK(rank2.value() == 10);
+    REQUIRE(rank2 == 10);
+    REQUIRE(10 == rank2);
 }

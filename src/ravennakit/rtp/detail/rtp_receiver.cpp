@@ -37,8 +37,10 @@ typedef BOOL(PASCAL* LPFN_WSARECVMSG)(
 
 rav::rtp::Receiver::Receiver(UdpReceiver& udp_receiver) : udp_receiver_(udp_receiver) {}
 
-bool rav::rtp::Receiver::subscribe(Subscriber* subscriber, const Session& session) {
-    auto* context = find_or_create_session_context(session);
+bool rav::rtp::Receiver::subscribe(
+    Subscriber* subscriber, const Session& session, const asio::ip::address_v4& interface_address
+) {
+    auto* context = find_or_create_session_context(session, interface_address);
 
     if (context == nullptr) {
         RAV_WARNING("Failed to find or create new session context");
@@ -56,7 +58,7 @@ bool rav::rtp::Receiver::unsubscribe(const Subscriber* subscriber) {
         if ((*it)->remove_subscriber(subscriber)) {
             count++;
         }
-        if ((*it)->empty()) {
+        if ((*it)->get_subscriber_count() == 0) {
             it = sessions_contexts_.erase(it);
         } else {
             ++it;
@@ -65,25 +67,14 @@ bool rav::rtp::Receiver::unsubscribe(const Subscriber* subscriber) {
     return count > 0;
 }
 
-void rav::rtp::Receiver::set_interface(const asio::ip::address_v4& interface_address) {
-    if (config_.interface_address == interface_address) {
-        return;
-    }
-
-    config_.interface_address = interface_address;
-
-    for (const auto& context : sessions_contexts_) {
-        context->set_interface(interface_address);
-    }
-}
-
 rav::rtp::Receiver::SessionContext::SessionContext(
-    UdpReceiver& udp_receiver, Session session, const asio::ip::address_v4& interface_address
+    UdpReceiver& udp_receiver, Session session, asio::ip::address_v4 interface_address
 ) :
-    udp_receiver_(udp_receiver), session_(std::move(session)) {
-    if (!interface_address.is_unspecified()) {
-        subscribe_to_udp_receiver(interface_address);
-    }
+    udp_receiver_(udp_receiver), session_(std::move(session)), interface_address_(std::move(interface_address)) {
+    RAV_ASSERT(!session_.connection_address.is_unspecified(), "Connection address should not be unspecified");
+    RAV_ASSERT(!interface_address.is_unspecified(), "Interface address should not be unspecified");
+    RAV_ASSERT(!interface_address.is_multicast(), "Interface address should not be multicast");
+    subscribe_to_udp_receiver(interface_address);
 }
 
 rav::rtp::Receiver::SessionContext::~SessionContext() {
@@ -98,17 +89,16 @@ bool rav::rtp::Receiver::SessionContext::remove_subscriber(const Receiver::Subsc
     return subscribers_.remove(subscriber);
 }
 
-bool rav::rtp::Receiver::SessionContext::empty() const {
-    return subscribers_.empty();
+size_t rav::rtp::Receiver::SessionContext::get_subscriber_count() const {
+    return subscribers_.size();
 }
 
 const rav::rtp::Session& rav::rtp::Receiver::SessionContext::get_session() const {
     return session_;
 }
 
-void rav::rtp::Receiver::SessionContext::set_interface(const asio::ip::address_v4& interface_address) {
-    udp_receiver_.unsubscribe(this);
-    subscribe_to_udp_receiver(interface_address);
+const asio::ip::address_v4& rav::rtp::Receiver::SessionContext::interface_address() const {
+    return interface_address_;
 }
 
 void rav::rtp::Receiver::SessionContext::on_receive(const ExtendedUdpSocket::RecvEvent& event) {
@@ -173,29 +163,33 @@ void rav::rtp::Receiver::SessionContext::subscribe_to_udp_receiver(const asio::i
     }
 }
 
-rav::rtp::Receiver::SessionContext* rav::rtp::Receiver::find_session_context(const Session& session) const {
+rav::rtp::Receiver::SessionContext*
+rav::rtp::Receiver::find_session_context(const Session& session, const asio::ip::address_v4& interface_address) const {
     for (const auto& context : sessions_contexts_) {
-        if (context->get_session() == session) {
+        if (context->get_session() == session && context->interface_address() == interface_address) {
             return context.get();
         }
     }
     return nullptr;
 }
 
-rav::rtp::Receiver::SessionContext* rav::rtp::Receiver::create_new_session_context(const Session& session) {
+rav::rtp::Receiver::SessionContext*
+rav::rtp::Receiver::create_new_session_context(const Session& session, const asio::ip::address_v4& interface_address) {
     // TODO: Disallow a port to be used in multiple sessions because when receiving RTP data we don't know which session
     // it belongs to.
 
-    auto new_session = std::make_unique<SessionContext>(udp_receiver_, session, config_.interface_address.to_v4());
+    auto new_session = std::make_unique<SessionContext>(udp_receiver_, session, interface_address);
     const auto& it = sessions_contexts_.emplace_back(std::move(new_session));
     RAV_TRACE("New RTP session context created for: {}", session.to_string());
     return it.get();
 }
 
-rav::rtp::Receiver::SessionContext* rav::rtp::Receiver::find_or_create_session_context(const Session& session) {
-    auto context = find_session_context(session);
+rav::rtp::Receiver::SessionContext* rav::rtp::Receiver::find_or_create_session_context(
+    const Session& session, const asio::ip::address_v4& interface_address
+) {
+    auto context = find_session_context(session, interface_address);
     if (context == nullptr) {
-        context = create_new_session_context(session);
+        context = create_new_session_context(session, interface_address);
     }
     return context;
 }

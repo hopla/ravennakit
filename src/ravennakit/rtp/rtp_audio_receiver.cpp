@@ -180,23 +180,11 @@ void rav::rtp::AudioReceiver::set_enabled(const bool enabled) {
     enabled_ ? start() : stop();
 }
 
-void rav::rtp::AudioReceiver::set_interface(const Rank rank, asio::ip::address_v4 interface_address) {
-    RAV_ASSERT(!interface_address.is_multicast(), "Interface address must not be multicast");
-    bool changed = false;
-    if (interface_address.is_unspecified()) {
-        if (interface_addresses_.erase(rank) > 0) {
-            changed = true;
-        }
-    } else {
-        auto& it = interface_addresses_[rank];
-        if (it != interface_address) {
-            changed = true;
-            it = std::move(interface_address);
-        }
+void rav::rtp::AudioReceiver::set_interfaces(const std::map<Rank, asio::ip::address_v4>& interface_addresses) {
+    if (interface_addresses_ == interface_addresses) {
+        return; // No change in interface addresses
     }
-    if (!changed) {
-        return;
-    }
+    interface_addresses_ = interface_addresses;
     stop();
     start();
 }

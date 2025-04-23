@@ -170,10 +170,9 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
 
     /**
      * Sets the interface address for the receiver.
-     * @param rank The rank of the interface address (primary, secondary).
-     * @param interface_address The interface address to set. Must be a valid IPv4 address.
+     * @param interface_addresses A map of interface addresses to set. The key is the rank of the interface address.
      */
-    void set_interface(Rank rank, asio::ip::address_v4 interface_address);
+    void set_interfaces(const std::map<Rank, asio::ip::address_v4>& interface_addresses);
 
     /**
      * @return A JSON representation of the sender.

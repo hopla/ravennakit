@@ -51,8 +51,7 @@ std::future<rav::Id> rav::RavennaNode::create_receiver(const RavennaReceiver::Co
         auto new_receiver = std::make_unique<RavennaReceiver>(
             io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next(), initial_config
         );
-        new_receiver->set_interface(Rank::primary(), config_.network_interfaces.get_ipv4_address(Rank::primary()));
-        new_receiver->set_interface(Rank::secondary(), config_.network_interfaces.get_ipv4_address(Rank::secondary()));
+        new_receiver->set_interfaces(config_.network_interfaces.get_interface_ipv4_addresses());
         const auto& it = receivers_.emplace_back(std::move(new_receiver));
         for (const auto& s : subscribers_) {
             s->ravenna_receiver_added(*it);
@@ -102,7 +101,7 @@ rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver:
 
 std::future<rav::Id> rav::RavennaNode::create_sender(const RavennaSender::ConfigurationUpdate& initial_config) {
     auto work = [this, initial_config]() mutable {
-        auto interface_address = config_.network_interfaces.get_ipv4_address(Rank(0));
+        auto interface_address = config_.network_interfaces.get_interface_ipv4_address(Rank(0));
         auto new_sender = std::make_unique<RavennaSender>(
             io_context_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
             interface_address, std::move(initial_config)
@@ -365,40 +364,28 @@ bool rav::RavennaNode::send_audio_data_realtime(
 std::future<void>
 rav::RavennaNode::set_network_interface_config(RavennaConfig::NetworkInterfaceConfig interface_config) {
     auto work = [this, config = std::move(interface_config)] {
-        bool changed = false;
+        if (config_.network_interfaces == config) {
+            return;  // Nothing changed
+        }
 
-        if (config_.network_interfaces.primary != config.primary) {
-            config_.network_interfaces.primary = config.primary;
-            changed = true;
-            const auto interface_address = config_.network_interfaces.get_ipv4_address(Rank::primary());
+        config_.network_interfaces = std::move(config);
+        const auto addresses = config_.network_interfaces.get_interface_ipv4_addresses();
 
-            for (const auto& receiver : receivers_) {
-                receiver->set_interface(Rank::primary(), interface_address);
-            }
+        for (const auto& receiver : receivers_) {
+            receiver->set_interfaces(addresses);
+        }
 
+        const auto first_interface = addresses.begin();
+        if (first_interface != addresses.end()) {
             for (const auto& sender : senders_) {
-                sender->set_interface(interface_address);
+                sender->set_interface(first_interface->second);
             }
 
             if (ptp_instance_.get_port_count() == 0) {
-                ptp_instance_.add_port(interface_address);
+                ptp_instance_.add_port(first_interface->second);
             } else {
-                ptp_instance_.set_port_interface(0, interface_address);
+                ptp_instance_.set_port_interface(0, first_interface->second);
             }
-        }
-
-        if (config_.network_interfaces.secondary != config.secondary) {
-            config_.network_interfaces.secondary = config.secondary;
-            changed = true;
-            const auto interface_address = config_.network_interfaces.get_ipv4_address(Rank::secondary());
-
-            for (const auto& receiver : receivers_) {
-                receiver->set_interface(Rank::secondary(), interface_address);
-            }
-        }
-
-        if (!changed) {
-            return;
         }
 
         for (const auto& subscriber : subscribers_) {
@@ -443,6 +430,8 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
 
             set_network_interface_config(ravenna_config->network_interfaces).wait();
 
+            auto interface_addresses = ravenna_config->network_interfaces.get_interface_ipv4_addresses();
+
             {
                 auto senders = json.at("senders");
                 std::vector<std::unique_ptr<RavennaSender>> new_senders;
@@ -453,7 +442,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
                         return tl::unexpected(config.error());
                     }
                     auto session_id = sender.at("session_id").get<uint32_t>();
-                    auto interface_address = config_.network_interfaces.get_ipv4_address(Rank::primary());
+                    auto interface_address = config_.network_interfaces.get_interface_ipv4_address(Rank::primary());
                     auto new_sender = std::make_unique<RavennaSender>(
                         io_context_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), session_id,
                         interface_address, *config
@@ -490,12 +479,8 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
                     auto new_receiver = std::make_unique<RavennaReceiver>(
                         io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next(), *config
                     );
-                    new_receiver->set_interface(
-                        Rank::primary(), config_.network_interfaces.get_ipv4_address(Rank::primary())
-                    );
-                    new_receiver->set_interface(
-                        Rank::secondary(), config_.network_interfaces.get_ipv4_address(Rank::secondary())
-                    );
+
+                    new_receiver->set_interfaces(interface_addresses);
                     new_receivers.push_back(std::move(new_receiver));
                 }
 

@@ -170,11 +170,10 @@ class AudioReceiver: public Receiver::Subscriber {
     void set_enabled(bool enabled);
 
     /**
-     * Sets the interface address for the receiver. If the address is unspecified, it will be removed.
-     * @param rank The rank of the interface address (primary, secondary).
-     * @param interface_address The interface address to set. Must be a valid IPv4 address.
+     * Sets the interface address for the receiver.
+     * @param interface_addresses A map of interface addresses to set. The key is the rank of the interface address.
      */
-    void set_interface(Rank rank, asio::ip::address_v4 interface_address);
+    void set_interfaces(const std::map<Rank, asio::ip::address_v4>& interface_addresses);
 
     /**
      * Sets a callback for when data is received.

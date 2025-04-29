@@ -362,7 +362,7 @@ uint32_t rav::RavennaSender::get_framecount() const {
 }
 
 bool rav::RavennaSender::send_data_realtime(const BufferView<const uint8_t> buffer, const uint32_t timestamp) {
-    if (!ptp_stable_) {
+    if (!get_local_clock().is_locked()) {
         return false;
     }
 
@@ -548,10 +548,6 @@ void rav::RavennaSender::ptp_parent_changed(const ptp::ParentDs& parent) {
     if (!rtsp_path_by_name_.empty()) {
         send_announce();
     }
-}
-
-void rav::RavennaSender::ptp_port_changed_state(const ptp::Port& port) {
-    ptp_stable_ = port.state() == ptp::State::slave || port.state() == ptp::State::master;
 }
 
 void rav::RavennaSender::send_announce() const {

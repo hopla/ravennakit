@@ -44,9 +44,9 @@ class loopback: public rav::RavennaReceiver::Subscriber, public rav::ptp::Instan
         }
 
         sender_ = std::make_unique<rav::RavennaSender>(
-            io_context_, *advertiser_, *rtsp_server_, *ptp_instance_, rav::Id::get_next_process_wide_unique_id(), 1,
-            interface_addr
+            io_context_, *advertiser_, *rtsp_server_, *ptp_instance_, rav::Id::get_next_process_wide_unique_id(), 1
         );
+        sender_->set_interfaces({{rav::Rank::primary(), interface_addr}});
 
         rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(udp_receiver_);
 

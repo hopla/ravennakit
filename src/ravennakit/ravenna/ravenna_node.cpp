@@ -369,7 +369,7 @@ rav::RavennaNode::set_network_interface_config(RavennaConfig::NetworkInterfaceCo
             return;  // Nothing changed
         }
 
-        config_.network_interfaces = std::move(config);
+        config_.network_interfaces = config;
         const auto addresses = config_.network_interfaces.get_interface_ipv4_addresses();
 
         for (const auto& receiver : receivers_) {
@@ -380,12 +380,32 @@ rav::RavennaNode::set_network_interface_config(RavennaConfig::NetworkInterfaceCo
             sender->set_interfaces(addresses);
         }
 
-        const auto first_interface = addresses.begin();
-        if (first_interface != addresses.end()) {
-            if (ptp_instance_.get_port_count() == 0) {
-                ptp_instance_.add_port(first_interface->second);
+        // Add or update PTP ports based on the new configuration
+        for (auto& [rank, address] : addresses) {
+            auto it = ptp_ports_.find(rank);
+            if (it == ptp_ports_.end()) {
+                auto port_number = ptp_instance_.add_port(address);
+                if (!port_number) {
+                    RAV_ERROR("Failed to add PTP port: {}", ptp::to_string(port_number.error()));
+                    continue;
+                }
+                ptp_ports_[rank] = port_number.value();
             } else {
-                ptp_instance_.set_port_interface(0, first_interface->second);
+                if (!ptp_instance_.set_port_interface(it->second, address)) {
+                    RAV_ERROR("Failed to set PTP port interface: {}", it->second);
+                }
+            }
+        }
+
+        // Remove PTP ports that are no longer in the configuration (by rank)
+        for (auto it = ptp_ports_.begin(); it != ptp_ports_.end();) {
+            if (addresses.find(it->first) == addresses.end()) {
+                if (!ptp_instance_.remove_port(it->second)) {
+                    RAV_ERROR("Failed to remove PTP port: {}", it->second);
+                }
+                it = ptp_ports_.erase(it);
+            } else {
+                ++it;
             }
         }
 

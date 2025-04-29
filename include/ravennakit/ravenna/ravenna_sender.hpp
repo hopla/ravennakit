@@ -214,7 +214,6 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
 
     // ptp::Instance::Subscriber overrides
     void ptp_parent_changed(const ptp::ParentDs& parent) override;
-    void ptp_port_changed_state(const ptp::Port& port) override;
 
   private:
     [[maybe_unused]] asio::io_context& io_context_;
@@ -235,7 +234,6 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
 
     asio::high_resolution_timer timer_;
     SubscriberList<Subscriber> subscribers_;
-    std::atomic<bool> ptp_stable_ {false};
     std::string status_message_;
 
     struct Packet {

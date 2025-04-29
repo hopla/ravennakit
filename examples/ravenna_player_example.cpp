@@ -41,9 +41,9 @@ class wav_file_player: public rav::ptp::Instance::Subscriber {
         }
 
         auto id = id_generator.next();
-        auto sender = std::make_unique<rav::RavennaSender>(
-            io_context, advertiser, rtsp_server, ptp_instance, id, id.value(), interface_address
-        );
+        auto sender =
+            std::make_unique<rav::RavennaSender>(io_context, advertiser, rtsp_server, ptp_instance, id, id.value());
+        sender->set_interfaces({{rav::Rank::primary(), interface_address}});
 
         auto file_input_stream = std::make_unique<rav::FileInputStream>(file_to_play);
         auto reader = std::make_unique<rav::WavAudioFormat::Reader>(std::move(file_input_stream));
@@ -158,7 +158,7 @@ class wav_file_player: public rav::ptp::Instance::Subscriber {
         }
 
         const auto drift = rav::WrappingUint32(ptp_ts).diff(rav::WrappingUint32(rtp_ts_));
-        std::ignore = drift; // For when Tracy is disabled
+        std::ignore = drift;  // For when Tracy is disabled
         // Positive means audio device is ahead of the PTP clock, negative means behind
 
         TRACY_PLOT("drift", static_cast<int64_t>(drift));

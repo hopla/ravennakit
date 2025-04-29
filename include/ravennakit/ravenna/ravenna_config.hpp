@@ -46,7 +46,7 @@ struct RavennaConfig {
          * @param rank The rank of the network interface.
          * @return A pointer to the network interface identifier if found, or nullptr if not found.
          */
-        const NetworkInterface::Identifier* get_interface(const Rank rank) const {
+        [[nodiscard]] const NetworkInterface::Identifier* get_interface(const Rank rank) const {
             const auto it = interfaces_.find(rank);
             if (it == interfaces_.end()) {
                 return nullptr;
@@ -80,7 +80,7 @@ struct RavennaConfig {
          * @return A map of all network interfaces and their first IPv4 address. The address will be unspecified if the
          * interface has no IPv4 address.
          */
-        std::map<Rank, asio::ip::address_v4> get_interface_ipv4_addresses() const {
+        [[nodiscard]] std::map<Rank, asio::ip::address_v4> get_interface_ipv4_addresses() const {
             std::map<Rank, asio::ip::address_v4> addresses;
             for (const auto& iface : interfaces_) {
                 addresses[iface.first] = get_interface_ipv4_address(iface.first);
@@ -128,7 +128,7 @@ struct RavennaConfig {
          * @param json
          * @return A newly constructed NetworkInterfaceConfig object.
          */
-        static tl::expected<NetworkInterfaceConfig, std::string> from_json(const nlohmann::json& json) {
+        [[nodiscard]] static tl::expected<NetworkInterfaceConfig, std::string> from_json(const nlohmann::json& json) {
             NetworkInterfaceConfig config;
             try {
                 for (auto& object : json) {

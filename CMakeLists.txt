@@ -54,10 +54,11 @@ find_package(nlohmann_json CONFIG REQUIRED)
 find_package(boost_asio CONFIG REQUIRED)
 find_package(boost_container CONFIG REQUIRED)
 find_package(boost_beast CONFIG REQUIRED)
+find_package(boost_url CONFIG REQUIRED)
 find_package(boost_circular_buffer CONFIG REQUIRED)
 find_package(boost_lockfree CONFIG REQUIRED)
 
-target_compile_definitions(Boost::asio INTERFACE BOOST_ASIO_NO_DEPRECATED BOOST_ASIO_NO_DYNAMIC_BUFFER_V1)
+target_compile_definitions(Boost::asio INTERFACE BOOST_ASIO_NO_DEPRECATED)
 
 #########
 # Tracy #
@@ -103,6 +104,7 @@ target_link_libraries(ravennakit
         $<$<BOOL:${RAV_ENABLE_SPDLOG}>:spdlog::spdlog>
         Boost::asio
         Boost::beast
+        Boost::url
         Boost::circular_buffer
         Boost::lockfree
 )

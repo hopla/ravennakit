@@ -23,70 +23,88 @@ namespace http = boost::beast::http;
 using tcp = boost::asio::ip::tcp;
 
 /**
- * This wrapper class providing a simple interface for making HTTP requests.
+ * A high level wrapper around boost::beast for making HTTP requests.
  */
 class HttpClient {
   public:
     /// When no port is specified in the urls, the default port is used.
     static constexpr auto k_default_port = "80";
 
+    /// Callback type for async requests.
     using CallbackType = std::function<void(boost::system::result<http::response<http::string_body>> response)>;
 
     /**
-     * Synchronous GET request.
+     * Constructs a new HttpClient using the given io_context and url.
      * @param io_context The io_context to use for the request.
-     * @param url The URL to request.
+     * @param url The url to request.
+     */
+    HttpClient(boost::asio::io_context& io_context, std::string_view url);
+
+    /**
+     * Constructs a new HttpClient using the given io_context and url.
+     * @param io_context The io_context to use for the request.
+     * @param url The url to request.
+     */
+    HttpClient(boost::asio::io_context& io_context, const boost::urls::url& url);
+
+    /**
+     * Synchronous GET request to the target of the URL, or the root if no target is specified.
      * @return The response from the server, which may contain an error.
      */
-    static boost::system::result<http::response<http::string_body>>
-    get(boost::asio::io_context& io_context, const std::string& url);
+    boost::system::result<http::response<http::string_body>> get() const;
 
     /**
      * Synchronous GET request.
-     * @param io_context The io_context to use for the request.
-     * @param url The URL to request.
-     * @param body The body of the request.
+     * @param target The target to request.
      * @return The response from the server, which may contain an error.
      */
-    static boost::system::result<http::response<http::string_body>>
-    post(boost::asio::io_context& io_context, const std::string& url, const std::string& body);
+    boost::system::result<http::response<http::string_body>> get(std::string_view target) const;
 
     /**
-     * Make a synchronous HTTP request.
-     * @param io_context The io_context to use for the request.
-     * @param method The HTTP method to use.
-     * @param url The host to connect to.
-     * @param body The body of the request.
-     * @return The response from the server, which may contain an error.
+     * Asynchronous GET request to the target of the URL, or the root if no target is specified.
+     * The callback's lifetime will be tied to the io_context so make sure referenced objects are kept alive until the
+     * callback is called.
+     * @param callback The callback to call when the request is complete.
      */
-    static boost::system::result<http::response<http::string_body>>
-    request(boost::asio::io_context& io_context, http::verb method, std::string_view url, std::string_view body);
+    void get_async(CallbackType callback) const;
 
     /**
      * Asynchronous GET request.
-     *
-     * The lifetime of the callback will be tied to the given io_context and will outlive the call to this function.
-     *
-     * @param io_context The io_context to use for the request.
-     * @param url The URL to request.
-     * @param callback The callback to call when the request is complete which is when the response is received or when
-     * an error occurs.
+     * The callback's lifetime will be tied to the io_context so make sure referenced objects are kept alive until the
+     * callback is called.
+     * @param target The target to request.
+     * @param callback The callback to call when the request is complete.
      */
-    static void get_async(boost::asio::io_context& io_context, const std::string& url, CallbackType callback);
+    void get_async(std::string_view target, CallbackType callback) const;
 
     /**
-     * Asynchronous GET request.
-     *
-     * The lifetime of the callback will be tied to the given io_context and will outlive the call to this function.
-     *
+     * Synchronous request.
      * @param io_context The io_context to use for the request.
-     * @param method
-     * @param url The URL to request.
-     * @param callback The callback to call when the request is complete which is when the response is received or when
-     * an error occurs.
+     * @param method The HTTP method to use for the request.
+     * @param host The host to request.
+     * @param service The service (port) to use for the request.
+     * @param target The target to request.
+     * @param body The body to send with the request.
+     * @return The response from the server, which may contain an error.
+     */
+    static boost::system::result<http::response<http::string_body>> request(
+        boost::asio::io_context& io_context, http::verb method, std::string_view host, std::string_view service,
+        std::string_view target, const std::string& body
+    );
+
+    /**
+     * Asynchronous request.
+     * @param io_context The io_context to use for the request.
+     * @param method The HTTP method to use for the request.
+     * @param host The host to request.
+     * @param service The service (port) to use for the request.
+     * @param target The target to request.
+     * @param body The optional body to send with the request.
+     * @param callback The callback to call when the request is complete.
      */
     static void request_async(
-        boost::asio::io_context& io_context, http::verb method, const std::string& url, CallbackType callback
+        boost::asio::io_context& io_context, http::verb method, std::string_view host, std::string_view service,
+        std::string_view target, const std::string& body, CallbackType callback
     );
 
   private:
@@ -102,10 +120,10 @@ class HttpClient {
         );
 
       private:
-        http::request<http::empty_body> request_;
-        http::response<http::string_body> response_;
         boost::asio::ip::tcp::resolver resolver_;
         boost::beast::tcp_stream stream_;
+        http::request<http::empty_body> request_;
+        http::response<http::string_body> response_;
         boost::beast::flat_buffer buffer_;
         CallbackType callback_;
 
@@ -114,6 +132,9 @@ class HttpClient {
         void on_write(const boost::beast::error_code& ec, std::size_t bytes_transferred);
         void on_read(boost::beast::error_code ec, std::size_t bytes_transferred);
     };
+
+    boost::asio::io_context& io_context_;
+    boost::urls::url url_;
 };
 
 }  // namespace rav

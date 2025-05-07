@@ -51,27 +51,27 @@ class HttpClient {
      * Synchronous GET request to the target of the URL, or the root if no target is specified.
      * @return The response from the server, which may contain an error.
      */
-    boost::system::result<http::response<http::string_body>> get() const;
+    [[nodiscard]] boost::system::result<http::response<http::string_body>> get() const;
 
     /**
      * Synchronous GET request.
      * @param target The target to request.
      * @return The response from the server, which may contain an error.
      */
-    boost::system::result<http::response<http::string_body>> get(std::string_view target) const;
+    [[nodiscard]] boost::system::result<http::response<http::string_body>> get(std::string_view target) const;
 
     /**
      * Synchronous GET request to the target of the URL, or the root if no target is specified.
      * @return The response from the server, which may contain an error.
      */
-    boost::system::result<http::response<http::string_body>>
+    [[nodiscard]] boost::system::result<http::response<http::string_body>>
     post(std::string body, std::string_view content_type = "application/json") const;
 
     /**
      * Synchronous GET request to the target of the URL, or the root if no target is specified.
      * @return The response from the server, which may contain an error.
      */
-    boost::system::result<http::response<http::string_body>>
+    [[nodiscard]] boost::system::result<http::response<http::string_body>>
     post(std::string_view target, std::string body, std::string_view content_type = "application/json") const;
 
     /**
@@ -117,7 +117,7 @@ class HttpClient {
      * @param  content_type
      * @return The response from the server, which may contain an error.
      */
-    static boost::system::result<http::response<http::string_body>> request(
+    [[nodiscard]] static boost::system::result<http::response<http::string_body>> request(
         boost::asio::io_context& io_context, http::verb method, std::string_view host, std::string_view service,
         std::string_view target, std::string body, std::string_view content_type = "application/json"
     );
@@ -135,7 +135,7 @@ class HttpClient {
      */
     static void request_async(
         boost::asio::io_context& io_context, http::verb method, std::string_view host, std::string_view service,
-        std::string_view target, const std::string& body, std::string_view content_type, CallbackType callback
+        std::string_view target, std::string body, std::string_view content_type, CallbackType callback
     );
 
   private:

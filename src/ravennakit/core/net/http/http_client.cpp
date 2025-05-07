@@ -118,7 +118,7 @@ rav::HttpClient::request(
 
 void rav::HttpClient::request_async(
     boost::asio::io_context& io_context, const http::verb method, const std::string_view host,
-    const std::string_view service, const std::string_view target, const std::string& body,
+    const std::string_view service, const std::string_view target, std::string body,
     const std::string_view content_type, CallbackType callback
 ) {
     RAV_ASSERT(!host.empty(), "Host cannot be empty");

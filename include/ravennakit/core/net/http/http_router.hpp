@@ -49,7 +49,7 @@ class HttpRouter {
         }
 
         // If no existing route was found, add a new one
-        routes_.emplace_back(Route {.method = method, .pattern = std::string(pattern), .handler = std::move(handler)});
+        routes_.emplace_back(Route {method, std::string(pattern), std::move(handler)});
     }
 
     /**

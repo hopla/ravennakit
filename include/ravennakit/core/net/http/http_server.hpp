@@ -26,7 +26,7 @@
 namespace rav {
 
 /**
- * A high level wrapper around boost::beast for creating an HTTP server.
+ * A high-level wrapper around boost::beast for creating an HTTP server.
  */
 class HttpServer {
   public:

@@ -54,7 +54,7 @@ class NmosTestApiClient {
     }
 
     /**
-     * @return A list of available test suites, or an error if the connectin fails.
+     * @return A list of available test suites or an error if the connection fails.
      */
     [[nodiscard]] boost::system::result<std::vector<std::string>, std::string> get_suites() const {
         auto result = http_client_.post("/api", R"({"list_suites":true})", "application/json");

@@ -152,6 +152,8 @@ TEST_CASE("Test nmos::Node against NMOS Test API") {
         FAIL("NMOS_TEST_API_URL environment variable is not set");
     }
 
+    RAV_INFO("NMOS_TEST_API_URL: {}", *url);
+
     boost::asio::io_context io_context;
     rav::nmos::NmosTestApiClient client(io_context, *url);
     REQUIRE(client.test_connection());

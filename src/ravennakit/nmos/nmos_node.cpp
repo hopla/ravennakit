@@ -14,6 +14,38 @@
 
 #include <boost/json/serialize.hpp>
 
+namespace {
+
+void set_error_response(
+    const boost::beast::http::status status, const std::string& error, const std::string& debug,
+    boost::beast::http::response<boost::beast::http::string_body>& res
+) {
+    res.result(status);
+    res.set("Content-Type", "application/json");
+    res.body() =
+        boost::json::serialize(boost::json::value_from(rav::nmos::Error {static_cast<unsigned>(status), error, debug}));
+    res.prepare_payload();
+}
+
+std::optional<rav::nmos::ApiVersion>
+get_version_from_parameters(const rav::PathMatcher::Parameters& params, const std::string_view param_name = "version") {
+    const auto version_str = params.get(param_name);
+    if (version_str == nullptr) {
+        return std::nullopt;
+    }
+    return rav::nmos::ApiVersion::from_string(*version_str);
+}
+
+void set_default_headers(rav::HttpServer::Response& res) {
+    res.set("Content-Type", "application/json");
+    res.set("Access-Control-Allow-Origin", "*");
+    res.set("Access-Control-Allow-Methods", "GET, PUT, POST, PATCH, HEAD, OPTIONS, DELETE");
+    res.set("Access-Control-Allow-Headers", "Content-Type, Accept");
+    res.set("Access-Control-Max-Age", "3600");
+}
+
+}  // namespace
+
 std::array<rav::nmos::ApiVersion, 2> rav::nmos::Node::k_supported_api_versions = {{
     ApiVersion::v1_2(),
     ApiVersion::v1_3(),
@@ -56,27 +88,61 @@ boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::Configurati
 
 rav::nmos::Node::Node(boost::asio::io_context& io_context) : http_server_(io_context) {
     http_server_.get("/", [this](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
-        boost::json::array array;
-        array.push_back("x-nmos/");
-
         res.result(boost::beast::http::status::ok);
-        res.set("Content-Type", "application/json");
-        res.body() = boost::json::serialize(array);
+        set_default_headers(res);
+        res.body() = boost::json::serialize(boost::json::array({"x-nmos/"}));
         res.prepare_payload();
     });
 
-    http_server_.get("/x-nmos", [this](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
-        boost::json::array array;
-        array.push_back("node/");
+    http_server_.get(
+        "/x-nmos",
+        [this](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
+            res.result(boost::beast::http::status::ok);
+            set_default_headers(res);
+            res.body() = boost::json::serialize(boost::json::array({"node/"}));
+            res.prepare_payload();
+        }
+    );
 
-        res.result(boost::beast::http::status::ok);
-        res.set("Content-Type", "application/json");
-        res.body() = boost::json::serialize(array);
-        res.prepare_payload();
-    });
+    http_server_.get(
+        "/x-nmos/node",
+        [this](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
+            res.result(boost::beast::http::status::ok);
+            set_default_headers(res);
 
-    http_server_.get("**", [this](const HttpServer::Request& req, HttpServer::Response& res, PathMatcher::Parameters&) {
-        handle_request(boost::beast::http::verb::get, req.target(), req, res);
+            boost::json::array versions;
+            for (const auto& version : k_supported_api_versions) {
+                versions.push_back({fmt::format("{}/", version.to_string())});
+            }
+
+            res.body() = boost::json::serialize(versions);
+            res.prepare_payload();
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/node/{version}",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            const auto version = get_version_from_parameters(params);
+            if (!version) {
+                set_error_response(
+                    boost::beast::http::status::bad_request, "Invalid API version",
+                    "Failed to parse a valid version in the form of vMAJOR.MINOR", res
+                );
+                return;
+            }
+
+            res.result(boost::beast::http::status::ok);
+            set_default_headers(res);
+            res.body() = boost::json::serialize(
+                boost::json::array({"self/", "sources/", "flows/", "devices/", "senders/", "receivers/"})
+            );
+            res.prepare_payload();
+        }
+    );
+
+    http_server_.get("/**", [this](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
+        set_error_response(boost::beast::http::status::not_found, "Not found", "No matching route", res);
     });
 }
 
@@ -90,84 +156,6 @@ void rav::nmos::Node::stop() {
 
 boost::asio::ip::tcp::endpoint rav::nmos::Node::get_local_endpoint() const {
     return http_server_.get_local_endpoint();
-}
-
-namespace {
-
-void set_error_response(
-    const boost::beast::http::status status, const std::string& error, const std::string& debug,
-    boost::beast::http::response<boost::beast::http::string_body>& res
-) {
-    res.result(status);
-    res.set("Content-Type", "application/json");
-    res.body() =
-        boost::json::serialize(boost::json::value_from(rav::nmos::Error {static_cast<unsigned>(status), error, debug}));
-    res.prepare_payload();
-}
-
-}  // namespace
-
-void rav::nmos::Node::handle_request(
-    boost::beast::http::verb method, const std::string_view target,
-    const boost::beast::http::request<boost::beast::http::string_body>& req,
-    boost::beast::http::response<boost::beast::http::string_body>& res
-) {
-    StringParser parser(target);
-
-    if (!parser.skip("/x-nmos")) {
-        set_error_response(boost::beast::http::status::not_found, "Not found", "x-nmos not found", res);
-        return;
-    }
-
-    parser.skip('/'); // Optional
-
-    const auto api = parser.read_until('/');
-    if (!api || api->empty()) {
-        set_error_response(boost::beast::http::status::not_found, "Not found", "api type not found", res);
-        return;
-    }
-
-    if (api != "node") {
-        set_error_response(
-            boost::beast::http::status::not_found, "Not found", fmt::format("unsupported api: {}", *api), res
-        );
-        return;
-    }
-
-    const auto version_str = parser.read_until('/');
-    if (!version_str || version_str->empty()) {
-        set_error_response(boost::beast::http::status::not_found, "Not found", "version not found", res);
-        return;
-    }
-
-    const auto version = ApiVersion::from_string(*version_str);
-    if (!version) {
-        set_error_response(boost::beast::http::status::not_found, "Not found", "failed to parse version", res);
-        return;
-    }
-
-    if (parser.exhausted()) {
-        serve_root(*version, res);
-        return;
-    }
-
-    set_error_response(boost::beast::http::status::not_found, "Not found", "unknown target", res);
-}
-
-void rav::nmos::Node::serve_root(ApiVersion api_version, HttpServer::Response& res) {
-    res.result(boost::beast::http::status::ok);
-    res.set("Content-Type", "application/json");
-
-    boost::json::array array;
-    array.push_back("self/");
-    array.push_back("sources/");
-    array.push_back("flows/");
-    array.push_back("devices/");
-    array.push_back("senders/");
-    array.push_back("receivers/");
-
-    res.body() = boost::json::serialize(array);
-    res.prepare_payload();
 }
 
 std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::Error error) {

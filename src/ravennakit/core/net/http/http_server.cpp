@@ -303,28 +303,36 @@ void rav::HttpServer::on_client_error(const boost::beast::error_code& ec, std::s
 boost::beast::http::message_generator
 rav::HttpServer::on_request(const boost::beast::http::request<boost::beast::http::string_body>& request) {
     RAV_INFO("Received request: {} {}", request.method_string(), request.target());
+    try {
+        PathMatcher::Parameters parameters;
 
-    PathMatcher::Parameters parameters;
-    if (const auto* match = router_.match(request.method(), request.target(), &parameters)) {
-        Response response;
-        response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
-        response.keep_alive(request.keep_alive());
-        response.version(request.version());
-        (*match)(request, response, parameters);
-        RAV_INFO("Response: {} {}", response.result_int(), response.reason());
-        return response;
+        if (const auto* match = router_.match(request.method(), request.target(), &parameters)) {
+            Response response;
+            response.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+            response.keep_alive(request.keep_alive());
+            response.version(request.version());
+            (*match)(request, response, parameters);
+            RAV_INFO("Response: {} {}", response.result_int(), response.reason());
+            return response;
+        }
+
+        Response res {boost::beast::http::status::not_found, request.version()};
+        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::content_type, "text/html");
+        res.keep_alive(request.keep_alive());
+        res.body() = std::string("No matching handler");
+        res.prepare_payload();
+        RAV_INFO("Response: {} {}", res.result_int(), res.reason());
+        return res;
+    } catch (const std::exception& e) {
+        RAV_ERROR("Exception in handler: {}", e.what());
+        Response res {boost::beast::http::status::internal_server_error, request.version()};
+        res.set(boost::beast::http::field::content_type, "text/plain");
+        res.body() = "Internal server error";
+        res.prepare_payload();
+        RAV_INFO("Response: {} {}", res.result_int(), res.reason());
+        return res;
     }
-
-    boost::beast::http::response<boost::beast::http::string_body> res {
-        boost::beast::http::status::not_found, request.version()
-    };
-    res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
-    res.set(boost::beast::http::field::content_type, "text/html");
-    res.keep_alive(request.keep_alive());
-    res.body() = std::string("No matching handler");
-    res.prepare_payload();
-    RAV_INFO("Response: {} {}", res.result_int(), res.reason());
-    return res;
 }
 
 void rav::HttpServer::remove_client_session(const ClientSession* session) {

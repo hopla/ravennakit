@@ -12,6 +12,8 @@
 
 #include "detail/nmos_api_version.hpp"
 #include "models/nmos_device.hpp"
+#include "models/nmos_flow.hpp"
+#include "models/nmos_flow_audio_raw.hpp"
 #include "models/nmos_self.hpp"
 #include "ravennakit/core/net/http/http_server.hpp"
 
@@ -124,6 +126,13 @@ class Node {
     [[nodiscard]] const Device* get_device(boost::uuids::uuid uuid) const;
 
     /**
+     * Adds the given flow to the node or updates an existing flow if it already exists (based on the uuid).
+     * @param flow The flow to set.
+     * @return True if the flow was set successfully, false otherwise.
+     */
+    [[nodiscard]] bool set_flow(Flow flow);
+
+    /**
      * @return The uuid of the node.
      */
     [[nodiscard]] const boost::uuids::uuid& get_uuid() const;
@@ -137,6 +146,7 @@ class Node {
     HttpServer http_server_;
     Self self_;
     std::vector<Device> devices_;
+    std::vector<Flow> flows_;
 };
 
 /// Overload the output stream operator for the Node::Error enum class

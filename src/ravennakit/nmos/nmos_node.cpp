@@ -350,6 +350,24 @@ const rav::nmos::Device* rav::nmos::Node::get_device(boost::uuids::uuid uuid) co
     return nullptr;
 }
 
+bool rav::nmos::Node::set_flow(Flow flow) {
+    if (flow.id().is_nil()) {
+        RAV_ERROR("Flow ID should not be nil");
+        return false;
+    }
+
+    for (auto& existing_flow : flows_) {
+        if (existing_flow.id() == flow.id()) {
+            existing_flow = std::move(flow);
+            return true;
+        }
+    }
+
+    flows_.push_back(std::move(flow));
+
+    return true;
+}
+
 const boost::uuids::uuid& rav::nmos::Node::get_uuid() const {
     return self_.id;
 }

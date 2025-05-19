@@ -22,11 +22,11 @@ struct ClockInternal {
     std::string name;
 
     /// Type of external reference used by this clock
-    std::string ref_type {"internal"};
+    static constexpr auto k_ref_type = "internal";
 };
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ClockInternal& clock) {
-    jv = {{"name", clock.name}, {"ref_type", clock.ref_type}};
+    jv = {{"name", clock.name}, {"ref_type", ClockInternal::k_ref_type}};
 }
 
 }  // namespace rav::nmos

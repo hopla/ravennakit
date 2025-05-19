@@ -22,13 +22,13 @@ struct ClockPtp {
     std::string name;
 
     /// Type of external reference used by this clock
-    std::string ref_type {"ptp"};  // The only value in v1.3
+    static constexpr auto k_ref_type_ptp = "ptp";
 
     /// External refclock is synchronized to International Atomic Time (TAI)
     bool traceable {false};
 
     /// Version of PTP reference used by this clock
-    std::string version {"IEEE1588-2008"};  // The only value in v1.3
+    static constexpr auto k_version = "IEEE1588-2008";
 
     /// ID of the PTP reference used by this clock (e.g. "00-1a-2b-00-00-3c-4d-5e")
     std::string gmid;
@@ -39,8 +39,9 @@ struct ClockPtp {
 };
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ClockPtp& clock) {
-    jv = {{"name", clock.name},       {"ref_type", clock.ref_type}, {"traceable", clock.traceable},
-          {"version", clock.version}, {"gmid", clock.gmid},         {"locked", clock.locked}};
+    jv = {{"name", clock.name},           {"ref_type", ClockPtp::k_ref_type_ptp},
+          {"traceable", clock.traceable}, {"version", ClockPtp::k_version},
+          {"gmid", clock.gmid},           {"locked", clock.locked}};
 }
 
 }  // namespace rav::nmos

@@ -81,6 +81,18 @@ int main() {
         std::ignore = node.set_sender(sender);
     }
 
+    // Sources
+    for (uint32_t i = 0; i < 5; ++i) {
+        rav::nmos::SourceAudio source;
+        source.id = boost::uuids::random_generator()();
+        source.label = fmt::format("Source {} label", i + 1);
+        source.description = fmt::format("Source {} desc", i + 1);
+        source.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
+        source.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
+        source.channels.push_back({"Channel 1"});
+        std::ignore = node.set_source({source});
+    }
+
     std::string url =
         fmt::format("http://{}:{}", node.get_local_endpoint().address().to_string(), node.get_local_endpoint().port());
 

@@ -416,6 +416,49 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context) : http_server_(io_con
         }
     );
 
+    http_server_.get(
+        "/x-nmos/node/{version}/sources",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_version_from_parameters(res, params)) {
+                return;
+            }
+
+            ok_response(res, boost::json::serialize(boost::json::value_from(sources_)));
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/node/{version}/sources/{source_id}",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_version_from_parameters(res, params)) {
+                return;
+            }
+
+            const auto* uuid_str = params.get("source_id");
+            if (uuid_str == nullptr) {
+                set_error_response(
+                    res, boost::beast::http::status::bad_request, "Invalid source ID", "Source ID is empty"
+                );
+                return;
+            }
+
+            const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
+            if (uuid.is_nil()) {
+                set_error_response(
+                    res, boost::beast::http::status::bad_request, "Invalid source ID", "Source ID is not a valid UUID"
+                );
+                return;
+            }
+
+            if (auto* sender = get_source(uuid)) {
+                ok_response(res, boost::json::serialize(boost::json::value_from(*sender)));
+                return;
+            }
+
+            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Source not found");
+        }
+    );
+
     http_server_.get("/**", [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
         set_error_response(res, boost::beast::http::status::not_found, "Not found", "No matching route");
     });
@@ -553,6 +596,33 @@ const rav::nmos::Sender* rav::nmos::Node::get_sender(boost::uuids::uuid uuid) co
         return sender.id == uuid;
     });
     if (it != senders_.end()) {
+        return &*it;
+    }
+    return nullptr;
+}
+
+bool rav::nmos::Node::set_source(Source source) {
+    if (source.id().is_nil()) {
+        RAV_ERROR("Source ID should not be nil");
+        return false;
+    }
+
+    for (auto& existing_source : sources_) {
+        if (existing_source.id() == source.id()) {
+            existing_source = std::move(source);
+            return true;
+        }
+    }
+
+    sources_.push_back(std::move(source));
+    return true;
+}
+
+const rav::nmos::Source* rav::nmos::Node::get_source(boost::uuids::uuid uuid) const {
+    const auto it = std::find_if(sources_.begin(), sources_.end(), [uuid](const Source& source) {
+        return source.id() == uuid;
+    });
+    if (it != sources_.end()) {
         return &*it;
     }
     return nullptr;

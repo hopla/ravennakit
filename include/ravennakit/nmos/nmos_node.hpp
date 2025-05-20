@@ -17,6 +17,7 @@
 #include "models/nmos_receiver.hpp"
 #include "models/nmos_self.hpp"
 #include "models/nmos_sender.hpp"
+#include "models/nmos_source.hpp"
 #include "ravennakit/core/net/http/http_server.hpp"
 
 #include <boost/uuid.hpp>
@@ -171,6 +172,20 @@ class Node {
     [[nodiscard]] const Sender* get_sender(boost::uuids::uuid uuid) const;
 
     /**
+     * Adds the given source to the node or updates an existing source if it already exists (based on the uuid).
+     * @param source The source to set.
+     * @return True if the source was set successfully, false otherwise.
+     */
+    [[nodiscard]] bool set_source(Source source);
+
+    /**
+     * Finds a source by its uuid.
+     * @param uuid The uuid of the source to find.
+     * @return A pointer to the source if found, or nullptr if not found.
+     */
+    [[nodiscard]] const Source* get_source(boost::uuids::uuid uuid) const;
+
+    /**
      * @return The uuid of the node.
      */
     [[nodiscard]] const boost::uuids::uuid& get_uuid() const;
@@ -187,6 +202,7 @@ class Node {
     std::vector<Flow> flows_;
     std::vector<Receiver> receivers_;
     std::vector<Sender> senders_;
+    std::vector<Source> sources_;
 };
 
 /// Overload the output stream operator for the Node::Error enum class

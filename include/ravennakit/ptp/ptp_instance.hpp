@@ -17,14 +17,9 @@
 #include "datasets/ptp_default_ds.hpp"
 #include "datasets/ptp_parent_ds.hpp"
 #include "datasets/ptp_time_properties_ds.hpp"
-#include "ravennakit/core/events.hpp"
 #include "ravennakit/core/subscriber_list.hpp"
-#include "ravennakit/core/events/event_emitter.hpp"
-#include "ravennakit/core/net/interfaces/network_interface_list.hpp"
 #include "ravennakit/core/expected.hpp"
-#include "ravennakit/core/sync/realtime_shared_object.hpp"
 
-#include <boost/asio/ip/address.hpp>
 #include <boost/lockfree/spsc_value.hpp>
 
 namespace rav::ptp {

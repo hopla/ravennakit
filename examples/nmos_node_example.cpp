@@ -26,6 +26,7 @@ int main() {
         return 1;
     }
 
+    // Add devices to the node
     for (uint32_t i = 0; i < 5; ++i) {
         rav::nmos::Device::Control control;
         control.href = fmt::format("http://localhost:{}", i + 6000);
@@ -38,6 +39,20 @@ int main() {
         device.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
         device.controls.push_back(control);
         std::ignore = node.set_device(device);
+    }
+
+    for (uint32_t i = 0; i < 5; ++i) {
+        rav::nmos::FlowAudioRaw flow;
+        flow.id = boost::uuids::random_generator()();
+        flow.label = fmt::format("Flow {} label", i + 1);
+        flow.description = fmt::format("Flow {} desc", i + 1);
+        flow.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
+        flow.bit_depth = 24;
+        flow.sample_rate = {48000, 1};
+        flow.media_type = "audio/L24";
+        flow.source_id = boost::uuids::random_generator()(); // TODO: Assign a valid source ID
+        flow.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
+        std::ignore = node.set_flow({flow});
     }
 
     std::string url =

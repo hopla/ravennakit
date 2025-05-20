@@ -13,9 +13,9 @@
 
 namespace rav::nmos {
 
-/// Flow is a generic structure that can hold different types of flows.
-/// Note: at this moment the Flow is a FlowAudioRaw, when the next supported type is added, Flow should become or hold a
-/// variant or use dynamic polymorphism.
+/**
+ * Flow is a generic structure that can hold different types of flows.
+ */
 struct Flow {
     std::variant<FlowAudioRaw> any_of;
 

@@ -120,8 +120,9 @@ class Node {
     [[nodiscard]] bool set_device(Device device);
 
     /**
-     * Removes the device with the given uuid from the node.
-     * @param uuid The uuid of the device to remove.
+     * Finds a device by its uuid.
+     * @param uuid The uuid of the device to find.
+     * @return A pointer to the device if found, or nullptr if not found.
      */
     [[nodiscard]] const Device* get_device(boost::uuids::uuid uuid) const;
 
@@ -131,6 +132,13 @@ class Node {
      * @return True if the flow was set successfully, false otherwise.
      */
     [[nodiscard]] bool set_flow(Flow flow);
+
+    /**
+     * Finds a flow by its uuid.
+     * @param uuid The uuid of the flow to find.
+     * @return A pointer to the flow if found, or nullptr if not found.
+     */
+    [[nodiscard]] const Flow* get_flow(boost::uuids::uuid uuid) const;
 
     /**
      * @return The uuid of the node.

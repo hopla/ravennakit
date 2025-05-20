@@ -288,6 +288,47 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context) : http_server_(io_con
         }
     );
 
+    http_server_.get(
+        "/x-nmos/node/{version}/flows",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_version_from_parameters(res, params)) {
+                return;
+            }
+
+            ok_response(res, boost::json::serialize(boost::json::value_from(flows_)));
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/node/{version}/flows/{flow_id}",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_version_from_parameters(res, params)) {
+                return;
+            }
+
+            const auto* uuid_str = params.get("flow_id");
+            if (uuid_str == nullptr) {
+                set_error_response(res, boost::beast::http::status::bad_request, "Invalid flow ID", "Flow ID is empty");
+                return;
+            }
+
+            const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
+            if (uuid.is_nil()) {
+                set_error_response(
+                    res, boost::beast::http::status::bad_request, "Invalid flow ID", "Flow ID is not a valid UUID"
+                );
+                return;
+            }
+
+            if (auto* flow = get_flow(uuid)) {
+                ok_response(res, boost::json::serialize(boost::json::value_from(*flow)));
+                return;
+            }
+
+            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Flow not found");
+        }
+    );
+
     http_server_.get("/**", [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
         set_error_response(res, boost::beast::http::status::not_found, "Not found", "No matching route");
     });
@@ -366,6 +407,16 @@ bool rav::nmos::Node::set_flow(Flow flow) {
     flows_.push_back(std::move(flow));
 
     return true;
+}
+
+const rav::nmos::Flow* rav::nmos::Node::get_flow(boost::uuids::uuid uuid) const {
+    const auto it = std::find_if(flows_.begin(), flows_.end(), [uuid](const Flow& flow) {
+        return flow.id() == uuid;
+    });
+    if (it != flows_.end()) {
+        return &*it;
+    }
+    return nullptr;
 }
 
 const boost::uuids::uuid& rav::nmos::Node::get_uuid() const {

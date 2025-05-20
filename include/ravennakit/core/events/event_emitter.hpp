@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "ravennakit/core/linked_node.hpp"
+#include "ravennakit/core/util/linked_node.hpp"
 
 namespace rav {
 

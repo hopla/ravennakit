@@ -18,14 +18,14 @@ namespace {
 class Subscriber {
   public:
     virtual ~Subscriber() = default;
-    virtual void on_event(const std::string& event) = 0;
+    virtual void on_event(const std::string& event) {
+        ankerl::nanobench::doNotOptimizeAway(event);
+    }
 };
 
 class ConcreteSubscriber: public Subscriber {
   public:
-    std::string last_value;
     void on_event(const std::string& event) override {
-        last_value = event;
         ankerl::nanobench::doNotOptimizeAway(event);
     }
 };

@@ -5,7 +5,7 @@
 
 #include "dnssd_service_description.hpp"
 #include "ravennakit/core/events.hpp"
-#include "ravennakit/core/linked_node.hpp"
+#include "../core/util/linked_node.hpp"
 #include "ravennakit/core/result.hpp"
 #include "ravennakit/core/util/id.hpp"
 

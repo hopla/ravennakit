@@ -12,7 +12,6 @@
 
 #include "ravenna_browser.hpp"
 #include "ravennakit/core/events.hpp"
-#include "ravennakit/core/linked_node.hpp"
 #include "ravennakit/dnssd/dnssd_browser.hpp"
 #include "ravennakit/rtsp/rtsp_client.hpp"
 #include "ravennakit/sdp/sdp_session_description.hpp"
@@ -111,7 +110,7 @@ class RavennaRtspClient: public RavennaBrowser::Subscriber {
     std::vector<std::unique_ptr<ConnectionContext>> connections_;
 
     ConnectionContext& find_or_create_connection(const std::string& host_target, uint16_t port);
-    ConnectionContext* find_connection(const std::string& host_target, uint16_t port) const;
+    [[nodiscard]] ConnectionContext* find_connection(const std::string& host_target, uint16_t port) const;
     void update_session_with_service(SessionContext& session, const dnssd::ServiceDescription& service);
     void do_maintenance();
     void handle_incoming_sdp(const std::string& sdp_text);

@@ -27,7 +27,7 @@ class BonjourBrowser: public Browser {
     /**
      * Represents a Bonjour service and holds state and methods for discovering and resolving services on the network.
      */
-    class service {
+    class Service {
       public:
         /**
          * Constructs a service.
@@ -37,7 +37,7 @@ class BonjourBrowser: public Browser {
          * @param domain The domain of the service (i.e. local.).
          * @param owner A reference to the owning BonjourBrowser.
          */
-        service(const char* fullname, const char* name, const char* type, const char* domain, BonjourBrowser& owner);
+        Service(const char* fullname, const char* name, const char* type, const char* domain, BonjourBrowser& owner);
 
         /**
          * Called when a service was resolved.
@@ -116,7 +116,7 @@ class BonjourBrowser: public Browser {
   private:
     boost::asio::ip::tcp::socket service_socket_;
     BonjourSharedConnection shared_connection_;
-    std::map<std::string, service> services_;                         // fullname -> service
+    std::map<std::string, Service> services_;                         // fullname -> service
     std::map<std::string, BonjourScopedDnsServiceRef> browsers_;  // reg_type -> DNSServiceRef
     size_t process_results_failed_attempts_ = 0;
     Subscriber subscribers_;

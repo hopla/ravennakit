@@ -10,7 +10,7 @@
 
     #include <mutex>
 
-rav::dnssd::BonjourBrowser::service::service(
+rav::dnssd::BonjourBrowser::Service::Service(
     const char* fullname, const char* name, const char* type, const char* domain, BonjourBrowser& owner
 ) :
     owner_(owner) {
@@ -20,7 +20,7 @@ rav::dnssd::BonjourBrowser::service::service(
     description_.domain = domain;
 }
 
-void rav::dnssd::BonjourBrowser::service::resolve_on_interface(uint32_t index) {
+void rav::dnssd::BonjourBrowser::Service::resolve_on_interface(uint32_t index) {
     if (resolvers_.find(index) != resolvers_.end()) {
         RAV_WARNING("Already resolving on interface {}", index);
         return;
@@ -43,12 +43,12 @@ void rav::dnssd::BonjourBrowser::service::resolve_on_interface(uint32_t index) {
     resolvers_.insert({index, BonjourScopedDnsServiceRef(resolveServiceRef)});
 }
 
-void rav::dnssd::BonjourBrowser::service::resolve_callback(
+void rav::dnssd::BonjourBrowser::Service::resolve_callback(
     [[maybe_unused]] DNSServiceRef serviceRef, [[maybe_unused]] DNSServiceFlags flags, uint32_t interface_index,
     DNSServiceErrorType error_code, [[maybe_unused]] const char* fullname, const char* host_target, uint16_t port,
     const uint16_t txt_len, const unsigned char* txt_record, void* context
 ) {
-    auto* browser_service = static_cast<service*>(context);
+    auto* browser_service = static_cast<Service*>(context);
 
     if (error_code != kDNSServiceErr_NoError) {
         browser_service->owner_.emit(
@@ -80,12 +80,12 @@ void rav::dnssd::BonjourBrowser::service::resolve_callback(
     browser_service->get_addrs_.insert({interface_index, BonjourScopedDnsServiceRef(getAddrInfoServiceRef)});
 }
 
-void rav::dnssd::BonjourBrowser::service::get_addr_info_callback(
+void rav::dnssd::BonjourBrowser::Service::get_addr_info_callback(
     [[maybe_unused]] DNSServiceRef sd_ref, [[maybe_unused]] DNSServiceFlags flags, const uint32_t interface_index,
     const DNSServiceErrorType error_code, [[maybe_unused]] const char* hostname, const struct sockaddr* address,
     [[maybe_unused]] uint32_t ttl, void* context
 ) {
-    auto* browser_service = static_cast<service*>(context);
+    auto* browser_service = static_cast<Service*>(context);
 
     if (error_code == kDNSServiceErr_Timeout) {
         browser_service->get_addrs_.erase(interface_index);
@@ -124,7 +124,7 @@ void rav::dnssd::BonjourBrowser::service::get_addr_info_callback(
     }
 }
 
-size_t rav::dnssd::BonjourBrowser::service::remove_interface(uint32_t index) {
+size_t rav::dnssd::BonjourBrowser::Service::remove_interface(uint32_t index) {
     const auto found_interface = description_.interfaces.find(index);
     if (found_interface == description_.interfaces.end()) {
         RAV_ERROR("Interface with id \"{}\" not found", index);
@@ -144,7 +144,7 @@ size_t rav::dnssd::BonjourBrowser::service::remove_interface(uint32_t index) {
     return description_.interfaces.size();
 }
 
-const rav::dnssd::ServiceDescription& rav::dnssd::BonjourBrowser::service::description() const noexcept {
+const rav::dnssd::ServiceDescription& rav::dnssd::BonjourBrowser::Service::description() const noexcept {
     return description_;
 }
 
@@ -217,7 +217,7 @@ void rav::dnssd::BonjourBrowser::browse_reply(
         // Insert a new service if not already present
         auto s = browser->services_.find(fullname);
         if (s == browser->services_.end()) {
-            s = browser->services_.insert({fullname, service(fullname, name, type, domain, *browser)}).first;
+            s = browser->services_.insert({fullname, Service(fullname, name, type, domain, *browser)}).first;
 
             browser->emit(ServiceDiscovered {s->second.description()});
         }

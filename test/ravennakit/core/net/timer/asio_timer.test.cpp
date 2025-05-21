@@ -73,4 +73,70 @@ TEST_CASE("AsioTimer") {
         CHECK(callback_count == 0);
         CHECK(creation_count == times * 2);
     }
+
+    SECTION("Create and destroy multithreaded") {
+        static constexpr auto times = 1'000;
+        boost::asio::io_context io_context;
+
+        // User a timer to keep the io_context alive, and as a timeout mechanism.
+        rav::AsioTimer timer(io_context);
+        timer.once(std::chrono::milliseconds(100'000), [&](const boost::system::error_code&) {
+            abort();  // Timeout
+        });
+
+        std::thread runner([&io_context] {
+            io_context.run();
+        });
+
+        int callback_count = 0;
+        int creation_count = 0;
+        for (auto i = 0; i < times; ++i) {
+            boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
+                const rav::AsioTimer t(io_context);
+                t.start(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                    callback_count++;
+                });
+                creation_count++;
+            });
+        }
+
+        for (auto i = 0; i < times; ++i) {
+            boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
+                const rav::AsioTimer t(io_context);
+                t.once(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                    callback_count++;
+                });
+                creation_count++;
+            });
+        }
+
+        timer.stop();
+        runner.join();
+
+        CHECK(callback_count == 0);
+        CHECK(creation_count == times * 2);
+    }
+
+    SECTION("Start and stop multithreaded") {
+        static constexpr auto times = 1'000;
+        boost::asio::io_context io_context;
+
+        // User a timer to keep the io_context alive, and as a timeout mechanism.
+        rav::AsioTimer timer(io_context);
+        timer.once(std::chrono::milliseconds(100'000), [&](const boost::system::error_code&) {
+            abort();  // Timeout
+        });
+
+        std::thread runner([&io_context] {
+            io_context.run();
+        });
+
+        for (auto i = 0; i < times; ++i) {
+            i % 2 == 0 ? timer.start(std::chrono::milliseconds(i), [](const boost::system::error_code&) {})
+                       : timer.stop();
+        }
+
+        timer.stop();
+        runner.join();
+    }
 }

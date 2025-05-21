@@ -8,7 +8,7 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-#include "ravennakit/core/events.hpp"
+#include "ravennakit/core/events/event_emitter.hpp"
 #include "ravennakit/core/sync/triple_buffer.hpp"
 
 #include <catch2/catch_all.hpp>
@@ -23,7 +23,7 @@ TEST_CASE("Events Benchmark") {
         .minEpochIterations(1'000'000)
         .performanceCounters(true);
 
-    rav::Events<int, double, std::string> events;
+    rav::EventEmitter<int, double, std::string> events;
 
     events.on<int>([](const int& i) {
         ankerl::nanobench::doNotOptimizeAway(i);

@@ -29,10 +29,32 @@ rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const boost::as
 
 rav::HttpClient::HttpClient(
     boost::asio::io_context& io_context, const boost::asio::ip::address& address, const uint16_t port
-) : io_context_(io_context){
+) :
+    io_context_(io_context) {
     host_ = address.to_string();
     service_ = std::to_string(port);
 }
+
+void rav::HttpClient::set_host(const boost::urls::url& url) {
+    host_ = url.host();
+    service_ = url.port();
+    target_ = url.path();
+}
+
+void rav::HttpClient::set_host(const std::string_view url) {
+    const boost::urls::url parsed_url(url);
+    set_host(parsed_url);
+}
+
+void rav::HttpClient::set_host(
+    const std::string_view host, const std::string_view service, const std::string_view target
+) {
+    host_ = host;
+    service_ = service;
+    target_ = target;
+}
+
+rav::HttpClient::HttpClient(boost::asio::io_context& io_context) : io_context_(io_context) {}
 
 rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const std::string_view url) : io_context_(io_context) {
     const boost::urls::url parsed_url(url);
@@ -62,11 +84,11 @@ rav::HttpClient::post(const std::string_view target, std::string body, const std
 }
 
 void rav::HttpClient::get_async(const std::string_view target, CallbackType callback) const {
-    return request_async(io_context_, http::verb::get, host_, service_, target, {}, {}, std::move(callback));
+    request_async(io_context_, http::verb::get, host_, service_, target, {}, {}, std::move(callback));
 }
 
 void rav::HttpClient::post_async(std::string body, CallbackType callback, const std::string_view content_type) const {
-    return request_async(
+    request_async(
         io_context_, http::verb::post, host_, service_, target_, std::move(body), content_type, std::move(callback)
     );
 }
@@ -74,13 +96,13 @@ void rav::HttpClient::post_async(std::string body, CallbackType callback, const 
 void rav::HttpClient::post_async(
     const std::string_view target, std::string body, CallbackType callback, const std::string_view content_type
 ) const {
-    return request_async(
+    request_async(
         io_context_, http::verb::post, host_, service_, target, std::move(body), content_type, std::move(callback)
     );
 }
 
 void rav::HttpClient::get_async(CallbackType callback) const {
-    return request_async(io_context_, http::verb::get, host_, service_, target_, {}, {}, std::move(callback));
+    request_async(io_context_, http::verb::get, host_, service_, target_, {}, {}, std::move(callback));
 }
 
 boost::system::result<boost::beast::http::response<boost::beast::http::basic_string_body<char>>>

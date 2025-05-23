@@ -15,7 +15,8 @@ namespace rav {
 
 /**
  * A simple callback function wrapper that can be used to store and call a function with a specific signature.
- * It provides a default no-op function if no function is provided making it possible to call without checking for null.
+ * It provides a default no-op function if no function is provided, making it possible to call without checking for
+ * null.
  */
 template<typename Signature>
 class SafeFunction;

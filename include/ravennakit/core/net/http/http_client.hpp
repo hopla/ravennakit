@@ -37,6 +37,12 @@ class HttpClient {
     using CallbackType = std::function<void(boost::system::result<http::response<http::string_body>> response)>;
 
     /**
+     * Constructs a new HttpClient using the given io_context, but no url.
+     * @param io_context The io_context to use for the request.
+     */
+    explicit HttpClient(boost::asio::io_context& io_context);
+
+    /**
      * Constructs a new HttpClient using the given io_context and url.
      * @param io_context The io_context to use for the request.
      * @param url The url to request.
@@ -64,6 +70,26 @@ class HttpClient {
      * @param port The port to request.
      */
     HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::address& address, uint16_t port);
+
+    /**
+     * Sets the host to connect to.
+     * @param url The url with the host info.
+     */
+    void set_host(const boost::urls::url& url);
+
+    /**
+     * Sets the host to connect to.
+     * @param url The host to connect to.
+     */
+    void set_host(std::string_view url);
+
+    /**
+     * Sets the host to connect to.
+     * @param host The host to connect to.
+     * @param service The service (port) to connect to.
+     * @param target The target to connect to.
+     */
+    void set_host(std::string_view host, std::string_view service, std::string_view target = {});
 
     /**
      * Synchronous GET request to the target of the URL, or the root if no target is specified.

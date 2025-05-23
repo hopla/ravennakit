@@ -90,8 +90,8 @@ rav::RavennaSender::ConfigurationUpdate::from_json(const nlohmann::json& json) {
 }
 
 rav::RavennaSender::RavennaSender(
-    boost::asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance,
-    const Id id, const uint32_t session_id, ConfigurationUpdate initial_config
+    boost::asio::io_context& io_context, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
+    ptp::Instance& ptp_instance, const Id id, const uint32_t session_id, ConfigurationUpdate initial_config
 ) :
     io_context_(io_context),
     advertiser_(advertiser),

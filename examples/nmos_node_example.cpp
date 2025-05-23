@@ -20,77 +20,97 @@ int main() {
     boost::asio::io_context io_context;
 
     rav::nmos::Node node(io_context);
-    const auto result = node.start("127.0.0.1", 5555);
+    auto result = node.start();
     if (result.has_error()) {
-        RAV_ERROR("Failed to start NMOS node: {}", result.error().message());
+        RAV_ERROR("Failed to start NMOS node: {}", result.error());
         return 1;
     }
 
+    static constexpr uint32_t k_num_devices = 2;
+    static constexpr uint32_t k_num_sources_per_device = 2;
+    static constexpr uint32_t k_num_senders_per_source = 2;
+    static constexpr uint32_t k_num_receivers_per_device = 2;
+
+    uint32_t device_count = 0;
+    uint32_t source_count = 0;
+    uint32_t sender_count = 0;
+    uint32_t receiver_count = 0;
+    uint32_t flow_count = 0;
+
     // Devices
-    for (uint32_t i = 0; i < 5; ++i) {
+    for (uint32_t i_device = 0; i_device < k_num_devices; ++i_device) {
         rav::nmos::Device::Control control;
-        control.href = fmt::format("http://localhost:{}", i + 6000);
-        control.type = fmt::format("urn:x-manufacturer:control:generic.{}", i + 1);
-        control.authorization = i % 2 == 0;
+        control.href = fmt::format("http://localhost:{}", i_device + 6000);
+        control.type = fmt::format("urn:x-manufacturer:control:generic.{}", i_device + 1);
+        control.authorization = i_device % 2 == 0;
         rav::nmos::Device device;
         device.id = boost::uuids::random_generator()();
-        device.description = fmt::format("Device {} desc", i + 1);
-        device.label = fmt::format("Device {} label", i + 1);
-        device.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
+        device.label = fmt::format("ravennakit/device/{}", device_count);
+        device.description = fmt::format("RAVENNAKIT Device {}", device_count + 1);
+        device.version = rav::nmos::Version {i_device + 1, (i_device + 1) * 1000};
         device.controls.push_back(control);
         std::ignore = node.set_device(device);
-    }
 
-    // Flows
-    for (uint32_t i = 0; i < 5; ++i) {
-        rav::nmos::FlowAudioRaw flow;
-        flow.id = boost::uuids::random_generator()();
-        flow.label = fmt::format("Flow {} label", i + 1);
-        flow.description = fmt::format("Flow {} desc", i + 1);
-        flow.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
-        flow.bit_depth = 24;
-        flow.sample_rate = {48000, 1};
-        flow.media_type = "audio/L24";
-        flow.source_id = boost::uuids::random_generator()(); // TODO: Assign a valid source ID
-        flow.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
-        std::ignore = node.set_flow({flow});
-    }
+        // Sources
+        for (uint32_t i_source = 0; i_source < k_num_sources_per_device; ++i_source) {
+            rav::nmos::SourceAudio source;
+            source.id = boost::uuids::random_generator()();
+            source.label = fmt::format("ravennakit/device/{}/source/{}", device_count, source_count);
+            source.description = fmt::format("RAVENNAKIT Device {} source {}", device_count + 1, source_count + 1);
+            source.version = rav::nmos::Version {i_source + 1, (i_source + 1) * 1000};
+            source.device_id = device.id;
+            source.channels.push_back({"Channel 1"});
+            std::ignore = node.set_source({source});
 
-    // Receivers
-    for (uint32_t i = 0; i < 5; ++i) {
-        rav::nmos::ReceiverAudio receiver;
-        receiver.id = boost::uuids::random_generator()();
-        receiver.label = fmt::format("Receiver {} label", i + 1);
-        receiver.description = fmt::format("Receiver {} desc", i + 1);
-        receiver.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
-        receiver.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
-        receiver.transport = "urn:x-nmos:transport:rtp";
-        receiver.caps.media_types = {"audio/L24", "audio/L20", "audio/L16", "audio/L8", "audio/PCM"};
-        std::ignore = node.set_receiver({receiver});
-    }
+            // Flow
+            for (uint32_t i_sender = 0; i_sender < k_num_senders_per_source; ++i_sender) {
+                rav::nmos::FlowAudioRaw flow;
+                flow.id = boost::uuids::random_generator()();
+                flow.label = fmt::format("ravennakit/device/{}/flow/{}", device_count, flow_count);
+                flow.description = fmt::format("RAVENNAKIT Device {} flow {}", device_count + 1, flow_count + 1);
+                flow.version = rav::nmos::Version {i_sender + 1, (i_sender + 1) * 1000};
+                flow.bit_depth = 24;
+                flow.sample_rate = {48000, 1};
+                flow.media_type = "audio/L24";
+                flow.source_id = source.id;
+                flow.device_id = device.id;
+                std::ignore = node.set_flow({flow});
 
-    // Senders
-    for (uint32_t i = 0; i < 5; ++i) {
-        rav::nmos::Sender sender;
-        sender.id = boost::uuids::random_generator()();
-        sender.label = fmt::format("Sender {} label", i + 1);
-        sender.description = fmt::format("Sender {} desc", i + 1);
-        sender.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
-        sender.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
-        sender.transport = "urn:x-nmos:transport:rtp";
-        std::ignore = node.set_sender(sender);
-    }
+                // Sender
+                rav::nmos::Sender sender;
+                sender.id = boost::uuids::random_generator()();
+                sender.label = fmt::format("ravennakit/device/{}/sender/{}", device_count, sender_count);
+                sender.description =
+                    fmt::format("RAVENNAKIT Device {} sender {}", device_count + 1, sender_count + 1);
+                sender.version = rav::nmos::Version {i_sender + 1, (i_sender + 1) * 1000};
+                sender.device_id = device.id;
+                sender.transport = "urn:x-nmos:transport:rtp";
+                std::ignore = node.set_sender(sender);
 
-    // Sources
-    for (uint32_t i = 0; i < 5; ++i) {
-        rav::nmos::SourceAudio source;
-        source.id = boost::uuids::random_generator()();
-        source.label = fmt::format("Source {} label", i + 1);
-        source.description = fmt::format("Source {} desc", i + 1);
-        source.version = rav::nmos::Version {i + 1, (i + 1) * 1000};
-        source.device_id = boost::uuids::random_generator()(); // TODO: Assign a valid device ID
-        source.channels.push_back({"Channel 1"});
-        std::ignore = node.set_source({source});
+                flow_count++;
+                sender_count++;
+            }
+
+            source_count++;
+        }
+
+        // Receivers
+        for (uint32_t i_receiver = 0; i_receiver < k_num_receivers_per_device; ++i_receiver) {
+            rav::nmos::ReceiverAudio receiver;
+            receiver.id = boost::uuids::random_generator()();
+            receiver.label = fmt::format("ravennakit/device/{}/receiver/{}", device_count, receiver_count);
+            receiver.description =
+                fmt::format("RAVENNAKIT Device {} sender {}", device_count + 1, receiver_count + 1);
+            receiver.version = rav::nmos::Version {i_receiver + 1, (i_receiver + 1) * 1000};
+            receiver.device_id = device.id;
+            receiver.transport = "urn:x-nmos:transport:rtp";
+            receiver.caps.media_types = {"audio/L24", "audio/L20", "audio/L16", "audio/L8", "audio/PCM"};
+            std::ignore = node.set_receiver({receiver});
+
+            receiver_count++;
+        }
+
+        device_count++;
     }
 
     std::string url =
@@ -109,6 +129,12 @@ int main() {
 
     url += "/";
     RAV_INFO("{}", url);
+
+    boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
+    signals.async_wait([&](const boost::system::error_code&, int) {
+        RAV_INFO("Stopping NMOS node...");
+        io_context.stop();
+    });
 
     io_context.run();
 

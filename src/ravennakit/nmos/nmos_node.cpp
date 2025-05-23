@@ -10,6 +10,7 @@
 
 #include "ravennakit/nmos/nmos_node.hpp"
 
+#include "ravennakit/core/rollback.hpp"
 #include "ravennakit/nmos/models/nmos_error.hpp"
 #include "ravennakit/nmos/models/nmos_self.hpp"
 
@@ -139,6 +140,19 @@ std::array<rav::nmos::ApiVersion, 2> rav::nmos::Node::k_supported_api_versions =
 }};
 
 boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::Configuration::validate() const {
+    bool version_valid = false;
+
+    for (auto& v : k_supported_api_versions) {
+        if (v == api_version) {
+            version_valid = true;
+            break;
+        }
+    }
+
+    if (!version_valid) {
+        return Error::invalid_api_version;
+    }
+
     if (operation_mode == OperationMode::registered_p2p) {
         if (discover_mode == DiscoverMode::dns || discover_mode == DiscoverMode::mdns) {
             return {};
@@ -173,11 +187,34 @@ boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::Configurati
     return {};
 }
 
-rav::nmos::Node::Node(boost::asio::io_context& io_context) : http_server_(io_context) {
+void rav::nmos::Node::ConfigurationUpdate::apply_to_config(Configuration& config) const {
+    if (operation_mode.has_value()) {
+        config.operation_mode = *operation_mode;
+    }
+    if (discover_mode.has_value()) {
+        config.discover_mode = *discover_mode;
+    }
+    if (api_version.has_value()) {
+        config.api_version = *api_version;
+    }
+    if (registry_address.has_value()) {
+        config.registry_address = *registry_address;
+    }
+    if (enabled.has_value()) {
+        config.enabled = *enabled;
+    }
+}
+
+rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUpdate& configuration) :
+    io_context_(io_context),
+    http_server_(io_context),
+    registry_browser_(io_context),
+    http_client_(io_context),
+    heartbeat_timer_(io_context) {
     self_.id = boost::uuids::random_generator()();
     self_.version = Version {1, 0};
-    self_.label = "NMOS Node";
-    self_.description = "NMOS Node description";
+    self_.label = "ravennakit";
+    self_.description = "RAVENNAKIT NMOS Node";
     self_.interfaces = {Self::Interface {std::nullopt, "00-1a-2b-3c-4d-5e", "eth0"}};
 
     auto local_clock = ClockInternal {};
@@ -490,13 +527,58 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context) : http_server_(io_con
     http_server_.get("/**", [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
         set_error_response(res, boost::beast::http::status::not_found, "Not found", "No matching route");
     });
+
+    set_configuration(configuration);
 }
 
-boost::system::result<void> rav::nmos::Node::start(const std::string_view bind_address, const uint16_t port) {
-    const auto result = http_server_.start(bind_address, port);
+boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start() {
+    configuration_.enabled = true;
+    return start_internal();
+}
+
+void rav::nmos::Node::stop() {
+    configuration_.enabled = false;
+    stop_internal();
+}
+
+boost::system::result<void, rav::nmos::Node::Error>
+rav::nmos::Node::set_configuration(const ConfigurationUpdate& update) {
+    auto new_config = configuration_;
+    update.apply_to_config(new_config);
+
+    if (new_config == configuration_) {
+        return {};  // Nothing changed, therefore we should be in the correct state.
+    }
+
+    auto result = new_config.validate();
     if (result.has_error()) {
         return result;
     }
+
+    configuration_ = std::move(new_config);
+
+    stop_internal();
+
+    if (configuration_.enabled) {
+        result = start_internal();
+        if (result.has_error()) {
+            return result;
+        }
+    }
+
+    return {};
+}
+
+boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start_internal() {
+    const auto result = http_server_.start("0.0.0.0", configuration_.node_api_port);
+    if (result.has_error()) {
+        RAV_ERROR("Failed to start HTTP server: {}", result.error().message());
+        return Error::failed_to_start_http_server;
+    }
+
+    Rollback rollback([this] {
+        stop_internal();
+    });
 
     // TODO: I'm not sure if this is the right value for href, but unless a web interface is served this is the best we
     // got.
@@ -508,11 +590,142 @@ boost::system::result<void> rav::nmos::Node::start(const std::string_view bind_a
 
     self_.api.endpoints = {Self::Endpoint {endpoint.address().to_string(), endpoint.port(), "http", false}};
 
-    return result;
+    registry_browser_.find_most_suitable_registry_async(
+        configuration_.discover_mode, configuration_.api_version,
+        [this](const std::optional<dnssd::ServiceDescription>& registry) {
+            if (registry) {
+                RAV_INFO("Found registry: {}", registry->to_string());
+                register_with_registry(registry->host_target, registry->port);
+            } else {
+                RAV_INFO("No registry found after timeout");
+            }
+        }
+    );
+
+    rollback.commit();
+
+    return {};
 }
 
-void rav::nmos::Node::stop() {
+void rav::nmos::Node::stop_internal() {
+    heartbeat_timer_.stop();
     http_server_.stop();
+}
+
+void rav::nmos::Node::register_with_registry(std::string_view host_target, uint16_t port) {
+    RAV_TRACE("Try to register with registry at {}:{}", host_target, port);
+    http_client_.set_host(string_remove_suffix(host_target, "."), std::to_string(port));
+
+    // Note the next section will block the io_context until this function returns. The reason for this is that the
+    // requests are being made synchronously, because once the first request errors out, we want to stop sending more
+    // requests. Ideally, we would send the requests asynchronously and wait for the previous one to finish before
+    // sending the next one, but that would require a more complex implementation.
+
+    if (!post_resource("node", boost::json::value_from(self_))) {
+        return;
+    }
+
+    for (auto& device : devices_) {
+        if (!post_resource("device", boost::json::value_from(device))) {
+            return;
+        }
+    }
+
+    for (auto& source : sources_) {
+        if (!post_resource("source", boost::json::value_from(source))) {
+            return;
+        }
+    }
+
+    for (auto& flow : flows_) {
+        if (!post_resource("flow", boost::json::value_from(flow))) {
+            return;
+        }
+    }
+
+    for (auto& sender : senders_) {
+        if (!post_resource("sender", boost::json::value_from(sender))) {
+            return;
+        }
+    }
+
+    for (auto& receiver : receivers_) {
+        if (!post_resource("receiver", boost::json::value_from(receiver))) {
+            return;
+        }
+    }
+
+    heartbeat_timer_.start(std::chrono::milliseconds(5000), [this] {
+        send_heartbeat();
+    });
+}
+
+bool rav::nmos::Node::post_resource(const char* type, const boost::json::value& resource) const {
+    const auto target = fmt::format("/x-nmos/registration/{}/resource", configuration_.api_version.to_string());
+    const auto result = http_client_.post(
+        std::string_view(target), boost::json::serialize(boost::json::value {{"type", type}, {"data", resource}})
+    );
+
+    if (result.has_error()) {
+        RAV_ERROR("Failed to register with registry: {}", result.error().message());
+        return false;
+    }
+
+    const auto& res = result.value();
+
+    if (res.result() == http::status::ok) {
+        RAV_INFO("Updated {} in registry: {}", type, target);
+    } else if (res.result() == http::status::created) {
+        RAV_INFO("Created {} in registry at {}", type, target);
+    } else if (http::to_status_class(res.result()) == http::status_class::successful) {
+        RAV_WARNING("Unexpected response from registry: {}", res.result_int());
+    } else {
+        RAV_ERROR("Failed to post resource: {} at {}", res, target);
+        return false;
+    }
+
+    return true;
+}
+
+void rav::nmos::Node::send_heartbeat() const {
+    const auto target = fmt::format(
+        "/x-nmos/registration/{}/health/nodes/{}", configuration_.api_version.to_string(), to_string(self_.id)
+    );
+    http_client_.post_async(
+        std::string_view(target), {},
+        [](boost::system::result<http::response<http::string_body>> result) {
+            if (result.has_error()) {
+                RAV_ERROR("Failed to send heartbeat: {}", result.error().message());
+                return;
+            }
+
+            const auto& res = result.value();
+
+            if (res.result() != http::status::ok) {
+                RAV_INFO("Sending heartbeat failed: {}", res.result_int());
+            }
+        }
+    );
+}
+
+bool rav::nmos::Node::add_receiver_to_device(const Receiver& receiver) {
+    for (auto& device : devices_) {
+        if (device.id == receiver.device_id()) {
+            device.receivers.push_back(receiver.id());
+            return true;
+        }
+    }
+    return false;
+}
+
+bool rav::nmos::Node::add_sender_to_device(const Sender& sender) {
+    for (auto& device : devices_) {
+        if (device.id == sender.device_id) {
+            device.senders.push_back(sender.id);
+            return true;
+        }
+    }
+    return false;
 }
 
 boost::asio::ip::tcp::endpoint rav::nmos::Node::get_local_endpoint() const {
@@ -588,6 +801,11 @@ bool rav::nmos::Node::set_receiver(Receiver receiver) {
         }
     }
 
+    if (!add_receiver_to_device(receiver)) {
+        RAV_ERROR("Device not found");
+        return false;
+    }
+
     receivers_.push_back(std::move(receiver));
     return true;
 }
@@ -613,6 +831,11 @@ bool rav::nmos::Node::set_sender(Sender sender) {
             existing_sender = std::move(sender);
             return true;
         }
+    }
+
+    if (!add_sender_to_device(sender)) {
+        RAV_ERROR("Device not found");
+        return false;
     }
 
     senders_.push_back(std::move(sender));
@@ -672,38 +895,11 @@ std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::Error error) {
         case Node::Error::invalid_registry_address:
             os << "invalid_registry_address";
             break;
-    }
-    return os;
-}
-
-std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::OperationMode operation_mode) {
-    switch (operation_mode) {
-        case Node::OperationMode::registered_p2p:
-            os << "registered_p2p";
+        case Node::Error::invalid_api_version:
+            os << "invalid_api_version";
             break;
-        case Node::OperationMode::registered:
-            os << "registered";
-            break;
-        case Node::OperationMode::p2p:
-            os << "p2p";
-            break;
-    }
-    return os;
-}
-
-std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::DiscoverMode discover_mode) {
-    switch (discover_mode) {
-        case Node::DiscoverMode::dns:
-            os << "dns";
-            break;
-        case Node::DiscoverMode::udns:
-            os << "udns";
-            break;
-        case Node::DiscoverMode::mdns:
-            os << "mdns";
-            break;
-        case Node::DiscoverMode::manual:
-            os << "manual";
+        case Node::Error::failed_to_start_http_server:
+            os << "failed_to_start_http_server";
             break;
     }
     return os;

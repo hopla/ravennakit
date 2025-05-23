@@ -12,6 +12,7 @@
 
 #include "nmos_resource_core.hpp"
 
+#include <boost/lexical_cast.hpp>
 #include <boost/uuid.hpp>
 #include <boost/json/conversion.hpp>
 #include <boost/json/value_from.hpp>
@@ -42,6 +43,12 @@ struct Device: ResourceCore {
 
     /// Control endpoints exposed for the Device
     std::vector<Control> controls;
+
+    /// UUIDs of Receivers attached to the Device (deprecated)
+    std::vector<boost::uuids::uuid> receivers;
+
+    /// UUIDs of Senders attached to the Device (deprecated)
+    std::vector<boost::uuids::uuid> senders;
 };
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Device::Control& control) {
@@ -57,8 +64,18 @@ inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::valu
     object["type"] = device.type;
     object["node_id"] = to_string(device.node_id);
     object["controls"] = boost::json::value_from(device.controls);
-    object["receivers"] = boost::json::array();  // TODO: Add receivers
-    object["senders"] = boost::json::array();    // TODO: Add senders
+
+    boost::json::array receivers;
+    for (const auto& receiver : device.receivers) {
+        receivers.push_back(boost::json::value(boost::lexical_cast<std::string>(receiver)));
+    }
+    object["receivers"] = receivers;
+
+    boost::json::array senders;
+    for (const auto& sender : device.senders) {
+        senders.push_back(boost::json::value(boost::lexical_cast<std::string>(sender)));
+    }
+    object["senders"] = senders;
 }
 
 }  // namespace rav::nmos

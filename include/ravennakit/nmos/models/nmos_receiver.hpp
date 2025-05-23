@@ -31,6 +31,15 @@ struct Receiver {
             any_of
         );
     }
+
+    boost::uuids::uuid device_id() const {
+        return std::visit(
+            [](const auto& receiver_variant) {
+                return receiver_variant.device_id;
+            },
+            any_of
+        );
+    }
 };
 
 inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::value& jv, const Receiver& receiver) {

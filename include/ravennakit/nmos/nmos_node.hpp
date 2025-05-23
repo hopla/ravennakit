@@ -11,6 +11,9 @@
 #pragma once
 
 #include "detail/nmos_api_version.hpp"
+#include "detail/nmos_discover_mode.hpp"
+#include "detail/nmos_operating_mode.hpp"
+#include "detail/nmos_registry_browser.hpp"
 #include "models/nmos_device.hpp"
 #include "models/nmos_flow.hpp"
 #include "models/nmos_flow_audio_raw.hpp"
@@ -18,7 +21,9 @@
 #include "models/nmos_self.hpp"
 #include "models/nmos_sender.hpp"
 #include "models/nmos_source.hpp"
+#include "ravennakit/core/net/http/http_client.hpp"
 #include "ravennakit/core/net/http/http_server.hpp"
+#include "ravennakit/dnssd/dnssd_browser.hpp"
 
 #include <boost/uuid.hpp>
 #include <boost/system/result.hpp>
@@ -40,33 +45,8 @@ class Node {
     enum class Error {
         incompatible_discover_mode,
         invalid_registry_address,
-    };
-
-    /**
-     * The mode of discovery for the NMOS node, for both registry and peer-to-peer discovery.
-     */
-    enum class DiscoverMode {
-        /// The node will use both multicast and unicast DNS to discover registries.
-        dns,
-        /// The node will use unicast DNS to discover registries.
-        udns,
-        /// The node will use multicast DNS to discover registries or other nodes.
-        mdns,
-        /// The node will connect to the manually specified address and port and not discover anything.
-        manual,
-    };
-
-    /**
-     * The mode of operation for the NMOS node.
-     */
-    enum class OperationMode {
-        /// The node registers itself with a registry or falls back to peer-to-peer discovery if no registry is
-        /// available. When a registry comes online during p2p operation, the node will switch to registered mode.
-        registered_p2p,
-        /// The node registers itself with a registry and does not use peer-to-peer discovery.
-        registered,
-        /// The node only uses peer-to-peer discovery and does not register with a registry.
-        p2p,
+        invalid_api_version,
+        failed_to_start_http_server,
     };
 
     /**
@@ -75,7 +55,10 @@ class Node {
     struct Configuration {
         OperationMode operation_mode {OperationMode::registered_p2p};
         DiscoverMode discover_mode {DiscoverMode::dns};
-        std::string registry_address;  // Necessary for when operation_mode is registered and discover_mode is manual.
+        ApiVersion api_version {ApiVersion::v1_3()};
+        std::string registry_address;  // For when operation_mode is registered and discover_mode is manual.
+        bool enabled {false};          // Whether the node is enabled or not.
+        uint16_t node_api_port {0};    // The port of the local node API.
 
         /**
          * Checks if the configuration is semantically valid, return a message if not.
@@ -84,7 +67,7 @@ class Node {
         [[nodiscard]] boost::system::result<void, Error> validate() const;
 
         [[nodiscard]] auto constexpr tie() const {
-            return std::tie(operation_mode, discover_mode, registry_address);
+            return std::tie(operation_mode, discover_mode, api_version, registry_address, enabled);
         }
 
         friend bool operator==(const Configuration& lhs, const Configuration& rhs) {
@@ -96,20 +79,49 @@ class Node {
         }
     };
 
-    explicit Node(boost::asio::io_context& io_context);
+    /**
+     * Struct for updating the configuration of the NMOS node. Only the fields that are set are taken into account,
+     * which allows for partial updates.
+     */
+    struct ConfigurationUpdate {
+        std::optional<OperationMode> operation_mode;
+        std::optional<DiscoverMode> discover_mode;
+        std::optional<ApiVersion> api_version;
+        std::optional<std::string> registry_address;
+        std::optional<bool> enabled;
+        std::optional<uint16_t> node_api_port;
+
+        void apply_to_config(Configuration& config) const;
+    };
+
+    struct State {
+        /// Whether the node is operating in registered or p2p mode.
+        OperationMode operation_mode {};
+        /// Whether the node found a registry using unicast DNS or multicast DNS.
+        DiscoverMode discover_mode {};
+        /// The port of the local node api.
+        uint16_t node_api_port {};
+    };
+
+    explicit Node(boost::asio::io_context& io_context, const ConfigurationUpdate& configuration = {});
 
     /**
      * Starts the services of this node (HTTP server, advertisements, etc.).
-     *  @param bind_address The address to bind to.
-     * @param port The port to bind to.
      * @return An error code if the node fails to start, or an empty result if it succeeds.
      */
-    boost::system::result<void> start(std::string_view bind_address, uint16_t port);
+    [[nodiscard]] boost::system::result<void, Error> start();
 
     /**
      * Stops all the operations of this node (HTTP server, advertisements, etc.).
      */
     void stop();
+
+    /**
+     * Updates the configuration of the NMOS node. Only takes into account the fields in the configuration that are set.
+     * This allows updating only a subset of the configuration.
+     * @param update The configuration to update.
+     */
+    boost::system::result<void, Error> set_configuration(const ConfigurationUpdate& update);
 
     /**
      * @return The local (listening) endpoint of the server.
@@ -118,6 +130,7 @@ class Node {
 
     /**
      * Adds the given device to the node or updates an existing device if it already exists (based on the uuid).
+     * The node if of the device is set to the node's uuid.
      * @param device The device to set or update.
      */
     [[nodiscard]] bool set_device(Device device);
@@ -196,34 +209,46 @@ class Node {
     [[nodiscard]] const std::vector<Device>& get_devices() const;
 
   private:
+    boost::asio::io_context& io_context_;
+    Configuration configuration_;
+    State state_;
     HttpServer http_server_;
+    RegistryBrowser registry_browser_;
+    HttpClient http_client_;
+
     Self self_;
     std::vector<Device> devices_;
     std::vector<Flow> flows_;
     std::vector<Receiver> receivers_;
     std::vector<Sender> senders_;
     std::vector<Source> sources_;
+
+    AsioTimer heartbeat_timer_;  // Keep below http_client_ to avoid dangling reference
+
+    /**
+     * Starts the services of this node (HTTP server, advertisements, etc.).
+     * @return An error code if the node fails to start, or an empty result if it succeeds.
+     */
+    [[nodiscard]] boost::system::result<void, Error> start_internal();
+
+    /**
+     * Stops all the operations of this node (HTTP server, advertisements, etc.).
+     */
+    void stop_internal();
+
+    void register_with_registry(std::string_view host_target, uint16_t port);
+    [[nodiscard]] bool post_resource(const char* type, const boost::json::value& resource) const;
+    void send_heartbeat() const;
+
+    bool add_receiver_to_device(const Receiver& receiver);
+    bool add_sender_to_device(const Sender& sender);
 };
 
 /// Overload the output stream operator for the Node::Error enum class
 std::ostream& operator<<(std::ostream& os, Node::Error error);
-
-/// Overload the output stream operator for the Node::Error enum class
-std::ostream& operator<<(std::ostream& os, Node::OperationMode operation_mode);
-
-/// Overload the output stream operator for the Node::DiscoverMode enum class
-std::ostream& operator<<(std::ostream& os, Node::DiscoverMode discover_mode);
 
 }  // namespace rav::nmos
 
 /// Make Node::Error printable with fmt
 template<>
 struct fmt::formatter<rav::nmos::Node::Error>: ostream_formatter {};
-
-/// Make Node::OperationMode printable with fmt
-template<>
-struct fmt::formatter<rav::nmos::Node::OperationMode>: ostream_formatter {};
-
-/// Make Node::DiscoverMode printable with fmt
-template<>
-struct fmt::formatter<rav::nmos::Node::DiscoverMode>: ostream_formatter {};

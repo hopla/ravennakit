@@ -20,7 +20,7 @@ namespace rav {
  */
 class AsioTimer {
   public:
-    using Callback = std::function<void(const boost::system::error_code& ec)>;
+    using Callback = std::function<void()>;
 
     explicit AsioTimer(boost::asio::io_context& io_context);
     ~AsioTimer();

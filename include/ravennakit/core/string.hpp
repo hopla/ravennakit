@@ -280,6 +280,16 @@ inline bool string_contains(const std::string_view string, char c) {
 }
 
 /**
+ * Returns whether given string contains a certain substring.
+ * @param string String to look into.
+ * @param sub_string Substring to find.
+ * @return True if substring was found, of false if substring was not found.
+ */
+inline bool string_contains(const std::string_view string, const std::string_view sub_string) {
+    return string.find(sub_string) != std::string_view::npos;
+}
+
+/**
  * Splits a string into a vector of strings based on a delimiter.
  * @param string The string to split.
  * @param delimiter The delimiter to split the string by.

@@ -18,7 +18,7 @@ TEST_CASE("AsioTimer") {
         const rav::AsioTimer timer(io_context);
 
         bool callback_called = false;
-        timer.once(std::chrono::milliseconds(100), [&](const boost::system::error_code&) {
+        timer.once(std::chrono::milliseconds(100), [&] {
             callback_called = true;
         });
 
@@ -31,7 +31,7 @@ TEST_CASE("AsioTimer") {
         const rav::AsioTimer timer(io_context);
 
         int callback_count = 0;
-        timer.start(std::chrono::milliseconds(100), [&](const boost::system::error_code&) {
+        timer.start(std::chrono::milliseconds(100), [&] {
             ++callback_count;
             if (callback_count == 3) {
                 timer.stop();
@@ -51,7 +51,7 @@ TEST_CASE("AsioTimer") {
         for (auto i = 0; i < times; ++i) {
             boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
                 const rav::AsioTimer timer(io_context);
-                timer.start(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                timer.start(std::chrono::milliseconds(i), [&] {
                     callback_count++;
                 });
                 creation_count++;
@@ -61,7 +61,7 @@ TEST_CASE("AsioTimer") {
         for (auto i = 0; i < times; ++i) {
             boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
                 const rav::AsioTimer timer(io_context);
-                timer.once(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                timer.once(std::chrono::milliseconds(i), [&] {
                     callback_count++;
                 });
                 creation_count++;
@@ -80,7 +80,7 @@ TEST_CASE("AsioTimer") {
 
         // User a timer to keep the io_context alive, and as a timeout mechanism.
         rav::AsioTimer timer(io_context);
-        timer.once(std::chrono::milliseconds(100'000), [&](const boost::system::error_code&) {
+        timer.once(std::chrono::milliseconds(100'000), [&] {
             abort();  // Timeout
         });
 
@@ -93,7 +93,7 @@ TEST_CASE("AsioTimer") {
         for (auto i = 0; i < times; ++i) {
             boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
                 const rav::AsioTimer t(io_context);
-                t.start(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                t.start(std::chrono::milliseconds(i), [&] {
                     callback_count++;
                 });
                 creation_count++;
@@ -103,7 +103,7 @@ TEST_CASE("AsioTimer") {
         for (auto i = 0; i < times; ++i) {
             boost::asio::post(io_context, [&io_context, &callback_count, &creation_count, i] {
                 const rav::AsioTimer t(io_context);
-                t.once(std::chrono::milliseconds(i), [&](const boost::system::error_code&) {
+                t.once(std::chrono::milliseconds(i), [&] {
                     callback_count++;
                 });
                 creation_count++;
@@ -123,7 +123,7 @@ TEST_CASE("AsioTimer") {
 
         // User a timer to keep the io_context alive, and as a timeout mechanism.
         rav::AsioTimer timer(io_context);
-        timer.once(std::chrono::milliseconds(100'000), [&](const boost::system::error_code&) {
+        timer.once(std::chrono::milliseconds(100'000), [&] {
             abort();  // Timeout
         });
 
@@ -132,8 +132,7 @@ TEST_CASE("AsioTimer") {
         });
 
         for (auto i = 0; i < times; ++i) {
-            i % 2 == 0 ? timer.start(std::chrono::milliseconds(i), [](const boost::system::error_code&) {})
-                       : timer.stop();
+            i % 2 == 0 ? timer.start(std::chrono::milliseconds(i), [] {}) : timer.stop();
         }
 
         timer.stop();

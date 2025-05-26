@@ -16,6 +16,7 @@
 #include <boost/url.hpp>
 
 #include <string>
+#include <queue>
 
 namespace rav {
 

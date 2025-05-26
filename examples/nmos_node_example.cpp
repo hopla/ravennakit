@@ -87,6 +87,7 @@ int main() {
                 sender.version = rav::nmos::Version {i_sender + 1, (i_sender + 1) * 1000};
                 sender.device_id = device.id;
                 sender.transport = "urn:x-nmos:transport:rtp";
+                sender.flow_id = flow.id;
                 std::ignore = node.set_sender(sender);
 
                 flow_count++;

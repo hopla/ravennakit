@@ -509,7 +509,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
     );
 
     http_server_.get(
-        "/x-nmos/node/**",
+        "/**",
         [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
             set_error_response(res, http::status::not_found, "Not found", "No matching route");
         }

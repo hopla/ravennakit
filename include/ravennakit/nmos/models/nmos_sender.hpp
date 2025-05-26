@@ -65,7 +65,11 @@ tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Sen
 inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::value& jv, const Sender& sender) {
     tag_invoke(tag, jv, static_cast<const ResourceCore&>(sender));
     auto& jv_sender = jv.as_object();
-    jv_sender["flow_id"] = boost::json::value_from(sender.flow_id);
+    if (const auto id = sender.flow_id) {
+        jv_sender["flow_id"] = boost::json::value_from(boost::uuids::to_string(*id));
+    } else {
+        jv_sender["flow_id"] = nullptr;
+    }
     jv_sender["transport"] = sender.transport;
     jv_sender["device_id"] = boost::uuids::to_string(sender.device_id);
     jv_sender["manifest_href"] = boost::json::value_from(sender.manifest_href);

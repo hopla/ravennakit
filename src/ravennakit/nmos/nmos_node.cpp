@@ -21,11 +21,12 @@
 
 namespace {
 
+namespace http = boost::beast::http;
+
 /**
  * Sets the default headers for the response.
  * Warning: these headers are probably not suitable for production use, see:
  * https://specs.amwa.tv/is-04/releases/v1.3.3/docs/APIs_-_Server_Side_Implementation_Notes.html#cross-origin-resource-sharing-cors
- * @param res
  */
 void set_default_headers(rav::HttpServer::Response& res) {
     res.set("Content-Type", "application/json");
@@ -43,8 +44,8 @@ void set_default_headers(rav::HttpServer::Response& res) {
  * @param debug The debug information.
  */
 void set_error_response(
-    boost::beast::http::response<boost::beast::http::string_body>& res, const boost::beast::http::status status,
-    const std::string& error, const std::string& debug
+    http::response<http::string_body>& res, const http::status status, const std::string& error,
+    const std::string& debug
 ) {
     res.result(status);
     set_default_headers(res);
@@ -57,9 +58,9 @@ void set_error_response(
  * Sets the error response for an invalid API version.
  * @param res The response to set.
  */
-void invalid_api_version_response(boost::beast::http::response<boost::beast::http::string_body>& res) {
+void invalid_api_version_response(http::response<http::string_body>& res) {
     set_error_response(
-        res, boost::beast::http::status::bad_request, "Invalid API version",
+        res, http::status::bad_request, "Invalid API version",
         "Failed to parse a valid version in the form of vMAJOR.MINOR"
     );
 }
@@ -69,12 +70,9 @@ void invalid_api_version_response(boost::beast::http::response<boost::beast::htt
  * @param res The response to set.
  * @param version The unsupported API version.
  */
-void version_not_supported_response(
-    boost::beast::http::response<boost::beast::http::string_body>& res, const rav::nmos::ApiVersion& version
-) {
+void version_not_supported_response(http::response<http::string_body>& res, const rav::nmos::ApiVersion& version) {
     set_error_response(
-        res, boost::beast::http::status::not_found, "Version not found",
-        fmt::format("Version {} is not supported", version)
+        res, http::status::not_found, "Version not found", fmt::format("Version {} is not supported", version)
     );
 }
 
@@ -83,8 +81,8 @@ void version_not_supported_response(
  * @param res The response to set.
  * @param body The body of the response.
  */
-void ok_response(boost::beast::http::response<boost::beast::http::string_body>& res, std::string body) {
-    res.result(boost::beast::http::status::ok);
+void ok_response(http::response<http::string_body>& res, std::string body) {
+    res.result(http::status::ok);
     set_default_headers(res);
     res.body() = std::move(body);
     res.prepare_payload();
@@ -298,16 +296,14 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("device_id");
             if (uuid_str == nullptr) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid device ID", "Device ID is empty"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid device ID", "Device ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
                 set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid device ID", "Device ID is not a valid UUID"
+                    res, http::status::bad_request, "Invalid device ID", "Device ID is not a valid UUID"
                 );
                 return;
             }
@@ -317,7 +313,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
                 return;
             }
 
-            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Device not found");
+            set_error_response(res, http::status::not_found, "Not found", "Device not found");
         }
     );
 
@@ -341,15 +337,13 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("flow_id");
             if (uuid_str == nullptr) {
-                set_error_response(res, boost::beast::http::status::bad_request, "Invalid flow ID", "Flow ID is empty");
+                set_error_response(res, http::status::bad_request, "Invalid flow ID", "Flow ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid flow ID", "Flow ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid flow ID", "Flow ID is not a valid UUID");
                 return;
             }
 
@@ -358,7 +352,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
                 return;
             }
 
-            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Flow not found");
+            set_error_response(res, http::status::not_found, "Not found", "Flow not found");
         }
     );
 
@@ -382,17 +376,14 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("receiver_id");
             if (uuid_str == nullptr) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid receiver ID", "Receiver ID is empty"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
                 set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid receiver ID",
-                    "Receiver ID is not a valid UUID"
+                    res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID"
                 );
                 return;
             }
@@ -402,7 +393,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
                 return;
             }
 
-            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Receiver not found");
+            set_error_response(res, http::status::not_found, "Not found", "Receiver not found");
         }
     );
 
@@ -415,17 +406,14 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("receiver_id");
             if (uuid_str == nullptr) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid receiver ID", "Receiver ID is empty"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
                 set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid receiver ID",
-                    "Receiver ID is not a valid UUID"
+                    res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID"
                 );
                 return;
             }
@@ -454,16 +442,14 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("sender_id");
             if (uuid_str == nullptr) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid sender ID", "Sender ID is empty"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid sender ID", "Sender ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
                 set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid sender ID", "Sender ID is not a valid UUID"
+                    res, http::status::bad_request, "Invalid sender ID", "Sender ID is not a valid UUID"
                 );
                 return;
             }
@@ -473,7 +459,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
                 return;
             }
 
-            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Sender not found");
+            set_error_response(res, http::status::not_found, "Not found", "Sender not found");
         }
     );
 
@@ -497,16 +483,14 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
 
             const auto* uuid_str = params.get("source_id");
             if (uuid_str == nullptr) {
-                set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid source ID", "Source ID is empty"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid source ID", "Source ID is empty");
                 return;
             }
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
                 set_error_response(
-                    res, boost::beast::http::status::bad_request, "Invalid source ID", "Source ID is not a valid UUID"
+                    res, http::status::bad_request, "Invalid source ID", "Source ID is not a valid UUID"
                 );
                 return;
             }
@@ -516,13 +500,16 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
                 return;
             }
 
-            set_error_response(res, boost::beast::http::status::not_found, "Not found", "Source not found");
+            set_error_response(res, http::status::not_found, "Not found", "Source not found");
         }
     );
 
-    http_server_.get("/**", [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
-        set_error_response(res, boost::beast::http::status::not_found, "Not found", "No matching route");
-    });
+    http_server_.get(
+        "/x-nmos/node/**",
+        [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
+            set_error_response(res, http::status::not_found, "Not found", "No matching route");
+        }
+    );
 
     const auto result = set_configuration(configuration, true);
     if (result.has_error()) {
@@ -542,12 +529,12 @@ void rav::nmos::Node::stop() {
 }
 
 boost::system::result<void, rav::nmos::Node::Error>
-rav::nmos::Node::set_configuration(const ConfigurationUpdate& update, bool force_update) {
+rav::nmos::Node::set_configuration(const ConfigurationUpdate& update, const bool force_update) {
     auto new_config = configuration_;
     update.apply_to_config(new_config);
 
     if (new_config == configuration_ && !force_update) {
-        return {};  // Nothing changed, therefore we should be in the correct state.
+        return {};  // Nothing changed, so we should be in the correct state.
     }
 
     auto result = new_config.validate();
@@ -576,10 +563,6 @@ boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start_inter
         return Error::failed_to_start_http_server;
     }
 
-    Rollback rollback([this] {
-        stop_internal();
-    });
-
     // TODO: I'm not sure if this is the right value for href, but unless a web interface is served this is the best we
     // got.
     const auto endpoint = http_server_.get_local_endpoint();
@@ -591,8 +574,6 @@ boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start_inter
     self_.api.endpoints = {Self::Endpoint {endpoint.address().to_string(), endpoint.port(), "http", false}};
 
     connect_to_registry_async();
-
-    rollback.commit();
 
     return {};
 }

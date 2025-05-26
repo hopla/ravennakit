@@ -19,7 +19,9 @@ int main() {
 
     boost::asio::io_context io_context;
 
-    rav::nmos::Node node(io_context);
+    rav::nmos::Node::ConfigurationUpdate config;
+    config.node_api_port = 8000;  // Set the port for the NMOS node API
+    rav::nmos::Node node(io_context, config);
     auto result = node.start();
     if (result.has_error()) {
         RAV_ERROR("Failed to start NMOS node: {}", result.error());

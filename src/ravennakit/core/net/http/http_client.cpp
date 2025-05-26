@@ -65,7 +65,8 @@ void rav::HttpClient::set_host(
     target_ = target;
 }
 
-rav::HttpClient::HttpClient(boost::asio::io_context& io_context) : io_context_(io_context) {}
+rav::HttpClient::HttpClient(boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds) :
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {}
 
 rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const std::string_view url) : io_context_(io_context) {
     const boost::urls::url parsed_url(url);
@@ -103,14 +104,16 @@ void rav::HttpClient::request_async(
     requests_.emplace(std::move(request), std::move(callback));
 
     if (!session_) {
-        session_ = std::make_shared<Session>(io_context_, this);
+        session_ = std::make_shared<Session>(io_context_, this, timeout_seconds_);
     }
 
     session_->send_requests();
 }
 
-rav::HttpClient::Session::Session(boost::asio::io_context& io_context, HttpClient* owner) :
-    owner_(owner), resolver_(io_context), stream_(io_context) {}
+rav::HttpClient::Session::Session(
+    boost::asio::io_context& io_context, HttpClient* owner, const std::chrono::milliseconds timeout_seconds
+) :
+    owner_(owner), resolver_(io_context), stream_(io_context), timeout_seconds_(timeout_seconds) {}
 
 void rav::HttpClient::Session::send_requests() {
     RAV_ASSERT(owner_ != nullptr, "HttpClient::Session must have an owner");
@@ -139,7 +142,7 @@ void rav::HttpClient::Session::async_connect() {
 
 void rav::HttpClient::Session::async_send() {
     // Set a timeout on the operation
-    stream_.expires_after(std::chrono::seconds(30));
+    stream_.expires_after(timeout_seconds_);
 
     // Send the HTTP request to the remote host
     http::async_write(
@@ -163,12 +166,14 @@ void rav::HttpClient::Session::on_resolve(
         if (const auto& cb = owner_->requests_.front().second) {
             cb(ec);
         }
-        owner_->requests_.pop();
+        if (!owner_->requests_.empty()) {
+            owner_->requests_.pop();
+        }
         return;  // Error resolving the host
     }
 
     // Set a timeout on the operation
-    stream_.expires_after(std::chrono::seconds(30));
+    stream_.expires_after(timeout_seconds_);
 
     // Make the connection on the IP address we get from a lookup
     stream_.async_connect(results, boost::beast::bind_front_handler(&Session::on_connect, shared_from_this()));
@@ -189,7 +194,9 @@ void rav::HttpClient::Session::
         if (const auto& cb = owner_->requests_.front().second) {
             cb(ec);
         }
-        owner_->requests_.pop();
+        if (!owner_->requests_.empty()) {
+            owner_->requests_.pop();
+        }
         return;
     }
 
@@ -212,7 +219,9 @@ void rav::HttpClient::Session::on_write(const boost::beast::error_code& ec, std:
         if (const auto& cb = owner_->requests_.front().second) {
             cb(ec);
         }
-        owner_->requests_.pop();
+        if (!owner_->requests_.empty()) {
+            owner_->requests_.pop();
+        }
         return;
     }
 
@@ -240,7 +249,9 @@ void rav::HttpClient::Session::on_read(boost::beast::error_code ec, std::size_t 
         if (const auto& cb = owner_->requests_.front().second) {
             cb(ec);
         }
-        owner_->requests_.pop();
+        if (!owner_->requests_.empty()) {
+            owner_->requests_.pop();
+        }
         return;
     }
 

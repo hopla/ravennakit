@@ -11,6 +11,7 @@
 #include "ravennakit/nmos/nmos_node.hpp"
 
 #include "ravennakit/core/rollback.hpp"
+#include "ravennakit/core/util/todo.hpp"
 #include "ravennakit/nmos/models/nmos_error.hpp"
 #include "ravennakit/nmos/models/nmos_self.hpp"
 
@@ -201,10 +202,13 @@ void rav::nmos::Node::ConfigurationUpdate::apply_to_config(Configuration& config
     if (enabled.has_value()) {
         config.enabled = *enabled;
     }
+    if (node_api_port.has_value()) {
+        config.node_api_port = *node_api_port;
+    }
 }
 
 rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUpdate& configuration) :
-    http_server_(io_context), registry_browser_(io_context), http_client_(io_context), heartbeat_timer_(io_context) {
+    http_server_(io_context), connector_(io_context), heartbeat_timer_(io_context) {
     self_.id = boost::uuids::random_generator()();
     self_.version = Version {1, 0};
     self_.label = "ravennakit";
@@ -573,55 +577,26 @@ boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start_inter
 
     self_.api.endpoints = {Self::Endpoint {endpoint.address().to_string(), endpoint.port(), "http", false}};
 
-    connect_to_registry_async();
+    // This kicks things off
+    connector_.on_connected_status_changed = [this](const bool is_connected) {
+        if (is_connected) {
+            register_async();
+        }
+    };
+    connector_.start(
+        configuration_.operation_mode, configuration_.discover_mode, configuration_.api_version,
+        configuration_.registry_address
+    );
 
     return {};
 }
 
 void rav::nmos::Node::stop_internal() {
-    heartbeat_timer_.stop();
+    connector_.stop();
     http_server_.stop();
 }
 
-void rav::nmos::Node::connect_to_registry_async() {
-    if (configuration_.operation_mode == OperationMode::registered
-        || configuration_.operation_mode == OperationMode::registered_p2p) {
-        if (configuration_.discover_mode == DiscoverMode::manual) {
-            if (configuration_.registry_address.empty()) {
-                RAV_ERROR("Registry address is empty");
-                return;
-            }
-
-            const boost::urls::url_view url(configuration_.registry_address);
-            connect_to_registry_async(url.host(), url.port_number());
-            return;
-        }
-        registry_browser_.find_most_suitable_registry_async(
-            configuration_.discover_mode, configuration_.api_version,
-            [this](const std::optional<dnssd::ServiceDescription>& registry) {
-                if (registry) {
-                    connect_to_registry_async(registry->host_target, registry->port);
-                    return;
-                }
-                RAV_WARNING("No registry found after timeout");
-            }
-        );
-    }
-    // In p2p mode, we don't connect to a registry.
-}
-
-void rav::nmos::Node::connect_to_registry_async(std::string_view host_target, uint16_t port) {
-    host_target = string_remove_suffix(host_target, ".");
-
-    RAV_TRACE("Try to register with registry at {}:{}", host_target, port);
-
-    http_client_.set_host(host_target, std::to_string(port));
-
-    // Note the next section will block the io_context until this function returns. The reason for this is that the
-    // requests are being made synchronously, because once the first request errors out, we want to stop sending more
-    // requests. Ideally, we would send the requests asynchronously and wait for the previous one to finish before
-    // sending the next one, but that would require a more complex implementation.
-
+void rav::nmos::Node::register_async() {
     post_resource_async("node", boost::json::value_from(self_));
 
     for (auto& device : devices_) {
@@ -646,12 +621,12 @@ void rav::nmos::Node::connect_to_registry_async(std::string_view host_target, ui
 
     failed_heartbeat_count_ = 0;
 
+    // Send heartbeat immediately after registration to update the connected status.
+    send_heartbeat_async();
+
     heartbeat_timer_.start(k_heartbeat_interval, [this] {
         send_heartbeat_async();
     });
-
-    // Send heartbeat immediately after registration to update the connected status.
-    send_heartbeat_async();
 }
 
 void rav::nmos::Node::post_resource_async(std::string type, boost::json::value resource) {
@@ -659,7 +634,7 @@ void rav::nmos::Node::post_resource_async(std::string type, boost::json::value r
 
     auto body = boost::json::serialize(boost::json::value {{"type", type}, {"data", std::move(resource)}});
 
-    http_client_.post_async(
+    connector_.post_async(
         target, body,
         [body, type](const boost::system::result<http::response<http::string_body>>& result) mutable {
             if (result.has_error()) {
@@ -687,13 +662,12 @@ void rav::nmos::Node::send_heartbeat_async() {
         "/x-nmos/registration/{}/health/nodes/{}", configuration_.api_version.to_string(), to_string(self_.id)
     );
 
-    http_client_.post_async(target, {}, [this](const boost::system::result<http::response<http::string_body>>& result) {
+    connector_.post_async(target, {}, [this](const boost::system::result<http::response<http::string_body>>& result) {
         if (result.has_value() && result.value().result() == http::status::ok) {
             failed_heartbeat_count_ = 0;
             if (!std::exchange(state_.is_registered, true)) {
                 RAV_INFO("Node registered with the registry");
             }
-            RAV_TRACE("NMOS heartbeat sent");
             return;
         }
         if (result.has_error()) {
@@ -705,11 +679,10 @@ void rav::nmos::Node::send_heartbeat_async() {
             failed_heartbeat_count_++;
             return;  // Don't try to reconnect yet, just try the next heartbeat.
         }
-        http_client_.cancel_outstanding_requests();
-        RAV_ERROR("Failed to send heartbeat {} times, try reconnecting to registry", failed_heartbeat_count_);
-
+        connector_.cancel_outstanding_requests();
+        RAV_ERROR("Failed to send heartbeat {} times, disconnect from registry", failed_heartbeat_count_);
         state_.is_registered = false;
-        connect_to_registry_async();
+        heartbeat_timer_.stop();
     });
 }
 

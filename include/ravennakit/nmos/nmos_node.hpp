@@ -11,6 +11,7 @@
 #pragma once
 
 #include "detail/nmos_api_version.hpp"
+#include "detail/nmos_connector.hpp"
 #include "detail/nmos_discover_mode.hpp"
 #include "detail/nmos_operating_mode.hpp"
 #include "detail/nmos_registry_browser.hpp"
@@ -213,11 +214,6 @@ class Node {
     static constexpr uint8_t k_max_failed_heartbeats = 5;
     static constexpr auto k_heartbeat_interval = std::chrono::seconds(5);
 
-    Configuration configuration_;
-    State state_;
-    HttpServer http_server_;
-    RegistryBrowser registry_browser_;
-
     Self self_;
     std::vector<Device> devices_;
     std::vector<Flow> flows_;
@@ -225,9 +221,14 @@ class Node {
     std::vector<Sender> senders_;
     std::vector<Source> sources_;
 
+    Configuration configuration_;
+    State state_;
+
+    HttpServer http_server_;
+    Connector connector_;
+
     uint8_t failed_heartbeat_count_ = 0;
-    HttpClient http_client_;
-    AsioTimer heartbeat_timer_;  // Keep below http_client_ to avoid dangling reference
+    AsioTimer heartbeat_timer_;  // Keep below connector_ to avoid dangling reference
 
     /**
      * Starts the services of this node (HTTP server, advertisements, etc.).
@@ -240,8 +241,7 @@ class Node {
      */
     void stop_internal();
 
-    void connect_to_registry_async();
-    void connect_to_registry_async(std::string_view host_target, uint16_t port);
+    void register_async();
     void post_resource_async(std::string type, boost::json::value resource);
     void send_heartbeat_async();
 

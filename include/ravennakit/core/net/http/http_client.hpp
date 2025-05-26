@@ -40,8 +40,11 @@ class HttpClient {
     /**
      * Constructs a new HttpClient using the given io_context, but no url.
      * @param io_context The io_context to use for the request.
+     * @param timeout_seconds The timeout in seconds for the requests. Defaults to 30 seconds.
      */
-    explicit HttpClient(boost::asio::io_context& io_context);
+    explicit HttpClient(
+        boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30)
+    );
 
     /**
      * Constructs a new HttpClient using the given io_context and url.
@@ -138,16 +141,15 @@ class HttpClient {
      */
     class Session: public std::enable_shared_from_this<Session> {
       public:
-        enum class State {
-            disconnected, resolving, connecting, connected, waiting_for_send, waiting_for_response
-        };
-        explicit Session(boost::asio::io_context& io_context, HttpClient* owner);
+        enum class State { disconnected, resolving, connecting, connected, waiting_for_send, waiting_for_response };
+        explicit Session(boost::asio::io_context& io_context, HttpClient* owner, std::chrono::milliseconds timeout_seconds);
 
         void send_requests();
         void clear_owner();
 
       private:
         HttpClient* owner_ = nullptr;
+        std::chrono::milliseconds timeout_seconds_ = std::chrono::milliseconds(30);
         boost::asio::ip::tcp::resolver resolver_;
         boost::beast::tcp_stream stream_;
         http::response<http::string_body> response_;
@@ -163,6 +165,7 @@ class HttpClient {
     };
 
     boost::asio::io_context& io_context_;
+    std::chrono::milliseconds timeout_seconds_ = std::chrono::milliseconds(30);
     std::string host_;
     std::string service_;
     std::string target_;

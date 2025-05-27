@@ -14,23 +14,42 @@
 
 #include "ravennakit/core/assert.hpp"
 
-rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const boost::urls::url& url) :
-    io_context_(io_context) {
+rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const std::chrono::milliseconds timeout_seconds) :
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {}
+
+rav::HttpClient::HttpClient(
+    boost::asio::io_context& io_context, const std::string_view url, const std::chrono::milliseconds timeout_seconds
+) :
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {
+    const boost::urls::url parsed_url(url);
+    host_ = parsed_url.host();
+    service_ = parsed_url.port();
+    target_ = parsed_url.path();
+}
+
+rav::HttpClient::HttpClient(
+    boost::asio::io_context& io_context, const boost::urls::url& url, const std::chrono::milliseconds timeout_seconds
+) :
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {
     host_ = url.host();
     service_ = url.port();
     target_ = url.path();
 }
 
-rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint) :
-    io_context_(io_context) {
+rav::HttpClient::HttpClient(
+    boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint,
+    const std::chrono::milliseconds timeout_seconds
+) :
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {
     host_ = endpoint.address().to_string();
     service_ = std::to_string(endpoint.port());
 }
 
 rav::HttpClient::HttpClient(
-    boost::asio::io_context& io_context, const boost::asio::ip::address& address, const uint16_t port
+    boost::asio::io_context& io_context, const boost::asio::ip::address& address, const uint16_t port,
+    const std::chrono::milliseconds timeout_seconds
 ) :
-    io_context_(io_context) {
+    io_context_(io_context), timeout_seconds_(timeout_seconds) {
     host_ = address.to_string();
     service_ = std::to_string(port);
 }
@@ -63,16 +82,6 @@ void rav::HttpClient::set_host(
     host_ = host;
     service_ = service;
     target_ = target;
-}
-
-rav::HttpClient::HttpClient(boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds) :
-    io_context_(io_context), timeout_seconds_(timeout_seconds) {}
-
-rav::HttpClient::HttpClient(boost::asio::io_context& io_context, const std::string_view url) : io_context_(io_context) {
-    const boost::urls::url parsed_url(url);
-    host_ = parsed_url.host();
-    service_ = parsed_url.port();
-    target_ = parsed_url.path();
 }
 
 void rav::HttpClient::get_async(const std::string_view target, CallbackType callback) {
@@ -113,7 +122,7 @@ void rav::HttpClient::request_async(
 rav::HttpClient::Session::Session(
     boost::asio::io_context& io_context, HttpClient* owner, const std::chrono::milliseconds timeout_seconds
 ) :
-    owner_(owner), resolver_(io_context), stream_(io_context), timeout_seconds_(timeout_seconds) {}
+    owner_(owner), timeout_seconds_(timeout_seconds), resolver_(io_context), stream_(io_context) {}
 
 void rav::HttpClient::Session::send_requests() {
     RAV_ASSERT(owner_ != nullptr, "HttpClient::Session must have an owner");

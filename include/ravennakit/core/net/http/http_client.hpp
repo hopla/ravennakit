@@ -43,7 +43,8 @@ class HttpClient {
      * @param timeout_seconds The timeout in seconds for the requests. Defaults to 30 seconds.
      */
     explicit HttpClient(
-        boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30)
+        boost::asio::io_context& io_context,
+        std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30'000)
     );
 
     /**
@@ -51,21 +52,21 @@ class HttpClient {
      * @param io_context The io_context to use for the request.
      * @param url The url to request.
      */
-    HttpClient(boost::asio::io_context& io_context, std::string_view url);
+    HttpClient(boost::asio::io_context& io_context, std::string_view url, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30'000));
 
     /**
      * Constructs a new HttpClient using the given io_context and url.
      * @param io_context The io_context to use for the request.
      * @param url The url to request.
      */
-    HttpClient(boost::asio::io_context& io_context, const boost::urls::url& url);
+    HttpClient(boost::asio::io_context& io_context, const boost::urls::url& url, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30'000));
 
     /**
      * Constructs a new HttpClient using the given io_context and url.
      * @param io_context The io_context to use for the request.
      * @param endpoint The endpoint to request.
      */
-    HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint);
+    HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30'000));
 
     /**
      * Constructs a new HttpClient using the given io_context and url.
@@ -73,7 +74,7 @@ class HttpClient {
      * @param address The address to request.
      * @param port The port to request.
      */
-    HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::address& address, uint16_t port);
+    HttpClient(boost::asio::io_context& io_context, const boost::asio::ip::address& address, uint16_t port, std::chrono::milliseconds timeout_seconds = std::chrono::milliseconds(30'000));
 
     ~HttpClient();
 
@@ -142,7 +143,9 @@ class HttpClient {
     class Session: public std::enable_shared_from_this<Session> {
       public:
         enum class State { disconnected, resolving, connecting, connected, waiting_for_send, waiting_for_response };
-        explicit Session(boost::asio::io_context& io_context, HttpClient* owner, std::chrono::milliseconds timeout_seconds);
+        explicit Session(
+            boost::asio::io_context& io_context, HttpClient* owner, std::chrono::milliseconds timeout_seconds
+        );
 
         void send_requests();
         void clear_owner();

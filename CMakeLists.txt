@@ -32,6 +32,10 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 17)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE INTERNAL "")
+endif ()
+
 ################
 # Dependencies #
 ################

@@ -13,6 +13,7 @@
 #include "detail/nmos_api_version.hpp"
 #include "detail/nmos_connector.hpp"
 #include "detail/nmos_discover_mode.hpp"
+#include "detail/nmos_error.hpp"
 #include "detail/nmos_operating_mode.hpp"
 #include "detail/nmos_registry_browser.hpp"
 #include "models/nmos_device.hpp"
@@ -38,15 +39,7 @@ class Node {
   public:
     static std::array<ApiVersion, 2> k_supported_api_versions;
 
-    /**
-     * Errors used in the NMOS node.
-     */
-    enum class Error {
-        incompatible_discover_mode,
-        invalid_registry_address,
-        invalid_api_version,
-        failed_to_start_http_server,
-    };
+
 
     /**
      * The configuration of the NMOS node.
@@ -249,11 +242,4 @@ class Node {
     [[nodiscard]] bool add_sender_to_device(const Sender& sender);
 };
 
-/// Overload the output stream operator for the Node::Error enum class
-std::ostream& operator<<(std::ostream& os, Node::Error error);
-
 }  // namespace rav::nmos
-
-/// Make Node::Error printable with fmt
-template<>
-struct fmt::formatter<rav::nmos::Node::Error>: ostream_formatter {};

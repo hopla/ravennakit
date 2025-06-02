@@ -18,19 +18,19 @@
 
 namespace rav::nmos {
 
-struct Error {
+struct ApiError {
     unsigned code {};
     std::string error {};
     std::string debug {};
 };
 
-inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Error& value) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ApiError& value) {
     jv = {{"code", value.code}, {"error", value.error}, {"debug", value.debug}};
 }
 
-inline Error tag_invoke(const boost::json::value_to_tag<Error>&, const boost::json::value& jv) {
+inline ApiError tag_invoke(const boost::json::value_to_tag<ApiError>&, const boost::json::value& jv) {
     auto obj = jv.as_object();
-    Error error;
+    ApiError error;
     error.code = static_cast<uint32_t>(obj.at("code").as_int64());
     error.error = obj.at("error").as_string();
     if (const auto v = obj.at("debug").try_as_string()) {

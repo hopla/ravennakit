@@ -12,7 +12,7 @@
 
 #include "ravennakit/core/rollback.hpp"
 #include "ravennakit/core/util/todo.hpp"
-#include "ravennakit/nmos/models/nmos_error.hpp"
+#include "ravennakit/nmos/models/nmos_api_error.hpp"
 #include "ravennakit/nmos/models/nmos_self.hpp"
 
 #include <boost/json/serialize.hpp>
@@ -51,7 +51,7 @@ void set_error_response(
     res.result(status);
     set_default_headers(res);
     res.body() =
-        boost::json::serialize(boost::json::value_from(rav::nmos::Error {static_cast<unsigned>(status), error, debug}));
+        boost::json::serialize(boost::json::value_from(rav::nmos::ApiError {static_cast<unsigned>(status), error, debug}));
     res.prepare_payload();
 }
 
@@ -138,7 +138,7 @@ std::array<rav::nmos::ApiVersion, 2> rav::nmos::Node::k_supported_api_versions =
     ApiVersion::v1_3(),
 }};
 
-boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::Configuration::validate() const {
+boost::system::result<void, rav::nmos::Error> rav::nmos::Node::Configuration::validate() const {
     bool version_valid = false;
 
     for (auto& v : k_supported_api_versions) {
@@ -519,7 +519,7 @@ rav::nmos::Node::Node(boost::asio::io_context& io_context, const ConfigurationUp
     }
 }
 
-boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start() {
+boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start() {
     configuration_.enabled = true;
     return start_internal();
 }
@@ -529,7 +529,7 @@ void rav::nmos::Node::stop() {
     stop_internal();
 }
 
-boost::system::result<void, rav::nmos::Node::Error>
+boost::system::result<void, rav::nmos::Error>
 rav::nmos::Node::set_configuration(const ConfigurationUpdate& update, const bool force_update) {
     auto new_config = configuration_;
     update.apply_to_config(new_config);
@@ -557,7 +557,7 @@ rav::nmos::Node::set_configuration(const ConfigurationUpdate& update, const bool
     return {};
 }
 
-boost::system::result<void, rav::nmos::Node::Error> rav::nmos::Node::start_internal() {
+boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() {
     const auto result = http_server_.start("0.0.0.0", configuration_.node_api_port);
     if (result.has_error()) {
         RAV_ERROR("Failed to start HTTP server: {}", result.error().message());
@@ -870,22 +870,4 @@ const boost::uuids::uuid& rav::nmos::Node::get_uuid() const {
 
 const std::vector<rav::nmos::Device>& rav::nmos::Node::get_devices() const {
     return devices_;
-}
-
-std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::Error error) {
-    switch (error) {
-        case Node::Error::incompatible_discover_mode:
-            os << "incompatible_discover_mode";
-            break;
-        case Node::Error::invalid_registry_address:
-            os << "invalid_registry_address";
-            break;
-        case Node::Error::invalid_api_version:
-            os << "invalid_api_version";
-            break;
-        case Node::Error::failed_to_start_http_server:
-            os << "failed_to_start_http_server";
-            break;
-    }
-    return os;
 }

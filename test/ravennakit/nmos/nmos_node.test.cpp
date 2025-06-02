@@ -21,7 +21,7 @@ TEST_CASE("nmos::Node") {
     }
 
     SECTION("Test whether types are printable") {
-        std::ignore = fmt::format("{}", rav::nmos::Node::Error::incompatible_discover_mode);
+        std::ignore = fmt::format("{}", rav::nmos::Error::incompatible_discover_mode);
         std::ignore = fmt::format("{}", rav::nmos::OperationMode::registered);
         std::ignore = fmt::format("{}", rav::nmos::DiscoverMode::dns);
     }
@@ -53,11 +53,11 @@ TEST_CASE("nmos::Node") {
 
             // Unicast DNS doesn't work for p2p and is therefore not valid in registered_p2p mode
             config.discover_mode = rav::nmos::DiscoverMode::udns;
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
 
             // Manual mode doesn't work for p2p and is therefore not valid in registered_p2p mode
             config.discover_mode = rav::nmos::DiscoverMode::manual;
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
         }
 
         config.operation_mode = rav::nmos::OperationMode::registered;
@@ -79,7 +79,7 @@ TEST_CASE("nmos::Node") {
             config.discover_mode = rav::nmos::DiscoverMode::manual;
 
             // Not valid because no address is specified
-            REQUIRE(config.validate() == rav::nmos::Node::Error::invalid_registry_address);
+            REQUIRE(config.validate() == rav::nmos::Error::invalid_registry_address);
 
             config.registry_address = "http://localhost:8080";
 
@@ -92,7 +92,7 @@ TEST_CASE("nmos::Node") {
         SECTION("Validate discover mode in p2p mode") {
             // DNS doesn't work for p2p and is therefore not valid in p2p mode
             config.discover_mode = rav::nmos::DiscoverMode::dns;
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
 
             // Multicast DNS works for both registered and p2p
             config.discover_mode = rav::nmos::DiscoverMode::mdns;
@@ -100,16 +100,16 @@ TEST_CASE("nmos::Node") {
 
             // Unicast DNS doesn't work for p2p and is therefore not valid in p2p mode
             config.discover_mode = rav::nmos::DiscoverMode::udns;
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
 
             // Manual mode only works for registered mode and is therefore not valid in p2p mode
             config.discover_mode = rav::nmos::DiscoverMode::manual;
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
 
             config.registry_address = "http://localhost:8080";
 
             // Still not valid because manual mode doesn't work for p2p
-            REQUIRE(config.validate() == rav::nmos::Node::Error::incompatible_discover_mode);
+            REQUIRE(config.validate() == rav::nmos::Error::incompatible_discover_mode);
         }
     }
 }

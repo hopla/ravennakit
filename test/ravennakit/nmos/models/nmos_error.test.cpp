@@ -8,7 +8,7 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-#include "ravennakit/nmos/models/nmos_error.hpp"
+#include "ravennakit/nmos/models/nmos_api_error.hpp"
 
 #include <boost/json/parse.hpp>
 #include <boost/json/serialize.hpp>
@@ -17,7 +17,7 @@
 
 TEST_CASE("nmos::Error") {
     SECTION("To json") {
-        rav::nmos::Error error;
+        rav::nmos::ApiError error;
         error.code = 404;
         error.error = "Not found";
         error.debug = "The requested resource was not found";
@@ -30,7 +30,7 @@ TEST_CASE("nmos::Error") {
 
     SECTION("From json") {
         SECTION("All fields are present") {
-            auto error = boost::json::value_to<rav::nmos::Error>(
+            auto error = boost::json::value_to<rav::nmos::ApiError>(
                 boost::json::parse(R"({"code":404,"error":"Not found","debug":"The requested resource was not found"})")
             );
 
@@ -40,7 +40,7 @@ TEST_CASE("nmos::Error") {
         }
 
         SECTION("Debug is null") {
-            auto error = boost::json::value_to<rav::nmos::Error>(
+            auto error = boost::json::value_to<rav::nmos::ApiError>(
                 boost::json::parse(R"({"code":404,"error":"Not found","debug":null})")
             );
             REQUIRE(error.code == 404);

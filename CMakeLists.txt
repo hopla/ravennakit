@@ -34,11 +34,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL" CACHE INTERNAL "")
+    add_link_options("/NODEFAULTLIB:libcmt.lib" "/NODEFAULTLIB:libcmtd.lib")
 endif ()
-
-if (MSVC)
-    add_link_options("/VERBOSE:LIB" "/NODEFAULTLIB:libcmt.lib" "/NODEFAULTLIB:libcmtd.lib" "/NODEFAULTLIB:msvcrtd.lib")
-endif()
 
 ################
 # Dependencies #

@@ -18,11 +18,18 @@
 
 namespace rav::nmos {
 
-class RegistryBrowser {
+class RegistryBrowserBase {
   public:
     SafeFunction<void(const dnssd::ServiceDescription&)> on_registry_discovered;
 
-    using Callback = std::function<void(std::optional<dnssd::ServiceDescription>)>;
+    virtual ~RegistryBrowserBase() = default;
+    virtual void start(DiscoverMode discover_mode, ApiVersion api_version) = 0;
+    virtual void stop() = 0;
+    [[nodiscard]] virtual std::optional<dnssd::ServiceDescription> find_most_suitable_registry() const = 0;
+};
+
+class RegistryBrowser final: public RegistryBrowserBase {
+  public:
     using BrowserFactory = std::function<std::unique_ptr<dnssd::Browser>(boost::asio::io_context&)>;
 
     explicit RegistryBrowser(
@@ -33,7 +40,7 @@ class RegistryBrowser {
         unicast_browser_factory_(std::move(unicast_browser_factory)),
         multicast_browser_factory_(std::move(multicast_browser_factory)) {}
 
-    void start(const DiscoverMode discover_mode, const ApiVersion api_version) {
+    void start(const DiscoverMode discover_mode, const ApiVersion api_version) override {
         discover_mode_ = discover_mode;
         api_version_ = api_version;
 
@@ -73,7 +80,7 @@ class RegistryBrowser {
         }
     }
 
-    void stop() {
+    void stop() override {
         unicast_browser_.reset();
         multicast_browser_.reset();
     }
@@ -91,7 +98,7 @@ class RegistryBrowser {
         return services;
     }
 
-    [[nodiscard]] std::optional<dnssd::ServiceDescription> find_most_suitable_registry() const {
+    [[nodiscard]] std::optional<dnssd::ServiceDescription> find_most_suitable_registry() const override {
         std::optional<dnssd::ServiceDescription> best_desc;
         int best_pri = std::numeric_limits<int>::max();
 

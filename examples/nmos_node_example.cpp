@@ -51,7 +51,7 @@ int main() {
         device.description = fmt::format("RAVENNAKIT Device {}", device_count + 1);
         device.version = rav::nmos::Version {i_device + 1, (i_device + 1) * 1000};
         device.controls.push_back(control);
-        std::ignore = node.set_device(device);
+        std::ignore = node.add_or_update_device(device);
 
         // Sources
         for (uint32_t i_source = 0; i_source < k_num_sources_per_device; ++i_source) {
@@ -62,7 +62,7 @@ int main() {
             source.version = rav::nmos::Version {i_source + 1, (i_source + 1) * 1000};
             source.device_id = device.id;
             source.channels.push_back({"Channel 1"});
-            std::ignore = node.set_source({source});
+            std::ignore = node.add_or_update_source({source});
 
             // Flow
             for (uint32_t i_sender = 0; i_sender < k_num_senders_per_source; ++i_sender) {
@@ -76,7 +76,7 @@ int main() {
                 flow.media_type = "audio/L24";
                 flow.source_id = source.id;
                 flow.device_id = device.id;
-                std::ignore = node.set_flow({flow});
+                std::ignore = node.add_or_update_flow({flow});
 
                 // Sender
                 rav::nmos::Sender sender;
@@ -88,7 +88,7 @@ int main() {
                 sender.device_id = device.id;
                 sender.transport = "urn:x-nmos:transport:rtp";
                 sender.flow_id = flow.id;
-                std::ignore = node.set_sender(sender);
+                std::ignore = node.add_or_update_sender(sender);
 
                 flow_count++;
                 sender_count++;
@@ -108,7 +108,7 @@ int main() {
             receiver.device_id = device.id;
             receiver.transport = "urn:x-nmos:transport:rtp";
             receiver.caps.media_types = {"audio/L24", "audio/L20", "audio/L16", "audio/L8", "audio/PCM"};
-            std::ignore = node.set_receiver({receiver});
+            std::ignore = node.add_or_update_receiver({receiver});
 
             receiver_count++;
         }

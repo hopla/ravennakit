@@ -11,7 +11,6 @@
 #pragma once
 
 #include "detail/nmos_api_version.hpp"
-#include "detail/nmos_connector.hpp"
 #include "detail/nmos_discover_mode.hpp"
 #include "detail/nmos_error.hpp"
 #include "detail/nmos_operating_mode.hpp"
@@ -22,6 +21,7 @@
 #include "models/nmos_self.hpp"
 #include "models/nmos_sender.hpp"
 #include "models/nmos_source.hpp"
+#include "ravennakit/core/net/http/http_client.hpp"
 #include "ravennakit/core/net/http/http_server.hpp"
 
 #include <boost/uuid.hpp>
@@ -37,6 +37,16 @@ namespace rav::nmos {
 class Node {
   public:
     static std::array<ApiVersion, 2> k_supported_api_versions;
+    static constexpr auto k_default_timeout = std::chrono::milliseconds(2000);
+
+    enum class Status {
+        idle,
+        connected,
+        disconnected,
+        p2p,
+    };
+
+    SafeFunction<void(Status status)> on_status_changed;
 
     /**
      * The configuration of the NMOS node.
@@ -83,18 +93,10 @@ class Node {
         void apply_to_config(Configuration& config) const;
     };
 
-    struct State {
-        /// Whether the node is operating in registered or p2p mode.
-        OperationMode operation_mode {};
-        /// Whether the node found a registry using unicast DNS or multicast DNS.
-        DiscoverMode discover_mode {};
-        /// The port of the local node api.
-        uint16_t node_api_port {};
-        /// Whether the node is currently registered with a registry or not.
-        bool is_registered {};
-    };
-
-    explicit Node(boost::asio::io_context& io_context, const ConfigurationUpdate& configuration = {});
+    explicit Node(
+        boost::asio::io_context& io_context, const ConfigurationUpdate& configuration = {},
+        std::unique_ptr<RegistryBrowserBase> registry_browser = nullptr
+    );
 
     /**
      * Starts the services of this node (HTTP server, advertisements, etc.).
@@ -113,7 +115,8 @@ class Node {
      * @param update The configuration to update.
      * @param force_update Whether to force the update even if the configuration didn't change.
      */
-    [[nodiscard]] boost::system::result<void, Error> set_configuration(const ConfigurationUpdate& update, bool force_update = false);
+    [[nodiscard]] boost::system::result<void, Error>
+    update_configuration(const ConfigurationUpdate& update, bool force_update = false);
 
     /**
      * @return The local (listening) endpoint of the server.
@@ -125,70 +128,70 @@ class Node {
      * The node if of the device is set to the node's uuid.
      * @param device The device to set or update.
      */
-    [[nodiscard]] bool set_device(Device device);
+    [[nodiscard]] bool add_or_update_device(Device device);
 
     /**
      * Finds a device by its uuid.
      * @param uuid The uuid of the device to find.
      * @return A pointer to the device if found, or nullptr if not found.
      */
-    [[nodiscard]] const Device* get_device(boost::uuids::uuid uuid) const;
+    [[nodiscard]] const Device* find_device(boost::uuids::uuid uuid) const;
 
     /**
      * Adds the given flow to the node or updates an existing flow if it already exists (based on the uuid).
      * @param flow The flow to set.
      * @return True if the flow was set successfully, false otherwise.
      */
-    [[nodiscard]] bool set_flow(Flow flow);
+    [[nodiscard]] bool add_or_update_flow(Flow flow);
 
     /**
      * Finds a flow by its uuid.
      * @param uuid The uuid of the flow to find.
      * @return A pointer to the flow if found, or nullptr if not found.
      */
-    [[nodiscard]] const Flow* get_flow(boost::uuids::uuid uuid) const;
+    [[nodiscard]] const Flow* find_flow(boost::uuids::uuid uuid) const;
 
     /**
      * Adds the given receiver to the node or updates an existing receiver if it already exists (based on the uuid).
      * @param receiver The receiver to set.
      * @return True if the receiver was set successfully, false otherwise.
      */
-    [[nodiscard]] bool set_receiver(Receiver receiver);
+    [[nodiscard]] bool add_or_update_receiver(Receiver receiver);
 
     /**
      * Finds a receiver by its uuid.
      * @param uuid The uuid of the receiver to find.
      * @return A pointer to the receiver if found, or nullptr if not found.
      */
-    [[nodiscard]] const Receiver* get_receiver(boost::uuids::uuid uuid) const;
+    [[nodiscard]] const Receiver* find_receiver(boost::uuids::uuid uuid) const;
 
     /**
      * Adds the given sender to the node or updates an existing sender if it already exists (based on the uuid).
      * @param sender The sender to set.
      * @return True if the sender was set successfully, false otherwise.
      */
-    [[nodiscard]] bool set_sender(Sender sender);
+    [[nodiscard]] bool add_or_update_sender(Sender sender);
 
     /**
      * Finds a sender by its uuid.
      * @param uuid The uuid of the sender to find.
      * @return A pointer to the sender if found, or nullptr if not found.
      */
-    [[nodiscard]] const Sender* get_sender(boost::uuids::uuid uuid) const;
+    [[nodiscard]] const Sender* find_sender(boost::uuids::uuid uuid) const;
 
     /**
      * Adds the given source to the node or updates an existing source if it already exists (based on the uuid).
      * @param source The source to set.
      * @return True if the source was set successfully, false otherwise.
      */
-    [[nodiscard]] bool set_source(Source source);
+    [[nodiscard]] bool add_or_update_source(Source source);
 
     /**
      * Finds a source by its uuid.
      * @param uuid The uuid of the source to find.
      * @return A pointer to the source if found, or nullptr if not found.
      */
-    [[nodiscard]] const Source* get_source(boost::uuids::uuid uuid) const;
+    [[nodiscard]] const Source* find_source(boost::uuids::uuid uuid) const;
 
     /**
      * @return The uuid of the node.
@@ -212,10 +215,15 @@ class Node {
     std::vector<Source> sources_;
 
     Configuration configuration_;
-    State state_;
+    Status status_ = Status::idle;
+    bool is_registered_ = false;
+
+    std::optional<dnssd::ServiceDescription> selected_registry_;
 
     HttpServer http_server_;
-    Connector connector_;
+    HttpClient http_client_;
+    std::unique_ptr<RegistryBrowserBase> registry_browser_;
+    AsioTimer timer_;
 
     uint8_t failed_heartbeat_count_ = 0;
     AsioTimer heartbeat_timer_;  // Keep below connector_ to avoid dangling reference
@@ -234,9 +242,23 @@ class Node {
     void register_async();
     void post_resource_async(std::string type, boost::json::value resource);
     void send_heartbeat_async();
+    void connect_to_registry_async();
+    void connect_to_registry_async(std::string_view host, std::string_view service);
 
     [[nodiscard]] bool add_receiver_to_device(const Receiver& receiver);
     [[nodiscard]] bool add_sender_to_device(const Sender& sender);
+
+    void set_status(Status status);
+    bool select_registry(const dnssd::ServiceDescription& desc);
+
+    void handle_registry_discovered(const dnssd::ServiceDescription& desc);
 };
 
+/// Overload the output stream operator for the Node::Error enum class
+std::ostream& operator<<(std::ostream& os, Node::Status status);
+
 }  // namespace rav::nmos
+
+/// Make Connector::Status printable with fmt
+template<>
+struct fmt::formatter<rav::nmos::Node::Status>: ostream_formatter {};

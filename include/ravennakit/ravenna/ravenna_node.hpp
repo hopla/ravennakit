@@ -19,6 +19,7 @@
 #include "ravennakit/core/sync/realtime_shared_object.hpp"
 #include "ravennakit/core/util/id.hpp"
 #include "ravennakit/dnssd/dnssd_advertiser.hpp"
+#include "ravennakit/nmos/nmos_node.hpp"
 #include "ravennakit/ptp/ptp_instance.hpp"
 #include "ravennakit/rtp/detail/rtp_sender.hpp"
 #include "ravennakit/rtsp/rtsp_server.hpp"
@@ -85,8 +86,24 @@ class RavennaNode {
         }
 
         /**
+         * Called when the NMOS configuration is updated.
+         * @param config The updated NMOS configuration.
+         */
+        virtual void nmos_node_config_updated(const nmos::Node::Configuration& config) {
+            std::ignore = config;
+        }
+
+        /**
+         * Called when the NMOS node status changed.
+         * @param status The updated NMOS node state.
+         */
+        virtual void nmos_node_status_changed(const nmos::Node::Status& status) {
+            std::ignore = status;
+        }
+
+        /**
          * Called when the network interface configuration is updated.
-         * @param config The new network interface configuration.
+         * @param config The updated network interface configuration.
          */
         virtual void network_interface_config_updated(const RavennaConfig::NetworkInterfaceConfig& config) {
             std::ignore = config;
@@ -350,6 +367,8 @@ class RavennaNode {
     ptp::Instance ptp_instance_;
     std::map<Rank, uint16_t> ptp_ports_; // Mapping between interface by rank and ptp port number
     std::vector<std::unique_ptr<RavennaSender>> senders_;
+
+    nmos::Node nmos_node_{io_context_};
 
     SubscriberList<Subscriber> subscribers_;
     RealtimeSharedObject<realtime_shared_context> realtime_shared_context_;

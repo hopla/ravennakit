@@ -40,24 +40,12 @@ class Node {
     static constexpr auto k_default_timeout = std::chrono::milliseconds(2000);
 
     /**
-     * The connection status of the NMOS node.
-     */
-    enum class Status {
-        idle,
-        connected,
-        disconnected,
-        p2p,
-    };
-
-    SafeFunction<void(Status status)> on_status_changed;
-
-    /**
      * The configuration of the NMOS node.
      */
     struct Configuration {
         OperationMode operation_mode {OperationMode::registered_p2p};
         DiscoverMode discover_mode {DiscoverMode::dns};
-        ApiVersion api_version {ApiVersion::v1_3()};
+        ApiVersion api_version {ApiVersion::v1_2()};
         std::string registry_address;  // For when operation_mode is registered and discover_mode is manual.
         bool enabled {false};          // Whether the node is enabled or not.
         uint16_t node_api_port {0};    // The port of the local node API.
@@ -96,7 +84,36 @@ class Node {
         void apply_to_config(Configuration& config) const;
     };
 
-    explicit Node(boost::asio::io_context& io_context, std::unique_ptr<RegistryBrowserBase> registry_browser = nullptr, std::unique_ptr<HttpClientBase> http_client = nullptr);
+    struct Status {
+        /// Whether the node is registered with a registry.
+        bool registered {false};
+        /// The name of the registry server if registered.
+        std::string registry_server_name;
+        /// The address of the registry server if registered.
+        std::string registry_server_address;  // http://<host>:<port>
+        /// An error message if anything went wrong.
+        std::string error_message;
+
+        auto tie() const {
+            return std::tie(registered, registry_server_name, registry_server_address, error_message);
+        }
+
+        friend bool operator==(const Status& lhs, const Status& rhs) {
+            return lhs.tie() == rhs.tie();
+        }
+
+        friend bool operator!=(const Status& lhs, const Status& rhs) {
+            return lhs.tie() != rhs.tie();
+        }
+    };
+
+    SafeFunction<void(const Status& state)> on_status_changed;
+    SafeFunction<void(const Configuration& config)> on_configuration_changed;
+
+    explicit Node(
+        boost::asio::io_context& io_context, std::unique_ptr<RegistryBrowserBase> registry_browser = nullptr,
+        std::unique_ptr<HttpClientBase> http_client = nullptr
+    );
 
     /**
      * Starts the services of this node (HTTP server, advertisements, etc.).
@@ -208,6 +225,11 @@ class Node {
      */
     [[nodiscard]] const std::vector<Device>& get_devices() const;
 
+    /**
+     * @return The current status.
+     */
+    const Status& get_status() const;
+
   private:
     static constexpr uint8_t k_max_failed_heartbeats = 5;
     static constexpr auto k_heartbeat_interval = std::chrono::seconds(5);
@@ -220,7 +242,7 @@ class Node {
     std::vector<Source> sources_;
 
     Configuration configuration_;
-    Status status_ = Status::idle;
+    Status status_;
     bool is_registered_ = false;
 
     std::optional<dnssd::ServiceDescription> selected_registry_;
@@ -253,17 +275,9 @@ class Node {
     [[nodiscard]] bool add_receiver_to_device(const Receiver& receiver);
     [[nodiscard]] bool add_sender_to_device(const Sender& sender);
 
-    void set_status(Status status);
     bool select_registry(const dnssd::ServiceDescription& desc);
-
     void handle_registry_discovered(const dnssd::ServiceDescription& desc);
+    void update_status(const Status& new_status);
 };
 
-/// Overload the output stream operator for the Node::Error enum class
-std::ostream& operator<<(std::ostream& os, Node::Status status);
-
 }  // namespace rav::nmos
-
-/// Make Connector::Status printable with fmt
-template<>
-struct fmt::formatter<rav::nmos::Node::Status>: ostream_formatter {};

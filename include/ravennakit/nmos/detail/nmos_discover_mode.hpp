@@ -10,6 +10,8 @@
 
 #pragma once
 
+#include <fmt/ostream.h>
+
 namespace rav::nmos {
 
 /**

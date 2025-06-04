@@ -615,7 +615,7 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
     if (configuration_.operation_mode == OperationMode::p2p) {
         selected_registry_.reset();
         registry_browser_->stop();
-        set_status(Status::p2p);
+        update_status({});
         return {};
     }
 
@@ -632,9 +632,9 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
         if (const auto reg = registry_browser_->find_most_suitable_registry()) {
             select_registry(*reg);
         } else if (configuration_.operation_mode == OperationMode::registered_p2p) {
-            set_status(Status::p2p);
+            update_status({});
         } else {
-            set_status(Status::idle);
+            update_status({});
         }
     });
 
@@ -755,16 +755,23 @@ void rav::nmos::Node::connect_to_registry_async() {
     http_client_->get_async("/", [this](const boost::system::result<http::response<http::string_body>>& result) {
         if (result.has_error()) {
             RAV_INFO("Error connecting to NMOS registry: {}", result.error().message());
-            set_status(Status::disconnected);
+            Status state = {};
+            state.error_message = fmt::format("Error connecting to NMOS registry: {}", result.error().message());
+            update_status(state);
             timer_.once(k_default_timeout, [this] {
                 connect_to_registry_async();  // Retry connection
             });
         } else if (result.value().result() != http::status::ok) {
             RAV_ERROR("Unexpected response from NMOS registry: {}", result.value().result_int());
-            set_status(Status::disconnected);
+            Status state;
+            state.error_message =
+                fmt::format("Unexpected response from NMOS registry: {}", result.value().result_int());
+            update_status(state);
         } else {
             register_async();
-            set_status(Status::connected);
+            Status state;
+            state.registered = true;
+            update_status(state);
         }
     });
 }
@@ -794,41 +801,6 @@ bool rav::nmos::Node::add_sender_to_device(const Sender& sender) {
     return false;
 }
 
-void rav::nmos::Node::set_status(const Status status) {
-    if (status_ == status) {
-        return;  // No change in status
-    }
-
-    RAV_ASSERT(http_client_ != nullptr, "HTTP client should not be null");
-
-    status_ = status;
-
-    switch (status) {
-        case Status::connected: {
-            RAV_INFO("Connected to NMOS registry at {}:{}", http_client_->get_host(), http_client_->get_service());
-            break;
-        }
-        case Status::disconnected: {
-            RAV_INFO("Disconnected from NMOS registry at {}:{}", http_client_->get_host(), http_client_->get_service());
-            break;
-        }
-        case Status::p2p:
-            if (configuration_.operation_mode == OperationMode::p2p) {
-                RAV_INFO("Switching to p2p mode");
-            } else {
-                RAV_INFO("Falling back to p2p mode, registry not available");
-            }
-            break;
-        case Status::idle:
-        default: {
-            RAV_INFO("NMOS ConnectorDeprecated status changed to {}", status);
-            break;
-        }
-    }
-
-    on_status_changed(status);
-}
-
 bool rav::nmos::Node::select_registry(const dnssd::ServiceDescription& desc) {
     if (selected_registry_ && selected_registry_->host_target == desc.host_target
         && selected_registry_->port == desc.port) {
@@ -847,22 +819,11 @@ void rav::nmos::Node::handle_registry_discovered(const dnssd::ServiceDescription
     }
 }
 
-std::ostream& rav::nmos::operator<<(std::ostream& os, const Node::Status status) {
-    switch (status) {
-        case Node::Status::p2p:
-            os << "p2p";
-            break;
-        case Node::Status::idle:
-            os << "idle";
-            break;
-        case Node::Status::connected:
-            os << "connected";
-            break;
-        case Node::Status::disconnected:
-            os << "disconnected";
-            break;
+void rav::nmos::Node::update_status(const Status& new_status) {
+    if (status_ != new_status) {
+        status_ = new_status;
+        on_status_changed(status_);
     }
-    return os;
 }
 
 boost::asio::ip::tcp::endpoint rav::nmos::Node::get_local_endpoint() const {
@@ -1022,4 +983,8 @@ const boost::uuids::uuid& rav::nmos::Node::get_uuid() const {
 
 const std::vector<rav::nmos::Device>& rav::nmos::Node::get_devices() const {
     return devices_;
+}
+
+const rav::nmos::Node::Status& rav::nmos::Node::get_status() const {
+    return status_;
 }

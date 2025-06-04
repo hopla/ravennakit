@@ -158,10 +158,15 @@ std::future<void> rav::RavennaNode::subscribe(Subscriber* subscriber) {
     RAV_ASSERT(subscriber != nullptr, "Subscriber must be valid");
     auto work = [this, subscriber] {
         if (!subscribers_.add(subscriber)) {
-            RAV_WARNING("Failed to add subscriber to node");
+            RAV_ERROR("Failed to add subscriber to node");
+            return;
         }
         if (!browser_.subscribe(subscriber)) {
-            RAV_WARNING("Failed to add subscriber to browser");
+            RAV_ERROR("Failed to add subscriber to browser");
+            if (!subscribers_.remove(subscriber)) {
+                RAV_ERROR("Failed to remove subscriber from node");
+            }
+            return;
         }
         for (const auto& receiver : receivers_) {
             subscriber->ravenna_receiver_added(*receiver);
@@ -170,6 +175,8 @@ std::future<void> rav::RavennaNode::subscribe(Subscriber* subscriber) {
             subscriber->ravenna_sender_added(*sender);
         }
         subscriber->network_interface_config_updated(config_.network_interfaces);
+        subscriber->nmos_node_config_updated(nmos_node_.get_configuration());
+        subscriber->nmos_node_status_changed(nmos_node_.get_status());
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }

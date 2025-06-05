@@ -155,6 +155,17 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::Configuration::va
 
     if (operation_mode == OperationMode::manual) {
         if (registry_address.empty()) {
+            return Error::no_registry_address_given;
+        }
+
+        auto url = boost::urls::parse_uri_reference(registry_address);
+        if (url.has_error()) {
+            return Error::invalid_registry_address;
+        }
+        if (!url->scheme().empty() && url->scheme() != "http" && url->scheme() != "https") {
+            return Error::invalid_registry_address;
+        }
+        if (url->host().empty()) {
             return Error::invalid_registry_address;
         }
     }
@@ -509,32 +520,39 @@ void rav::nmos::Node::stop() {
     stop_internal();
 }
 
-boost::system::result<void, rav::nmos::Error>
-rav::nmos::Node::update_configuration(const ConfigurationUpdate& update, const bool force_update) {
+void rav::nmos::Node::update_configuration(const ConfigurationUpdate& update, const bool force_update) {
     auto new_config = configuration_;
     update.apply_to_config(new_config);
 
     if (new_config == configuration_ && !force_update) {
-        return {};  // Nothing changed, so we should be in the correct state.
-    }
-
-    auto result = new_config.validate();
-    if (result.has_error()) {
-        return result;
+        return;  // Nothing changed, so we should be in the correct state.
     }
 
     configuration_ = std::move(new_config);
 
     stop_internal();
 
+    on_configuration_changed(configuration_);
+
+    auto result = configuration_.validate();
+    if (result.has_error()) {
+        Status status;
+        status.error_message = fmt::format("Invalid configuration: {}", result.error());
+        update_status(std::move(status));
+        return;
+    }
+
+    update_status({});
+
     if (configuration_.enabled) {
         result = start_internal();
         if (result.has_error()) {
-            return result;
+            Status status;
+            status.error_message = fmt::format("Failed to start: {}", result.error());
+            update_status(std::move(status));
+            return;
         }
     }
-
-    return {};
 }
 
 const rav::nmos::Node::Configuration& rav::nmos::Node::get_configuration() const {
@@ -785,9 +803,9 @@ void rav::nmos::Node::handle_registry_discovered(const dnssd::ServiceDescription
     }
 }
 
-void rav::nmos::Node::update_status(const Status& new_status) {
+void rav::nmos::Node::update_status(Status new_status) {
     if (status_ != new_status) {
-        status_ = new_status;
+        status_ = std::move(new_status);
         on_status_changed(status_);
     }
 }

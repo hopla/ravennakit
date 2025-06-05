@@ -163,7 +163,7 @@ class RavennaNode {
      * @param update The configuration changes to apply.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<tl::expected<void, std::string>> update_nmos_configuration(nmos::Node::ConfigurationUpdate update);
+    std::future<void> update_nmos_configuration(nmos::Node::ConfigurationUpdate update);
 
     /**
      * Adds a subscriber to the node.

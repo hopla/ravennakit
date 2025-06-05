@@ -129,8 +129,7 @@ class Node {
      * @param update The configuration to update.
      * @param force_update Whether to force the update even if the configuration didn't change.
      */
-    [[nodiscard]] boost::system::result<void, Error>
-    update_configuration(const ConfigurationUpdate& update, bool force_update = false);
+    void update_configuration(const ConfigurationUpdate& update, bool force_update = false);
 
     /**
      * @return The current configuration of the NMOS node.
@@ -274,7 +273,7 @@ class Node {
 
     bool select_registry(const dnssd::ServiceDescription& desc);
     void handle_registry_discovered(const dnssd::ServiceDescription& desc);
-    void update_status(const Status& new_status);
+    void update_status(Status new_status);
 };
 
 }  // namespace rav::nmos

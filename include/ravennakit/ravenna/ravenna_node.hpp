@@ -96,9 +96,12 @@ class RavennaNode {
         /**
          * Called when the NMOS node state changed.
          * @param status The updated NMOS node state.
+         * @param registry_info The updated NMOS registry information.
          */
-        virtual void nmos_node_status_changed(nmos::Node::Status status) {
+        virtual void
+        nmos_node_status_changed(nmos::Node::Status status, const nmos::Node::RegistryInfo& registry_info) {
             std::ignore = status;
+            std::ignore = registry_info;
         }
 
         /**

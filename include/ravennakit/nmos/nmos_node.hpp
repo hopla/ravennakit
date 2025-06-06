@@ -94,9 +94,14 @@ class Node {
         static tl::expected<ConfigurationUpdate, std::string> from_json(const nlohmann::json& json);
     };
 
-    enum class Status { disabled, connecting, connected, registered, p2p, error };
+    struct RegistryInfo {
+        std::string name;
+        std::string address;
+    };
 
-    SafeFunction<void(const Status& status)> on_status_changed;
+    enum class Status { disabled, discovering, connecting, connected, registered, p2p, error };
+
+    SafeFunction<void(const Status& status, const RegistryInfo& registry_info)> on_status_changed;
     SafeFunction<void(const Configuration& config)> on_configuration_changed;
 
     explicit Node(
@@ -219,6 +224,11 @@ class Node {
     [[nodiscard]] const Status& get_status() const;
 
     /**
+     * @return The current registry information.
+     */
+    [[nodiscard]] const RegistryInfo& get_registry_info() const;
+
+    /**
      * @return A JSON representation of the Node.
      */
     [[nodiscard]] nlohmann::json to_json() const;
@@ -239,6 +249,7 @@ class Node {
     int post_resource_error_count_ = 0;
 
     std::optional<dnssd::ServiceDescription> selected_registry_;
+    RegistryInfo registry_info_;
 
     HttpServer http_server_;
     std::unique_ptr<HttpClientBase> http_client_;

@@ -25,11 +25,12 @@ rav::RavennaNode::RavennaNode() :
         }
     };
 
-    nmos_node_.on_status_changed = [this](const nmos::Node::Status status) {
-        for (const auto& s : subscribers_) {
-            s->nmos_node_status_changed(status);
-        }
-    };
+    nmos_node_.on_status_changed =
+        [this](const nmos::Node::Status status, const nmos::Node::RegistryInfo& registry_info) {
+            for (const auto& s : subscribers_) {
+                s->nmos_node_status_changed(status, registry_info);
+            }
+        };
 
     std::promise<std::thread::id> promise;
     auto f = promise.get_future();
@@ -196,7 +197,7 @@ std::future<void> rav::RavennaNode::subscribe(Subscriber* subscriber) {
         }
         subscriber->network_interface_config_updated(config_.network_interfaces);
         subscriber->nmos_node_config_updated(nmos_node_.get_configuration());
-        subscriber->nmos_node_status_changed(nmos_node_.get_status());
+        subscriber->nmos_node_status_changed(nmos_node_.get_status(), nmos_node_.get_registry_info());
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }

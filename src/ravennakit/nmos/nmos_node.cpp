@@ -629,7 +629,9 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
             );
             return Error::invalid_registry_address;
         }
-        connect_to_registry_async(url->host(), url->port());
+        registry_info_.name = "(custom registry)";
+        const auto port = url->port().empty() ? (url->scheme() == "https" ? "443" : "80") : url->port();
+        connect_to_registry_async(url->host(), port);
         return {};
     }
 
@@ -653,8 +655,9 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
         if (const auto reg = registry_browser_->find_most_suitable_registry()) {
             select_registry(*reg);
         } else if (configuration_.operation_mode == OperationMode::mdns_p2p) {
+            update_status(Status::discovering);
         } else {
-            update_status(Status::p2p);  // TODO:
+            update_status(Status::p2p);
         }
     });
 
@@ -670,6 +673,7 @@ void rav::nmos::Node::stop_internal() {
     http_server_.stop();
     RAV_ASSERT(registry_browser_ != nullptr, "Registry browser should not be null");
     registry_browser_->stop();
+    registry_info_ = {};
 }
 
 void rav::nmos::Node::register_async() {
@@ -721,9 +725,6 @@ void rav::nmos::Node::register_async() {
         RAV_INFO("Registered with NMOS registry");
         update_status(Status::registered);
     });
-
-    // Send heartbeat immediately after registration to update the connected status.
-    send_heartbeat_async();
 
     heartbeat_timer_.start(k_heartbeat_interval, [this] {
         send_heartbeat_async();
@@ -804,7 +805,7 @@ void rav::nmos::Node::send_heartbeat_async() {
 void rav::nmos::Node::connect_to_registry_async() {
     http_client_->get_async("/", [this](const boost::system::result<http::response<http::string_body>>& result) {
         if (result.has_error()) {
-            RAV_INFO("Error connecting to NMOS registry: {}", result.error().message());
+            RAV_TRACE("Error connecting to NMOS registry: {}", result.error().message());
             update_status(Status::error);
             timer_.once(k_default_timeout, [this] {
                 connect_to_registry_async();  // Retry connection
@@ -821,6 +822,7 @@ void rav::nmos::Node::connect_to_registry_async() {
 
 void rav::nmos::Node::connect_to_registry_async(const std::string_view host, const std::string_view service) {
     http_client_->set_host(host, service);
+    registry_info_.address = fmt::format("http://{}:{}", host, service);
     update_status(Status::connecting);
     connect_to_registry_async();
 }
@@ -851,6 +853,7 @@ bool rav::nmos::Node::select_registry(const dnssd::ServiceDescription& desc) {
         return false;  // Already connected to this registry
     }
     selected_registry_ = desc;
+    registry_info_.name = desc.name;
     connect_to_registry_async(selected_registry_->host_target, std::to_string(selected_registry_->port));
     return true;  // Successfully selected a new registry
 }
@@ -858,7 +861,7 @@ bool rav::nmos::Node::select_registry(const dnssd::ServiceDescription& desc) {
 void rav::nmos::Node::handle_registry_discovered(const dnssd::ServiceDescription& desc) {
     RAV_INFO("Discovered NMOS registry: {}", desc.to_string());
     if (selected_registry_.has_value()) {
-        RAV_TRACE("Already connected to a registry, ignoring discovery: {}", selected_registry_->to_string());
+        RAV_TRACE("Ignoring discovery: already connected to a registry: {}", selected_registry_->to_string());
         return;
     }
     if (configuration_.operation_mode == OperationMode::mdns_p2p) {
@@ -871,7 +874,7 @@ void rav::nmos::Node::update_status(const Status new_status) {
         return;  // No change in status, nothing to do.
     }
     status_ = new_status;
-    on_status_changed(status_);
+    on_status_changed(status_, registry_info_);
 }
 
 const char* rav::nmos::to_string(const Node::Status& status) {
@@ -888,6 +891,8 @@ const char* rav::nmos::to_string(const Node::Status& status) {
             return "p2p";
         case Node::Status::error:
             return "error";
+        case Node::Status::discovering:
+            return "discovering";
     }
     return "unknown";
 }
@@ -1053,6 +1058,10 @@ const std::vector<rav::nmos::Device>& rav::nmos::Node::get_devices() const {
 
 const rav::nmos::Node::Status& rav::nmos::Node::get_status() const {
     return status_;
+}
+
+const rav::nmos::Node::RegistryInfo& rav::nmos::Node::get_registry_info() const {
+    return registry_info_;
 }
 
 nlohmann::json rav::nmos::Node::to_json() const {

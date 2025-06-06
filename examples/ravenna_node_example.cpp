@@ -16,11 +16,13 @@
 #include <CLI/App.hpp>
 #include <utility>
 
+// This example is not complete and is not intended to be used as-is.
+
 namespace examples {
 
 struct ravenna_node final: rav::RavennaNode::Subscriber, rav::RavennaReceiver::Subscriber {
     explicit ravenna_node(const rav::NetworkInterface::Identifier& primary_interface) {
-        rav::RavennaConfig::NetworkInterfaceConfig config;
+        rav::NetworkInterfaceConfig config;
         config.set_interface(rav::Rank::primary(), primary_interface);
         node.set_network_interface_config(config);
         node.subscribe(this).wait();

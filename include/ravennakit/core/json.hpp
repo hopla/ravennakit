@@ -15,16 +15,21 @@
 #endif
 
 #ifdef RAV_ENABLE_JSON
-    #define RAV_HAS_NLOHMANN_JSON 1
     #include "expected.hpp"
+
+    #define RAV_HAS_NLOHMANN_JSON 1
     #include <nlohmann/json.hpp>
+
+    #define RAV_HAS_BOOST_JSON 1
+    #include <boost/json.hpp>
 #else
     #define RAV_HAS_NLOHMANN_JSON 0
+    #define RAV_HAS_BOOST_JSON 0
 #endif
 
-#include <boost/json.hpp>
-
 namespace rav {
+
+#if RAV_HAS_BOOST_JSON
 
 template<typename T>
 boost::system::result<T> parse_json(const std::string_view json_str) {
@@ -35,5 +40,7 @@ boost::system::result<T> parse_json(const std::string_view json_str) {
     }
     return boost::json::try_value_to<T>(jv);
 }
+
+#endif
 
 }  // namespace rav

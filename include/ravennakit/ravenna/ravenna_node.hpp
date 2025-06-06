@@ -108,7 +108,7 @@ class RavennaNode {
          * Called when the network interface configuration is updated.
          * @param config The updated network interface configuration.
          */
-        virtual void network_interface_config_updated(const RavennaConfig::NetworkInterfaceConfig& config) {
+        virtual void network_interface_config_updated(const NetworkInterfaceConfig& config) {
             std::ignore = config;
         }
     };
@@ -298,7 +298,7 @@ class RavennaNode {
      * @param interface_config The interfaces to use. If empty, operations will be stopped.
      * @return A future that will be set when the operation is complete.
      */
-    std::future<void> set_network_interface_config(RavennaConfig::NetworkInterfaceConfig interface_config);
+    std::future<void> set_network_interface_config(NetworkInterfaceConfig interface_config);
 
     /**
      * @return True if this method is called on the maintenance thread, false otherwise.

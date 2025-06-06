@@ -278,7 +278,7 @@ rav::nmos::Node::Node(
     http_server_.get(
         "/x-nmos/node",
         [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
-            res.result(boost::beast::http::status::ok);
+            res.result(http::status::ok);
             set_default_headers(res);
 
             boost::json::array versions;

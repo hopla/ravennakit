@@ -391,7 +391,7 @@ bool rav::RavennaNode::send_audio_data_realtime(
 }
 
 std::future<void>
-rav::RavennaNode::set_network_interface_config(RavennaConfig::NetworkInterfaceConfig interface_config) {
+rav::RavennaNode::set_network_interface_config(NetworkInterfaceConfig interface_config) {
     auto work = [this, config = std::move(interface_config)] {
         if (config_.network_interfaces == config) {
             return;  // Nothing changed

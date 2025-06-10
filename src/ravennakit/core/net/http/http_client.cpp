@@ -89,6 +89,10 @@ void rav::HttpClient::post_async(
     request_async(http::verb::post, target, std::move(body), content_type, std::move(callback));
 }
 
+void rav::HttpClient::delete_async(const std::string_view target, ResponseCallback callback) {
+    request_async(http::verb::delete_, target, {}, {}, std::move(callback));
+}
+
 void rav::HttpClient::request_async(
     const http::verb method, const std::string_view target, std::string body, std::string_view content_type,
     ResponseCallback callback
@@ -101,7 +105,7 @@ void rav::HttpClient::request_async(
 
     if (!body.empty()) {
         if (content_type.empty()) {
-            content_type = "application/json"; // Content type is not specified, default to JSON
+            content_type = "application/json";  // Content type is not specified, default to JSON
         }
         request.set(http::field::content_type, content_type);
         request.body() = std::move(body);

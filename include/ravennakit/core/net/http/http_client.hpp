@@ -65,16 +65,22 @@ class HttpClientBase {
     virtual void get_async(std::string_view target, ResponseCallback callback) = 0;
 
     /**
-     * Synchronous POST request to the target of the URL, or the root if no target is specified.
+     * Asynchronous POST request to the target of the URL, or the root if no target is specified.
      * @param target The target to request.
      * @param body The body to send with the request.
      * @param callback The callback to call when the request is complete.
      * @param content_type The content type of the body, e.g. "application/json". If not specified, defaults to
      * "application/json".
-     * @return The response from the server, which may contain an error.
      */
     virtual void
     post_async(std::string_view target, std::string body, ResponseCallback callback, std::string_view content_type) = 0;
+
+    /**
+     * Asynchronous DELETE request to the target of the URL, or the root if no target is specified.
+     * @param target The target to request.
+     * @param callback The callback to call when the request is complete.
+     */
+    virtual void delete_async(std::string_view target, ResponseCallback callback) = 0;
 
     /**
      * Asynchronous request.
@@ -205,6 +211,11 @@ class HttpClient: public HttpClientBase {
         http::verb method, std::string_view target, std::string body, std::string_view content_type,
         ResponseCallback callback
     ) override;
+
+    /**
+     * @copydoc HttpClientBase::delete_async
+     */
+    void delete_async(std::string_view target, ResponseCallback callback) override;
 
     /**
      * @copydoc HttpClientBase::cancel_outstanding_requests

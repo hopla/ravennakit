@@ -559,6 +559,7 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start() {
 void rav::nmos::Node::stop() {
     configuration_.enabled = false;
     stop_internal();
+    unregister_async();
 }
 
 void rav::nmos::Node::update_configuration(const ConfigurationUpdate& update, const bool force_update) {
@@ -569,9 +570,25 @@ void rav::nmos::Node::update_configuration(const ConfigurationUpdate& update, co
         return;  // Nothing changed, so we should be in the correct state.
     }
 
-    configuration_ = std::move(new_config);
-
     stop_internal();
+
+    bool unregister_required = false;
+
+    if (status_ == Status::registered) {
+        if (configuration_.api_version != new_config.api_version) {
+            unregister_required = true;
+        }
+
+        if (!new_config.enabled) {
+            unregister_required = true;
+        }
+    }
+
+    if (unregister_required) {
+        unregister_async();  // Before configuration is updated
+    }
+
+    configuration_ = std::move(new_config);
 
     on_configuration_changed(configuration_);
 
@@ -733,6 +750,10 @@ void rav::nmos::Node::register_async() {
     });
 }
 
+void rav::nmos::Node::unregister_async() {
+    delete_resource_async("nodes", self_.id);
+}
+
 void rav::nmos::Node::post_resource_async(std::string type, boost::json::value resource) {
     RAV_ASSERT(http_client_ != nullptr, "HTTP client should not be null");
 
@@ -742,7 +763,7 @@ void rav::nmos::Node::post_resource_async(std::string type, boost::json::value r
 
     http_client_->post_async(
         target, body,
-        [this, body, type](const boost::system::result<http::response<http::string_body>>& result) mutable {
+        [this, target, body, type](const boost::system::result<http::response<http::string_body>>& result) mutable {
             if (result.has_error()) {
                 RAV_ERROR("Failed to register with registry: {}", result.error().message());
                 post_resource_error_count_++;
@@ -752,9 +773,9 @@ void rav::nmos::Node::post_resource_async(std::string type, boost::json::value r
             const auto& res = result.value();
 
             if (res.result() == http::status::ok) {
-                RAV_INFO("Updated {} in registry: {}", type, body);
+                RAV_INFO("Updated {} {}", target, body);
             } else if (res.result() == http::status::created) {
-                RAV_INFO("Created {} in registry: {}", type, body);
+                RAV_INFO("Created {} {}", target, body);
             } else if (http::to_status_class(res.result()) == http::status_class::successful) {
                 RAV_WARNING("Unexpected response from registry: {}", res.result_int());
             } else {
@@ -768,6 +789,39 @@ void rav::nmos::Node::post_resource_async(std::string type, boost::json::value r
             }
         },
         {}
+    );
+}
+
+void rav::nmos::Node::delete_resource_async(std::string resource_type, const boost::uuids::uuid& id) {
+    RAV_ASSERT(http_client_ != nullptr, "HTTP client should not be null");
+
+    const auto target = fmt::format(
+        "/x-nmos/registration/{}/resource/{}/{}", configuration_.api_version.to_string(), resource_type, to_string(id)
+    );
+
+    http_client_->delete_async(
+        target,
+        [this, target](const boost::system::result<http::response<http::string_body>>& result) mutable {
+            if (result.has_error()) {
+                RAV_ERROR("Failed to delete resource from registry: {}", result.error().message());
+                return;
+            }
+
+            const auto& res = result.value();
+
+            if (res.result() == http::status::no_content) {
+                RAV_INFO("Deleted {}", target);
+            } else if (http::to_status_class(res.result()) == http::status_class::successful) {
+                RAV_WARNING("Unexpected response from registry: {}", res.result_int());
+            } else {
+                if (const auto error = parse_json<ApiError>(res.body())) {
+                    RAV_ERROR("Failed to delete resource at: {} {} ({})", target, error->code, error->error);
+                } else {
+                    RAV_ERROR("Failed to delete resource at: {} {} ({})", target, res.result_int(), res.body());
+                }
+                update_status(Status::error);
+            }
+        }
     );
 }
 
@@ -1083,7 +1137,15 @@ void rav::nmos::Node::set_network_interface_config(const NetworkInterfaceConfig&
 
     self_.api.endpoints.clear();
 
-    for (auto [rank, ip] : addrs) {
+    for (const auto& [rank, ip] : addrs) {
         self_.api.endpoints.emplace_back(Self::Endpoint {ip.to_string(), http_endpoint.port(), "http", false});
     }
+}
+
+std::optional<size_t> rav::nmos::Node::index_of_supported_api_version(const ApiVersion& version) {
+    const auto it = std::find(k_supported_api_versions.begin(), k_supported_api_versions.end(), version);
+    if (it != k_supported_api_versions.end()) {
+        return std::distance(k_supported_api_versions.begin(), it);
+    }
+    return std::nullopt;
 }

@@ -45,7 +45,7 @@ class Node {
      */
     struct Configuration {
         OperationMode operation_mode {OperationMode::mdns_p2p};
-        ApiVersion api_version {ApiVersion::v1_2()};
+        ApiVersion api_version {ApiVersion::v1_3()};
         std::string registry_address;  // For when operation_mode is registered and discover_mode is manual.
         bool enabled {false};          // Whether the node is enabled or not.
         uint16_t node_api_port {0};    // The port of the local node API.
@@ -240,6 +240,12 @@ class Node {
      */
     void set_network_interface_config(const NetworkInterfaceConfig& interface_config);
 
+    /**
+     * @param version The API version to check.
+     * @return The index of the supported API version if it exists, or std::nullopt if not found.
+     */
+    [[nodiscard]] static std::optional<size_t> index_of_supported_api_version(const ApiVersion& version);
+
   private:
     static constexpr uint8_t k_max_failed_heartbeats = 5;
     static constexpr auto k_heartbeat_interval = std::chrono::seconds(5);
@@ -278,7 +284,9 @@ class Node {
     void stop_internal();
 
     void register_async();
+    void unregister_async();
     void post_resource_async(std::string type, boost::json::value resource);
+    void delete_resource_async(std::string resource_type, const boost::uuids::uuid& id);
     void send_heartbeat_async();
     void connect_to_registry_async();
     void connect_to_registry_async(std::string_view host, std::string_view service);

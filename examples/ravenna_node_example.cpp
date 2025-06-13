@@ -113,9 +113,10 @@ int main(int const argc, char* argv[]) {
     examples::ravenna_node node_example(primary_interface->get_identifier());
 
     for (auto& session : stream_names) {
-        rav::RavennaReceiver::ConfigurationUpdate config;
+        rav::RavennaReceiver::Configuration config;
         config.session_name = session;
         config.enabled = true;
+        config.delay_frames = 480;  // 10ms at 48KHz
         node_example.node.create_receiver(config).wait();
     }
 

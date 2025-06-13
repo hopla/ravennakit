@@ -122,7 +122,8 @@ class RavennaNode {
      * @param initial_config The initial configuration for the receiver. Optional.
      * @return The ID of the created receiver, which might be invalid if the receiver couldn't be created.
      */
-    [[nodiscard]] std::future<Id> create_receiver(const RavennaReceiver::ConfigurationUpdate& initial_config = {});
+    [[nodiscard]] std::future<tl::expected<Id, std::string>>
+    create_receiver(RavennaReceiver::Configuration initial_config);
 
     /**
      * Removes the receiver with the given id.
@@ -134,11 +135,11 @@ class RavennaNode {
     /**
      * Updates the configuration of the receiver with the given id.
      * @param receiver_id The id of the receiver to update.
-     * @param update The configuration changes to apply.
+     * @param config The configuration changes to apply.
      * @return A future that will be set when the operation is complete.
      */
     std::future<tl::expected<void, std::string>>
-    update_receiver_configuration(Id receiver_id, RavennaReceiver::ConfigurationUpdate update);
+    update_receiver_configuration(Id receiver_id, RavennaReceiver::Configuration config);
 
     /**
      * Creates a sender for the given session.

@@ -40,23 +40,13 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
          * @return The configuration as a JSON object.
          */
         [[nodiscard]] nlohmann::json to_json() const;
-    };
-
-    /**
-     * Struct for updating the configuration of the receiver. Only the fields that are set are taken into account, which
-     * allows for partial updates.
-     */
-    struct ConfigurationUpdate {
-        std::optional<std::string> session_name;
-        std::optional<uint32_t> delay_frames;
-        std::optional<bool> enabled;
 
         /**
-         * Creates a configuration update from a JSON object.
+         * Creates a configuration object from a JSON object.
          * @param json The JSON object to convert.
-         * @return A configuration update object if the JSON is valid, otherwise an error message.
+         * @return A configuration object if the JSON is valid, otherwise an error message.
          */
-        static tl::expected<ConfigurationUpdate, std::string> from_json(const nlohmann::json& json);
+        static tl::expected<Configuration, std::string> from_json(const nlohmann::json& json);
     };
 
     /**
@@ -120,8 +110,7 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     };
 
     explicit RavennaReceiver(
-        boost::asio::io_context& io_context, RavennaRtspClient& rtsp_client, rtp::Receiver& rtp_receiver, Id id,
-        ConfigurationUpdate initial_config = {}
+        boost::asio::io_context& io_context, RavennaRtspClient& rtsp_client, rtp::Receiver& rtp_receiver, Id id
     );
     ~RavennaReceiver() override;
 
@@ -144,9 +133,9 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     /**
      * Updates the configuration of the receiver. Only takes into account the fields in the configuration that are set.
      * This allows to update only a subset of the configuration.
-     * @param update The configuration changes to apply.
+     * @param config The configuration changes to apply.
      */
-    [[nodiscard]] tl::expected<void, std::string> set_configuration(const ConfigurationUpdate& update);
+    [[nodiscard]] tl::expected<void, std::string> set_configuration(Configuration config);
 
     /**
      * @returns The current configuration of the receiver.

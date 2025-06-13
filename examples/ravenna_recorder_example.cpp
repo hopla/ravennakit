@@ -123,16 +123,16 @@ class ravenna_recorder {
     ~ravenna_recorder() = default;
 
     void add_stream(const std::string& stream_name) {
-        rav::RavennaReceiver::ConfigurationUpdate update;
-        update.delay_frames = 480;  // 10ms at 48KHz
-        update.enabled = true;
-        update.session_name = stream_name;
+        rav::RavennaReceiver::Configuration config;
+        config.delay_frames = 480;  // 10ms at 48KHz
+        config.enabled = true;
+        config.session_name = stream_name;
 
         auto receiver = std::make_unique<rav::RavennaReceiver>(
             io_context_, *rtsp_client_, *rtp_receiver_, rav::Id::get_next_process_wide_unique_id()
         );
         receiver->set_interfaces({{rav::Rank::primary(), interface_address_}});
-        auto result = receiver->set_configuration(update);
+        auto result = receiver->set_configuration(config);
         if (!result) {
             RAV_ERROR("Failed to update configuration: {}", result.error());
             return;

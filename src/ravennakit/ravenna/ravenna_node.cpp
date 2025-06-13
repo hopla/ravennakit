@@ -72,12 +72,17 @@ rav::RavennaNode::~RavennaNode() {
     }
 }
 
-std::future<rav::Id> rav::RavennaNode::create_receiver(const RavennaReceiver::ConfigurationUpdate& initial_config) {
-    auto work = [this, initial_config]() mutable {
-        auto new_receiver = std::make_unique<RavennaReceiver>(
-            io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next(), initial_config
-        );
+std::future<tl::expected<rav::Id, std::string>>
+rav::RavennaNode::create_receiver(RavennaReceiver::Configuration initial_config) {
+    auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
+        auto new_receiver =
+            std::make_unique<RavennaReceiver>(io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next());
         new_receiver->set_interfaces(config_.network_interfaces.get_interface_ipv4_addresses());
+        auto result = new_receiver->set_configuration(initial_config);
+        if (!result) {
+            RAV_ERROR("Failed to set receiver configuration: {}", result.error());
+            return tl::unexpected(result.error());
+        }
         const auto& it = receivers_.emplace_back(std::move(new_receiver));
         RAV_ASSERT(!nmos_node_.get_devices().empty(), "NMOS node must have at least one device");
         it->set_nmos_device_id(nmos_device_.id);
@@ -116,8 +121,8 @@ std::future<void> rav::RavennaNode::remove_receiver(Id receiver_id) {
 }
 
 std::future<tl::expected<void, std::string>>
-rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver::ConfigurationUpdate update) {
-    auto work = [this, receiver_id, u = std::move(update)]() -> tl::expected<void, std::string> {
+rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver::Configuration config) {
+    auto work = [this, receiver_id, u = std::move(config)]() -> tl::expected<void, std::string> {
         for (const auto& receiver : receivers_) {
             if (receiver->get_id() == receiver_id) {
                 return receiver->set_configuration(u);

@@ -50,16 +50,16 @@ class loopback: public rav::RavennaReceiver::Subscriber, public rav::ptp::Instan
 
         rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(udp_receiver_);
 
-        rav::RavennaReceiver::ConfigurationUpdate update;
-        update.delay_frames = 480;  // 10ms at 48KHz
-        update.enabled = true;
-        update.session_name = stream_name_;
+        rav::RavennaReceiver::Configuration config;
+        config.delay_frames = 480;  // 10ms at 48KHz
+        config.enabled = true;
+        config.session_name = stream_name_;
 
         ravenna_receiver_ = std::make_unique<rav::RavennaReceiver>(
-            io_context_, *rtsp_client_, *rtp_receiver_, rav::Id::get_next_process_wide_unique_id(), update
+            io_context_, *rtsp_client_, *rtp_receiver_, rav::Id::get_next_process_wide_unique_id()
         );
         ravenna_receiver_->set_interfaces({{rav::Rank::primary(), interface_addr}});
-        auto result = ravenna_receiver_->set_configuration(update);
+        auto result = ravenna_receiver_->set_configuration(config);
         if (!result) {
             RAV_ERROR("Failed to update configuration: {}", result.error());
             return;

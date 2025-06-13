@@ -112,7 +112,7 @@ rav::RavennaReceiver::RavennaReceiver(
     }
 
     nmos_receiver_.id = boost::uuids::random_generator()();
-    nmos_receiver_.caps.media_types.push_back(
+    nmos_receiver_.caps.media_types.emplace_back(
         nmos::audio_format_to_nmos_media_type(rtp_audio_receiver_.get_parameters().audio_format)
     );
 
@@ -168,7 +168,7 @@ tl::expected<rav::rtp::AudioReceiver::Stream, std::string> create_stream_from_me
     const rav::AudioFormat& audio_format
 ) {
     bool audio_format_found = false;
-    for (auto format : media_description.formats()) {
+    for (const auto& format : media_description.formats()) {
         if (format.to_audio_format() == audio_format) {
             audio_format_found = true;
             break;
@@ -400,6 +400,8 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(const Co
         rtp_audio_receiver_.set_enabled(configuration_.enabled);
     }
 
+    bool update_nmos = false;
+
     if (update.session_name.has_value() && update.session_name != configuration_.session_name) {
         configuration_.session_name = *update.session_name;
 
@@ -412,11 +414,22 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(const Co
             return tl::unexpected("Failed to subscribe to session");
         }
 
+        update_nmos = true;
+        nmos_receiver_.label = configuration_.session_name;
+
         // A restart will happen when the SDP is received
     }
 
     for (auto* subscriber : subscribers_) {
         subscriber->ravenna_receiver_configuration_updated(*this, configuration_);
+    }
+
+    if (update_nmos && nmos_node_ != nullptr) {
+        RAV_ASSERT(nmos_receiver_.is_valid(), "NMOS receiver must be valid at this point");
+        if (!nmos_node_->add_or_update_receiver({nmos_receiver_})) {
+            RAV_ERROR("Failed to update NMOS receiver with ID: {}", boost::uuids::to_string(nmos_receiver_.id));
+            return tl::unexpected("Failed to update NMOS receiver");
+        }
     }
 
     return {};

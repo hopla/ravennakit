@@ -20,12 +20,19 @@ int main() {
     boost::asio::io_context io_context;
 
     rav::nmos::Node::Configuration config;
+    config.id = boost::uuids::random_generator()();
     config.enabled = true;
-    config.api_port = 8000;  // Set the port for the NMOS node API
+    config.api_port = 5555;  // Set the port for the NMOS node API
+    config.label = "RAVENNAKIT NMOS Node";
+    config.description = "RAVENNAKIT NMOS Node Example";
 
     rav::ptp::Instance ptp_instance(io_context);
     rav::nmos::Node node(io_context, ptp_instance);
-    node.set_configuration(config, true);
+    auto result = node.set_configuration(config, true);
+    if (!result) {
+        RAV_ERROR("Failed to set NMOS node configuration: {}", result.error());
+        return 1;
+    }
 
     static constexpr uint32_t k_num_devices = 2;
     static constexpr uint32_t k_num_sources_per_device = 2;

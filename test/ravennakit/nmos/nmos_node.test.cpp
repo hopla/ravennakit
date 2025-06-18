@@ -152,7 +152,7 @@ TEST_CASE("nmos::Node") {
         rav::ptp::Instance ptp_instance(io_context);
 
         rav::nmos::Node node(io_context, ptp_instance, std::move(test_browser), std::move(test_http_client));
-        node.set_configuration(config, true);
+        REQUIRE(node.set_configuration(config, true));
         REQUIRE(browser->calls_to_start.size() == 1);
         REQUIRE(
             browser->calls_to_start[0]

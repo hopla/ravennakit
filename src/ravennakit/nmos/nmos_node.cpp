@@ -136,6 +136,10 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::Configuration::va
         return Error::invalid_api_version;
     }
 
+    if (id.is_nil()) {
+        return Error::invalid_id;
+    }
+
     if (operation_mode == OperationMode::manual) {
         if (registry_address.empty()) {
             return Error::no_registry_address_given;
@@ -560,6 +564,185 @@ rav::nmos::Node::Node(
             }
 
             ok_response(res, boost::json::serialize(boost::json::array({"senders/", "receivers/"})));
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single",
+        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            ok_response(res, boost::json::serialize(boost::json::array({"senders/", "receivers/"})));
+        }
+    );
+
+    // Receivers
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/bulk/receivers",
+        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            res.base().result(403);
+            res.base().reason("Forbidden");
+        }
+    );
+
+    http_server_.options(
+        "/x-nmos/connection/{version}/bulk/receivers",
+        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            ok_response(res, {});
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single/receivers",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            auto array = boost::json::array();
+
+            for (auto& receiver : receivers_) {
+                array.push_back(
+                    boost::json::value_from(fmt::format("{}/", boost::uuids::to_string(receiver.get_id())))
+                );
+            }
+
+            ok_response(res, boost::json::serialize(array));
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single/receivers/{receiver_id}",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            const auto* receiver_id = params.get("receiver_id");
+            if (receiver_id == nullptr) {
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "No receiver ID provided");
+                return;
+            }
+
+            auto* receiver = find_receiver(boost::uuids::string_generator()(*receiver_id));
+            if (receiver == nullptr) {
+                set_error_response(res, http::status::not_found, "Not found", "Receiver not found");
+                return;
+            }
+
+            ok_response(
+                res,
+                boost::json::serialize(boost::json::array({"constraints/", "staged/", "active/", "transporttype/"}))
+            );
+        }
+    );
+
+    // Senders
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/bulk/senders",
+        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            res.base().result(403);
+            res.base().reason("Forbidden");
+        }
+    );
+
+    http_server_.options(
+        "/x-nmos/connection/{version}/bulk/senders",
+        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            ok_response(res, {});
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single/senders",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            auto array = boost::json::array();
+
+            for (auto& sender : senders_) {
+                array.push_back(boost::json::value_from(fmt::format("{}/", boost::uuids::to_string(sender.id))));
+            }
+
+            ok_response(res, boost::json::serialize(array));
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single/senders/{sender_id}",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            const auto* sender_id = params.get("sender_id");
+            if (sender_id == nullptr) {
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "No receiver ID provided");
+                return;
+            }
+
+            auto* sender = find_sender(boost::uuids::string_generator()(*sender_id));
+            if (sender == nullptr) {
+                set_error_response(res, http::status::not_found, "Not found", "Sender not found");
+                return;
+            }
+
+            ok_response(
+                res,
+                boost::json::serialize(
+                    boost::json::array({"constraints/", "staged/", "active/", "transportfile/", "transporttype/"})
+                )
+            );
+        }
+    );
+
+    http_server_.get(
+        "/x-nmos/connection/{version}/single/senders/{sender_id}/active",
+        [this](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            const auto* sender_id = params.get("sender_id");
+            if (sender_id == nullptr) {
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "No receiver ID provided");
+                return;
+            }
+
+            auto* sender = find_sender(boost::uuids::string_generator()(*sender_id));
+            if (sender == nullptr) {
+                set_error_response(res, http::status::not_found, "Not found", "Sender not found");
+                return;
+            }
+
+            const boost::json::value value{
+                {"receiver_id", boost::json::value_from(sender->subscription.receiver_id)},
+                {"master_enable", sender->subscription.active},
+            };
+
+            ok_response(res, boost::json::serialize(value));
         }
     );
 

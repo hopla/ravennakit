@@ -20,6 +20,7 @@ enum class Error {
     no_registry_address_given,
     invalid_registry_address,
     invalid_api_version,
+    invalid_id,
     failed_to_start_http_server,
 };
 
@@ -38,6 +39,9 @@ inline std::ostream& operator<<(std::ostream& os, const Error error) {
                 break;
             case Error::no_registry_address_given:
                 os << "no_registry_address_given";
+                break;
+            case Error::invalid_id:
+                os << "invalid_id";
                 break;
         }
         return os;

@@ -199,10 +199,10 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     [[nodiscard]] bool send_audio_data_realtime(const AudioBufferView<const float>& input_buffer, uint32_t timestamp);
 
     /**
-     * Sets the interface address for the receiver.
-     * @param interface_addresses A map of interface addresses to set. The key is the rank of the interface address.
+     * Sets the network interface config for the receiver.
+     * @param network_interface_config The configuration of the network interface to use.
      */
-    void set_interfaces(const std::map<Rank, boost::asio::ip::address_v4>& interface_addresses);
+    void set_network_interface_config(NetworkInterfaceConfig network_interface_config);
 
     /**
      * @return A JSON representation of the sender.
@@ -237,7 +237,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     Id advertisement_id_;
     int32_t clock_domain_ {};
     ptp::ClockIdentity grandmaster_identity_;
-    std::map<Rank, boost::asio::ip::address_v4> interface_addresses_;
+    NetworkInterfaceConfig network_interface_config_;
     std::map<Rank, rtp::Sender> rtp_senders_;
 
     nmos::SourceAudio nmos_source_;

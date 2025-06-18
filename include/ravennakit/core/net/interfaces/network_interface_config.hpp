@@ -85,6 +85,14 @@ class NetworkInterfaceConfig {
     }
 
     /**
+     * Checks if the configuration is empty.
+     * @return True if there are no interfaces configured, false otherwise.
+     */
+    [[nodiscard]] bool empty() const {
+        return interfaces_.empty();
+    }
+
+    /**
      * @return A string representation of the network interface configuration.
      */
     [[nodiscard]] std::string to_string() const {

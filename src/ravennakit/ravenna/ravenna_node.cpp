@@ -77,7 +77,7 @@ rav::RavennaNode::create_receiver(RavennaReceiver::Configuration initial_config)
     auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_receiver =
             std::make_unique<RavennaReceiver>(io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next());
-        new_receiver->set_interfaces(config_.network_interfaces.get_interface_ipv4_addresses());
+        new_receiver->set_network_interface_config(config_.network_interfaces);
         auto result = new_receiver->set_configuration(initial_config);
         if (!result) {
             RAV_ERROR("Failed to set receiver configuration: {}", result.error());
@@ -135,14 +135,14 @@ rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver:
 
 std::future<tl::expected<rav::Id, std::string>>
 rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
-    auto work = [this, initial_config]() mutable -> tl::expected<rav::Id, std::string> {
+    auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_sender = std::make_unique<RavennaSender>(
             io_context_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id()
         );
         if (initial_config.session_name.empty()) {
             initial_config.session_name = fmt::format("Sender {}", new_sender->get_session_id());
         }
-        new_sender->set_interfaces(config_.network_interfaces.get_interface_ipv4_addresses());
+        new_sender->set_network_interface_config(config_.network_interfaces);
         auto result = new_sender->set_configuration(initial_config);
         if (!result) {
             RAV_ERROR("Failed to set sender configuration: {}", result.error());
@@ -431,19 +431,19 @@ std::future<void> rav::RavennaNode::set_network_interface_config(NetworkInterfac
         }
 
         config_.network_interfaces = config;
-        const auto addresses = config_.network_interfaces.get_interface_ipv4_addresses();
 
         for (const auto& receiver : receivers_) {
-            receiver->set_interfaces(addresses);
+            receiver->set_network_interface_config(config_.network_interfaces);
         }
 
         for (const auto& sender : senders_) {
-            sender->set_interfaces(addresses);
+            sender->set_network_interface_config(config_.network_interfaces);
         }
 
         nmos_node_.set_network_interface_config(config);
 
         // Add or update PTP ports based on the new configuration
+        const auto addresses = config_.network_interfaces.get_interface_ipv4_addresses();
         for (auto& [rank, address] : addresses) {
             auto it = ptp_ports_.find(rank);
             if (it == ptp_ports_.end()) {
@@ -518,8 +518,6 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
 
             auto nmos_device_id = boost::uuids::string_generator()(json.at("nmos_device_id").get<std::string>());
 
-            auto interface_addresses = ravenna_config->network_interfaces.get_interface_ipv4_addresses();
-
             // Senders
 
             auto senders = json.at("senders");
@@ -529,7 +527,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
                 auto new_sender = std::make_unique<RavennaSender>(
                     io_context_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1
                 );
-                new_sender->set_interfaces(interface_addresses);
+                new_sender->set_network_interface_config(ravenna_config->network_interfaces);
                 if (auto result = new_sender->restore_from_json(sender); !result) {
                     return tl::unexpected(result.error());
                 }
@@ -545,10 +543,10 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_json
             for (auto& receiver : receivers) {
                 auto new_receiver =
                     std::make_unique<RavennaReceiver>(io_context_, rtsp_client_, *rtp_receiver_, id_generator_.next());
+                new_receiver->set_network_interface_config(ravenna_config->network_interfaces);
                 if (auto result = new_receiver->restore_from_json(receiver); !result) {
                     return tl::unexpected(result.error());
                 }
-                new_receiver->set_interfaces(interface_addresses);
                 new_receiver->set_nmos_device_id(nmos_device_id);
                 new_receivers.push_back(std::move(new_receiver));
             }

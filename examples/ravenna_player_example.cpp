@@ -32,8 +32,8 @@ class wav_file_player: public rav::ptp::Instance::Subscriber {
   public:
     explicit wav_file_player(
         boost::asio::io_context& io_context, rav::dnssd::Advertiser& advertiser, rav::rtsp::Server& rtsp_server,
-        rav::ptp::Instance& ptp_instance, rav::Id::Generator& id_generator,
-        const boost::asio::ip::address_v4& interface_address, const rav::File& file_to_play, const std::string& session_name
+        rav::ptp::Instance& ptp_instance, rav::Id::Generator& id_generator, const std::string& interface_search_string,
+        const rav::File& file_to_play, const std::string& session_name
     ) :
         ptp_instance_(ptp_instance), timer_(io_context) {
         if (!file_to_play.exists()) {
@@ -43,7 +43,15 @@ class wav_file_player: public rav::ptp::Instance::Subscriber {
         auto id = id_generator.next();
         auto sender =
             std::make_unique<rav::RavennaSender>(io_context, advertiser, rtsp_server, ptp_instance, id, id.value());
-        sender->set_interfaces({{rav::Rank::primary(), interface_address}});
+
+        auto* iface = rav::NetworkInterfaceList::get_system_interfaces().find_by_string(interface_search_string);
+        if (iface == nullptr) {
+            RAV_ERROR("No network interface found with search string: {}", interface_search_string);
+            return;
+        }
+        rav::NetworkInterfaceConfig interface_config;
+        interface_config.set_interface(rav::Rank::primary(), iface->get_identifier());
+        sender->set_network_interface_config(std::move(interface_config));
 
         auto file_input_stream = std::make_unique<rav::FileInputStream>(file_to_play);
         auto reader = std::make_unique<rav::WavAudioFormat::Reader>(std::move(file_input_stream));
@@ -222,7 +230,7 @@ int main(int const argc, char* argv[]) {
 
         wav_file_players.emplace_back(
             std::make_unique<examples::wav_file_player>(
-                io_context, *advertiser, rtsp_server, ptp_instance, id_generator, interface_address, file,
+                io_context, *advertiser, rtsp_server, ptp_instance, id_generator, interface_address_string, file,
                 file_session_name + " " + std::to_string(wav_file_players.size() + 1)
             )
         );

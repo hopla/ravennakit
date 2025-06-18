@@ -138,7 +138,7 @@ class NetworkInterface {
     }
 
     /**
-     * @return The first IPv4 address of the interface, or nullopt if the interface does not have an IPv4 address.
+     * @return The first IPv4 address of the interface, which will be unspecified if the interface has no IPv4 address.
      */
     [[nodiscard]] boost::asio::ip::address_v4 get_first_ipv4_address() const {
         for (const auto& addr : addresses_) {

@@ -87,10 +87,10 @@ class MacAddress {
     /**
      * @return The MAC address as a string.
      */
-    [[nodiscard]] std::string to_string() const {
+    [[nodiscard]] std::string to_string(const char* separator = ":") const {
         return fmt::format(
-            "{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}", address_[0], address_[1], address_[2], address_[3],
-            address_[4], address_[5]
+            "{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}", address_[0], separator, address_[1], separator,
+            address_[2], separator, address_[3], separator, address_[4], separator, address_[5]
         );
     }
 

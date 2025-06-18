@@ -187,10 +187,10 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     [[nodiscard]] std::optional<std::string> get_sdp_text() const;
 
     /**
-     * Sets the interface address for the receiver.
-     * @param interface_addresses A map of interface addresses to set. The key is the rank of the interface address.
+     * Sets the network interface config for the receiver.
+     * @param network_interface_config The configuration of the network interface to use.
      */
-    void set_interfaces(const std::map<Rank, boost::asio::ip::address_v4>& interface_addresses);
+    void set_network_interface_config(NetworkInterfaceConfig network_interface_config);
 
     /**
      * @return A JSON representation of the sender.
@@ -253,10 +253,12 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     rtp::AudioReceiver rtp_audio_receiver_;
     Id id_;
     Configuration configuration_;
+    NetworkInterfaceConfig network_interface_config_;
     nmos::ReceiverAudio nmos_receiver_;
     SubscriberList<Subscriber> subscribers_;
 
     void handle_announced_sdp(const sdp::SessionDescription& sdp);
+    tl::expected<void, std::string> update_state(bool update_rtsp, bool update_nmos);
 };
 
 }  // namespace rav

@@ -488,7 +488,7 @@ void rav::rtp::AudioReceiver::start() {
         }
         auto iface = interface_addresses_.find(stream->stream_info.rank);
         if (iface == interface_addresses_.end() || iface->second.is_unspecified()) {
-            RAV_WARNING("No interface address available for stream with rank {}", stream->stream_info.rank.value());
+            RAV_ERROR("No interface address available for stream with rank {}", stream->stream_info.rank.value());
             continue;  // No interface address available for this stream
         }
         RAV_ASSERT(!iface->second.is_unspecified(), "Interface address must not be unspecified");

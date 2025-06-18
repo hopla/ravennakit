@@ -209,8 +209,8 @@ tl::expected<void, std::string> rav::RavennaSender::set_configuration(const Conf
             );
         }
         num_enabled_destinations++;
-        auto it = interface_addresses_.find(dst.interface_by_rank);
-        if (it == interface_addresses_.end() || it->second.is_unspecified()) {
+        auto* iface = network_interface_config_.get_interface(dst.interface_by_rank);
+        if (iface == nullptr) {
             return tl::unexpected(fmt::format("{} interface not set", dst.interface_by_rank.to_ordinal_latin()));
         }
         if (dst.endpoint.address().is_unspecified()) {
@@ -259,6 +259,7 @@ tl::expected<void, std::string> rav::RavennaSender::set_configuration(const Conf
 
     if (config.destinations != configuration_.destinations) {
         announce = true;
+        update_nmos = true;
     }
 
     if (config.ttl != configuration_.ttl) {
@@ -459,11 +460,11 @@ bool rav::RavennaSender::send_audio_data_realtime(
     return false;
 }
 
-void rav::RavennaSender::set_interfaces(const std::map<Rank, boost::asio::ip::address_v4>& interface_addresses) {
-    if (interface_addresses_ == interface_addresses) {
-        return;  // No change in interface addresses
+void rav::RavennaSender::set_network_interface_config(NetworkInterfaceConfig network_interface_config) {
+    if (network_interface_config_ == network_interface_config) {
+        return;  // No change in network interface configuration
     }
-    interface_addresses_ = interface_addresses;
+    network_interface_config_ = std::move(network_interface_config);
     update_state(false, false, true);
 }
 
@@ -561,7 +562,7 @@ void rav::RavennaSender::ptp_parent_changed(const ptp::ParentDs& parent) {
 }
 
 void rav::RavennaSender::send_announce() const {
-    if (interface_addresses_.empty()) {
+    if (network_interface_config_.empty()) {
         RAV_ERROR("No interface addresses set");
         return;
     }
@@ -578,7 +579,8 @@ void rav::RavennaSender::send_announce() const {
         return;
     }
 
-    const auto interface_address_string = interface_addresses_.begin()->second.to_string();
+    const auto interface_address_string =
+        network_interface_config_.get_interface_ipv4_address(Rank::primary()).to_string();
 
     rtsp::Request request;
     request.method = "ANNOUNCE";
@@ -607,7 +609,7 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
         return tl::unexpected("Invalid audio format");
     }
 
-    if (interface_addresses_.empty()) {
+    if (network_interface_config_.empty()) {
         return tl::unexpected("No interface addresses set");
     }
 
@@ -630,7 +632,7 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
         0,
         sdp::NetwType::internet,
         sdp::AddrType::ipv4,
-        interface_addresses_.begin()->second.to_string(),
+        network_interface_config_.get_interface_ipv4_address(Rank::primary()).to_string(),
     };
 
     sdp::SessionDescription sdp;
@@ -665,15 +667,16 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
             sdp::NetwType::internet, sdp::AddrType::ipv4, dst_address_str, 15, {}
         };
 
-        auto it = interface_addresses_.find(dst.interface_by_rank);
-        if (it == interface_addresses_.end()) {
+        auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank);
+        if (addr.is_unspecified()) {
             return tl::unexpected(fmt::format("No interface address for rank {}", dst.interface_by_rank.value()));
         }
 
+        RAV_ASSERT(!addr.is_multicast(), "Interface address must not be multicast");
+
         // Source filter
         sdp::SourceFilter filter(
-            sdp::FilterMode::include, sdp::NetwType::internet, sdp::AddrType::ipv4, dst_address_str,
-            {it->second.to_string()}
+            sdp::FilterMode::include, sdp::NetwType::internet, sdp::AddrType::ipv4, dst_address_str, {addr.to_string()}
         );
 
         sdp::MediaDescription media;
@@ -794,14 +797,15 @@ void rav::RavennaSender::generate_auto_addresses_if_needed() {
     bool changed = false;
     for (auto& dst : configuration_.destinations) {
         if (dst.endpoint.address().is_unspecified()) {
-            auto it = interface_addresses_.find(dst.interface_by_rank);
-            if (it != interface_addresses_.end()) {
-                if (it->second.is_unspecified()) {
+            const auto iface = network_interface_config_.get_interface(dst.interface_by_rank);
+            if (iface != nullptr) {
+                auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank);
+                if (addr.is_unspecified()) {
                     RAV_WARNING("Invalid interface address for rank {}", dst.interface_by_rank.value());
                     continue;
                 }
                 // Construct a multicast address from the interface address
-                const auto interface_address_bytes = it->second.to_bytes();
+                const auto interface_address_bytes = addr.to_bytes();
                 dst.endpoint.address(
                     boost::asio::ip::address_v4(
                         {239, interface_address_bytes[2], interface_address_bytes[3],
@@ -830,12 +834,12 @@ void rav::RavennaSender::update_rtp_senders() {
     // Create RTP senders for enabled destinations
     for (auto& dst : configuration_.destinations) {
         if (dst.enabled && rtp_senders_.find(dst.interface_by_rank) == rtp_senders_.end()) {
-            auto it = interface_addresses_.find(dst.interface_by_rank);
-            if (it == interface_addresses_.end() || it->second.is_unspecified()) {
+            auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank);
+            if (addr.is_unspecified()) {
                 RAV_TRACE("{} interface not set", rav::string_to_upper(dst.interface_by_rank.to_ordinal_latin(), 1));
                 continue;
             }
-            rtp_senders_.insert({dst.interface_by_rank, rtp::Sender {io_context_, it->second}});
+            rtp_senders_.insert({dst.interface_by_rank, rtp::Sender {io_context_, addr}});
         }
     }
 
@@ -887,6 +891,18 @@ void rav::RavennaSender::update_state(const bool update_advertisement, const boo
         nmos_sender_.label = configuration_.session_name;
         nmos_flow_.label = configuration_.session_name;
         nmos_source_.label = configuration_.session_name;
+
+        nmos_sender_.interface_bindings.clear();
+        for (const auto& dst : configuration_.destinations) {
+            if (dst.enabled) {
+                const auto iface = network_interface_config_.get_interface(dst.interface_by_rank);
+                if (iface != nullptr) {
+                    nmos_sender_.interface_bindings.push_back(*iface);
+                } else {
+                    RAV_WARNING("No interface for rank {}", dst.interface_by_rank.to_ordinal_latin());
+                }
+            }
+        }
 
         nmos_source_.channels.resize(audio_format.num_channels);
         for (uint32_t i = 0; i < audio_format.num_channels; ++i) {

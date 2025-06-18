@@ -374,51 +374,8 @@ void rav::RavennaReceiver::handle_announced_sdp(const sdp::SessionDescription& s
     }
 }
 
-rav::Id rav::RavennaReceiver::get_id() const {
-    return id_;
-}
-
-const boost::uuids::uuid& rav::RavennaReceiver::get_uuid() const {
-    return nmos_receiver_.id;
-}
-
-tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configuration config) {
-    // Validate the configuration
-
-    if (config.auto_update_sdp) {
-        if (config.session_name.empty()) {
-            return tl::unexpected("Session name must not be empty when auto_update_sdp is true");
-        }
-    }
-
-    auto parameters = create_audio_receiver_parameters(config.sdp);
-
-    if (config.delay_frames == 0) {
-        RAV_WARNING("Delay is set to 0 frames, which is most likely not what you want");
-    }
-
-    // Determine changes to apply
-
-    bool update_nmos = false;
-    bool update_rtsp = false;
-
-    if (config.enabled != configuration_.enabled) {
-        update_nmos = true;
-        update_rtsp = true;
-    }
-
-    if (config.session_name != configuration_.session_name) {
-        update_nmos = true;
-        update_rtsp = true;
-    }
-
-    if (config.auto_update_sdp != configuration_.auto_update_sdp) {
-        update_rtsp = true;
-    }
-
-    // Apply the configuration changes
-
-    configuration_ = std::move(config);
+tl::expected<void, std::string> rav::RavennaReceiver::update_state(const bool update_rtsp, bool update_nmos) {
+    auto parameters = create_audio_receiver_parameters(configuration_.sdp);
 
     if (!configuration_.auto_update_sdp) {
         configuration_.session_name = configuration_.sdp.session_name();
@@ -457,6 +414,11 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configur
         nmos_receiver_.caps.media_types.front() =
             nmos::audio_format_to_nmos_media_type(rtp_audio_receiver_.get_parameters().audio_format);
 
+        nmos_receiver_.interface_bindings.clear();
+        for (const auto& [rank, id] : network_interface_config_.get_interfaces()) {
+            nmos_receiver_.interface_bindings.push_back(id);
+        }
+
         if (nmos_node_ != nullptr) {
             RAV_ASSERT(nmos_receiver_.is_valid(), "NMOS receiver must be valid at this point");
             if (!nmos_node_->add_or_update_receiver({nmos_receiver_})) {
@@ -467,6 +429,53 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configur
     }
 
     return {};
+}
+
+rav::Id rav::RavennaReceiver::get_id() const {
+    return id_;
+}
+
+const boost::uuids::uuid& rav::RavennaReceiver::get_uuid() const {
+    return nmos_receiver_.id;
+}
+
+tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configuration config) {
+    // Validate the configuration
+
+    if (config.auto_update_sdp) {
+        if (config.session_name.empty()) {
+            return tl::unexpected("Session name must not be empty when auto_update_sdp is true");
+        }
+    }
+
+    if (config.delay_frames == 0) {
+        RAV_WARNING("Delay is set to 0 frames, which is most likely not what you want");
+    }
+
+    // Determine changes to apply
+
+    bool update_nmos = false;
+    bool update_rtsp = false;
+
+    if (config.enabled != configuration_.enabled) {
+        update_nmos = true;
+        update_rtsp = true;
+    }
+
+    if (config.session_name != configuration_.session_name) {
+        update_nmos = true;
+        update_rtsp = true;
+    }
+
+    if (config.auto_update_sdp != configuration_.auto_update_sdp) {
+        update_rtsp = true;
+    }
+
+    // Apply the configuration changes
+
+    configuration_ = std::move(config);
+
+    return update_state(update_rtsp, update_nmos);
 }
 
 const rav::RavennaReceiver::Configuration& rav::RavennaReceiver::get_configuration() const {
@@ -520,6 +529,14 @@ std::optional<std::string> rav::RavennaReceiver::get_sdp_text() const {
     return rtsp_client_.get_sdp_text_for_session(configuration_.session_name);
 }
 
-void rav::RavennaReceiver::set_interfaces(const std::map<Rank, boost::asio::ip::address_v4>& interface_addresses) {
-    rtp_audio_receiver_.set_interfaces(interface_addresses);
+void rav::RavennaReceiver::set_network_interface_config(NetworkInterfaceConfig network_interface_config) {
+    if (network_interface_config_ == network_interface_config) {
+        return;  // No change in network interface configuration
+    }
+    network_interface_config_ = std::move(network_interface_config);
+    rtp_audio_receiver_.set_interfaces(network_interface_config_.get_interface_ipv4_addresses());
+    auto result = update_state(false, true);
+    if (!result) {
+        RAV_ERROR("Failed to update state after setting network interface config: {}", result.error());
+    }
 }

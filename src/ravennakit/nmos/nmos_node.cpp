@@ -1342,6 +1342,25 @@ const rav::nmos::Node::RegistryInfo& rav::nmos::Node::get_registry_info() const 
 }
 
 void rav::nmos::Node::set_network_interface_config(const NetworkInterfaceConfig& interface_config) {
+    self_.interfaces.clear();
+    const auto& system_interfaces = NetworkInterfaceList::get_system_interfaces();
+
+    for (const auto& [_, id] : interface_config.get_interfaces()) {
+        auto* iface = system_interfaces.get_interface(id);
+        if (iface == nullptr) {
+            RAV_ERROR("Network interface with ID {} not found", id);
+            continue;
+        }
+
+        const auto mac_address = iface->get_mac_address();
+        if (!mac_address.has_value()) {
+            RAV_ERROR("Network interface with ID {} does not have a MAC address", id);
+            continue;
+        }
+
+        self_.interfaces.emplace_back(Self::Interface {std::nullopt, iface->get_mac_address()->to_string("-"), id});
+    }
+
     auto addrs = interface_config.get_interface_ipv4_addresses();
     if (addrs.empty()) {
         RAV_ERROR("No IPv4 addresses found for the interface");

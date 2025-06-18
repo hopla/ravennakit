@@ -114,8 +114,8 @@ class stream_recorder: public rav::RavennaReceiver::Subscriber {
 
 class ravenna_recorder {
   public:
-    explicit ravenna_recorder(const std::string& interface_address) :
-        interface_address_(boost::asio::ip::make_address_v4(interface_address)) {
+    explicit ravenna_recorder(const std::string& interface_search_string) :
+        interface_search_string_(interface_search_string) {
         rtsp_client_ = std::make_unique<rav::RavennaRtspClient>(io_context_, browser_);
         rtp_receiver_ = std::make_unique<rav::rtp::Receiver>(udp_receiver_);
     }
@@ -131,7 +131,14 @@ class ravenna_recorder {
         auto receiver = std::make_unique<rav::RavennaReceiver>(
             io_context_, *rtsp_client_, *rtp_receiver_, rav::Id::get_next_process_wide_unique_id()
         );
-        receiver->set_interfaces({{rav::Rank::primary(), interface_address_}});
+        auto* iface = rav::NetworkInterfaceList::get_system_interfaces().find_by_string(interface_search_string_);
+        if (iface == nullptr) {
+            RAV_ERROR("No network interface found with search string: {}", interface_search_string_);
+            return;
+        }
+        rav::NetworkInterfaceConfig interface_config;
+        interface_config.set_interface(rav::Rank::primary(), iface->get_identifier());
+        receiver->set_network_interface_config(std::move(interface_config));
         auto result = receiver->set_configuration(config);
         if (!result) {
             RAV_ERROR("Failed to update configuration: {}", result.error());
@@ -152,7 +159,7 @@ class ravenna_recorder {
 
   private:
     boost::asio::io_context io_context_;
-    boost::asio::ip::address_v4 interface_address_;
+    std::string interface_search_string_;
     rav::UdpReceiver udp_receiver_ {io_context_};
     rav::RavennaBrowser browser_ {io_context_};
     std::unique_ptr<rav::RavennaRtspClient> rtsp_client_;

@@ -785,7 +785,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            ok_response(res, boost::json::serialize(receiver->transport));
+            ok_response(res, boost::json::serialize("urn:x-nmos:transport:rtp"));
         }
     );
 
@@ -990,7 +990,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            ok_response(res, boost::json::serialize(sender->transport));
+            ok_response(res, boost::json::serialize("urn:x-nmos:transport:rtp"));
         }
     );
 

@@ -10,7 +10,7 @@
 
 #pragma once
 
-#include "ravennakit/nmos/detail/nmos_version.hpp"
+#include "ravennakit/nmos/detail/nmos_timestamp.hpp"
 
 #include <boost/json/value.hpp>
 #include <boost/json/value_from.hpp>

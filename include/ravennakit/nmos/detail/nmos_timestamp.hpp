@@ -20,42 +20,42 @@
 namespace rav::nmos {
 
 /**
- * Represents a version in the format of seconds and nanoseconds.
+ * Represents a timestamp in the format of seconds and nanoseconds.
  *
- * The Version class encapsulates the concept of a specific point in time,
- * allowing for comparisons and operations such as version validity and ordering.
+ * The Timestamp class encapsulates the concept of a specific point in time,
+ * allowing for comparisons and operations such as timestamp validity and ordering.
  */
-struct Version {
+struct Timestamp {
     uint64_t seconds = 0;      // seconds since epoch
     uint32_t nanoseconds = 0;  // nanoseconds since the last second
 
-    Version() = default;
+    Timestamp() = default;
 
-    Version(const uint64_t seconds_, const uint32_t nanoseconds_) : seconds(seconds_), nanoseconds(nanoseconds_) {
+    Timestamp(const uint64_t seconds_, const uint32_t nanoseconds_) : seconds(seconds_), nanoseconds(nanoseconds_) {
         RAV_ASSERT(nanoseconds < 1000000000, "Nanoseconds must be less than 1 billion.");
     }
 
-    explicit Version(const ptp::Timestamp timestamp) :
+    explicit Timestamp(const ptp::Timestamp timestamp) :
         seconds(timestamp.raw_seconds()), nanoseconds(timestamp.raw_nanoseconds()) {}
 
-    friend bool operator<(const Version& lhs, const Version& rhs) {
+    friend bool operator<(const Timestamp& lhs, const Timestamp& rhs) {
         return lhs.seconds < rhs.seconds || (lhs.seconds == rhs.seconds && lhs.nanoseconds < rhs.nanoseconds);
     }
 
-    friend bool operator<=(const Version& lhs, const Version& rhs) {
+    friend bool operator<=(const Timestamp& lhs, const Timestamp& rhs) {
         return rhs >= lhs;
     }
 
-    friend bool operator>(const Version& lhs, const Version& rhs) {
+    friend bool operator>(const Timestamp& lhs, const Timestamp& rhs) {
         return rhs < lhs;
     }
 
-    friend bool operator>=(const Version& lhs, const Version& rhs) {
+    friend bool operator>=(const Timestamp& lhs, const Timestamp& rhs) {
         return !(lhs < rhs);
     }
 
     /**
-     * Increases the version by one nanosecond.
+     * Increases the timestamp by one nanosecond.
      */
     void inc() {
         if (nanoseconds < 999999999) {
@@ -67,10 +67,10 @@ struct Version {
     }
 
     /**
-     * Updates the version with a new timestamp.
-     * If the new timestamp is greater than the current version, it updates the version.
-     * Otherwise, it increments the version by one nanosecond.
-     * @param timestamp The new timestamp to update the version with.
+     * Updates the timestamp with a new timestamp.
+     * If the new timestamp is greater than the current timestamp, it updates the timestamp.
+     * Otherwise, it increments the timestamp by one nanosecond.
+     * @param timestamp The new timestamp to update the timestamp with.
      */
     void update(const ptp::Timestamp timestamp) {
         if (timestamp > ptp::Timestamp(seconds, nanoseconds)) {
@@ -82,27 +82,27 @@ struct Version {
     }
 
     /**
-     * Checks whether the NMOS resource version is valid.
-     * A version is considered valid if either the `seconds` or `nanoseconds` component is non-zero.
-     * @return true if the version is valid, false otherwise.
+     * Checks whether the NMOS resource timestamp is valid.
+     * A timestamp is considered valid if either the `seconds` or `nanoseconds` component is non-zero.
+     * @return true if the timestamp is valid, false otherwise.
      */
     [[nodiscard]] bool is_valid() const {
         return seconds != 0 || nanoseconds != 0;
     }
 
     /**
-     * @return A string representation of the version in the format "seconds.nanoseconds".
+     * @return A string representation of the timestamp in the format "seconds.nanoseconds".
      */
     [[nodiscard]] std::string to_string() const {
         return fmt::format("{}:{}", seconds, nanoseconds);
     }
 
     /**
-     * Parses a given string to a Version object.
+     * Parses a given string to a Timestamp object.
      * @param input The string to be parsed into an object.
-     * @return An optional Version object if parsing is successful, otherwise std::nullopt.
+     * @return An optional Timestamp object if parsing is successful, otherwise std::nullopt.
      */
-    static std::optional<Version> from_string(const std::string_view input) {
+    static std::optional<Timestamp> from_string(const std::string_view input) {
         StringParser parser(input);
         if (parser.skip(' ')) {
             return std::nullopt;
@@ -121,8 +121,11 @@ struct Version {
         if (!parser.exhausted()) {
             return std::nullopt;
         }
-        return Version {*seconds, *nanoseconds};
+        return Timestamp {*seconds, *nanoseconds};
     }
 };
+
+/// An nmos version is represented as TAI timestamp
+using Version = Timestamp;
 
 }  // namespace rav::nmos

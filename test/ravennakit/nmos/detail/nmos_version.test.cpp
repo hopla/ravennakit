@@ -8,7 +8,7 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-#include "ravennakit/nmos/detail/nmos_version.hpp"
+#include "ravennakit/nmos/detail/nmos_timestamp.hpp"
 
 #include <catch2/catch_all.hpp>
 

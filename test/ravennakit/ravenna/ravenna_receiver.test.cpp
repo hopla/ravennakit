@@ -9,6 +9,7 @@
  */
 
 #include "ravennakit/ravenna/ravenna_receiver.hpp"
+#include "ravenna_receiver.test.hpp"
 
 #include <catch2/catch_all.hpp>
 
@@ -60,39 +61,39 @@ TEST_CASE("RavennaReceiver") {
 
     SECTION("Create audio receiver parameters from Lawo SDP") {
         constexpr auto k_mic8_sdp =
-        "v=0\r\n"
-        "o=- 1731086923289383 0 IN IP4 192.168.4.8\r\n"
-        "s=MADI-1\r\n"
-        "t=0 0\r\n"
-        "a=group:DUP primary secondary\r\n"
-        "a=clock-domain:PTPv2 0\r\n"
-        "a=sync-time:0\r\n"
-        "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
-        "a=mediaclk:direct=0\r\n"
-        "m=audio 5004 RTP/AVP 98\r\n"
-        "c=IN IP4 239.3.8.1/31\r\n"
-        "a=source-filter: incl IN IP4 239.3.8.1 192.168.16.52\r\n"
-        "a=recvonly\r\n"
-        "a=rtpmap:98 L24/48000/64\r\n"
-        "a=framecount:6\r\n"
-        "a=ptime:0.12\r\n"
-        "a=mid:primary\r\n"
-        "a=clock-domain:PTPv2 0\r\n"
-        "a=sync-time:0\r\n"
-        "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
-        "a=mediaclk:direct=0\r\n"
-        "m=audio 5004 RTP/AVP 98\r\n"
-        "c=IN IP4 239.4.8.2/31\r\n"
-        "a=source-filter: incl IN IP4 239.4.8.2 192.168.4.8\r\n"
-        "a=recvonly\r\n"
-        "a=rtpmap:98 L24/48000/64\r\n"
-        "a=framecount:6\r\n"
-        "a=ptime:0.12\r\n"
-        "a=mid:secondary\r\n"
-        "a=clock-domain:PTPv2 0\r\n"
-        "a=sync-time:0\r\n"
-        "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
-        "a=mediaclk:direct=0\r\n";
+            "v=0\r\n"
+            "o=- 1731086923289383 0 IN IP4 192.168.4.8\r\n"
+            "s=MADI-1\r\n"
+            "t=0 0\r\n"
+            "a=group:DUP primary secondary\r\n"
+            "a=clock-domain:PTPv2 0\r\n"
+            "a=sync-time:0\r\n"
+            "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
+            "a=mediaclk:direct=0\r\n"
+            "m=audio 5004 RTP/AVP 98\r\n"
+            "c=IN IP4 239.3.8.1/31\r\n"
+            "a=source-filter: incl IN IP4 239.3.8.1 192.168.16.52\r\n"
+            "a=recvonly\r\n"
+            "a=rtpmap:98 L24/48000/64\r\n"
+            "a=framecount:6\r\n"
+            "a=ptime:0.12\r\n"
+            "a=mid:primary\r\n"
+            "a=clock-domain:PTPv2 0\r\n"
+            "a=sync-time:0\r\n"
+            "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
+            "a=mediaclk:direct=0\r\n"
+            "m=audio 5004 RTP/AVP 98\r\n"
+            "c=IN IP4 239.4.8.2/31\r\n"
+            "a=source-filter: incl IN IP4 239.4.8.2 192.168.4.8\r\n"
+            "a=recvonly\r\n"
+            "a=rtpmap:98 L24/48000/64\r\n"
+            "a=framecount:6\r\n"
+            "a=ptime:0.12\r\n"
+            "a=mid:secondary\r\n"
+            "a=clock-domain:PTPv2 0\r\n"
+            "a=sync-time:0\r\n"
+            "a=ts-refclk:ptp=IEEE1588-2008:00-0B-72-FF-FE-07-DC-FC:0\r\n"
+            "a=mediaclk:direct=0\r\n";
 
         auto result = rav::sdp::SessionDescription::parse_new(k_mic8_sdp);
         REQUIRE(result);
@@ -120,4 +121,64 @@ TEST_CASE("RavennaReceiver") {
         REQUIRE(parameters->streams[1].packet_time_frames == 6);
         REQUIRE(parameters->streams[1].rank == rav::Rank(1));
     }
+
+    SECTION("Test JSON serialization") {
+        rav::RavennaReceiver::Configuration config;
+        config.session_name = "Session name";
+        config.auto_update_sdp = true;
+        config.enabled = false;
+        config.delay_frames = 480;
+        config.sdp =
+            rav::sdp::SessionDescription::parse_new("v=0\r\no=- 1731086923289383 0 IN IP4 192.168.4.8\r\n").value();
+
+        rav::test_ravenna_receiver_configuration_json(config, config.to_json());
+        rav::test_ravenna_receiver_configuration_json(config, boost::json::value_from(config));
+
+        boost::asio::io_context io_context;
+        rav::RavennaBrowser ravenna_browser(io_context);
+        rav::RavennaRtspClient rtsp_client(io_context, ravenna_browser);
+        rav::UdpReceiver udp_receiver(io_context);
+        rav::rtp::Receiver rtp_receiver(udp_receiver);
+        rav::RavennaReceiver receiver(io_context, rtsp_client, rtp_receiver, rav::Id {1});
+        REQUIRE(receiver.set_configuration(config));
+
+        rav::test_ravenna_receiver_json(receiver, receiver.to_json());
+        rav::test_ravenna_receiver_json(receiver, receiver.to_boost_json());
+    }
+}
+
+void rav::test_ravenna_receiver_json(const RavennaReceiver& receiver, const nlohmann::json& json) {
+    REQUIRE(json.is_object());
+    REQUIRE(json.at("nmos_receiver_uuid") == boost::uuids::to_string(receiver.get_nmos_receiver().id));
+    test_ravenna_receiver_configuration_json(receiver.get_configuration(), json.at("configuration"));
+}
+
+void rav::test_ravenna_receiver_json(const RavennaReceiver& receiver, const boost::json::value& json) {
+    REQUIRE(json.is_object());
+    REQUIRE(json.at("nmos_receiver_uuid").as_string() == boost::uuids::to_string(receiver.get_nmos_receiver().id));
+    test_ravenna_receiver_configuration_json(receiver.get_configuration(), json.at("configuration"));
+}
+
+void rav::test_ravenna_receiver_configuration_json(
+    const RavennaReceiver::Configuration& config, const nlohmann::json& json
+) {
+    REQUIRE(json.is_object());
+    REQUIRE(json.at("session_name") == config.session_name);
+    REQUIRE(json.at("auto_update_sdp") == config.auto_update_sdp);
+    REQUIRE(json.at("enabled") == config.enabled);
+    REQUIRE(json.at("delay_frames") == config.delay_frames);
+    auto sdp = config.sdp.to_string().value();
+    REQUIRE(json.at("sdp") == sdp);
+}
+
+void rav::test_ravenna_receiver_configuration_json(
+    const RavennaReceiver::Configuration& config, const boost::json::value& json
+) {
+    REQUIRE(json.is_object());
+    REQUIRE(json.at("session_name").as_string() == config.session_name);
+    REQUIRE(json.at("auto_update_sdp") == config.auto_update_sdp);
+    REQUIRE(json.at("enabled") == config.enabled);
+    REQUIRE(json.at("delay_frames") == config.delay_frames);
+    auto sdp = config.sdp.to_string().value();
+    REQUIRE(json.at("sdp").as_string() == sdp);
 }

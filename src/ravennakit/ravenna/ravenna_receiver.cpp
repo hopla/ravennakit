@@ -49,6 +49,13 @@ nlohmann::json rav::RavennaReceiver::to_json() const {
     return root;
 }
 
+boost::json::object rav::RavennaReceiver::to_boost_json() const {
+    return {
+        {"configuration", boost::json::value_from(configuration_)},
+        {"nmos_receiver_uuid", boost::uuids::to_string(nmos_receiver_.id)}
+    };
+}
+
 tl::expected<void, std::string> rav::RavennaReceiver::restore_from_json(const nlohmann::json& json) {
     try {
         auto config = Configuration::from_json(json.at("configuration"));
@@ -86,6 +93,10 @@ std::optional<uint32_t> rav::RavennaReceiver::read_audio_data_realtime(
 
 rav::rtp::AudioReceiver::SessionStats rav::RavennaReceiver::get_stream_stats(const Rank rank) const {
     return rtp_audio_receiver_.get_session_stats(rank);
+}
+
+const rav::nmos::ReceiverAudio& rav::RavennaReceiver::get_nmos_receiver() const {
+    return nmos_receiver_;
 }
 
 nlohmann::json rav::RavennaReceiver::Configuration::to_json() const {
@@ -536,4 +547,16 @@ void rav::RavennaReceiver::set_network_interface_config(NetworkInterfaceConfig n
     if (!result) {
         RAV_ERROR("Failed to update state after setting network interface config: {}", result.error());
     }
+}
+
+void rav::tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaReceiver::Configuration& config
+) {
+    jv = {
+        {"session_name", config.session_name},
+        {"delay_frames", config.delay_frames},
+        {"enabled", config.enabled},
+        {"auto_update_sdp", config.auto_update_sdp},
+        {"sdp", config.sdp.to_string().value_or("")}
+    };
 }

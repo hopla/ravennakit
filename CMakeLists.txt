@@ -196,9 +196,10 @@ endif ()
 ##############
 
 if (${RAV_TESTS})
+    file(GLOB_RECURSE TEST_HEADER_FILES test/*.test.hpp)
     file(GLOB_RECURSE TEST_SOURCE_FILES test/*.test.cpp)
 
-    add_executable(ravennakit_tests ${TEST_SOURCE_FILES})
+    add_executable(ravennakit_tests ${TEST_HEADER_FILES} ${TEST_SOURCE_FILES})
 
     target_link_libraries(ravennakit_tests
             PUBLIC

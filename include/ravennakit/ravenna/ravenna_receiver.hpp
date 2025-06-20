@@ -201,6 +201,11 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     [[nodiscard]] nlohmann::json to_json() const;
 
     /**
+     * @return A JSON representation of the sender.
+     */
+    [[nodiscard]] boost::json::object to_boost_json() const;
+
+    /**
      * Restores the receiver from a JSON representation.
      * @param json The JSON representation of the receiver.
      * @return A result indicating whether the restoration was successful or not.
@@ -239,6 +244,11 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
      */
     [[nodiscard]] rtp::AudioReceiver::SessionStats get_stream_stats(Rank rank) const;
 
+    /**
+     * @return The NMOS receiver of this receiver.
+     */
+    [[nodiscard]] const nmos::ReceiverAudio& get_nmos_receiver() const;
+
     // ravenna_rtsp_client::subscriber overrides
     void on_announced(const RavennaRtspClient::AnnouncedEvent& event) override;
 
@@ -263,5 +273,9 @@ class RavennaReceiver: public RavennaRtspClient::Subscriber {
     void handle_announced_sdp(const sdp::SessionDescription& sdp);
     tl::expected<void, std::string> update_state(bool update_rtsp, bool update_nmos);
 };
+
+void tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaReceiver::Configuration& config
+);
 
 }  // namespace rav

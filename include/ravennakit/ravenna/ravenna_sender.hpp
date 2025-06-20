@@ -213,11 +213,31 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     nlohmann::json to_json() const;
 
     /**
+     * @return A JSON representation of the sender.
+     */
+    boost::json::object to_boost_json() const;
+
+    /**
      * Restores the sender from a JSON representation.
      * @param json The JSON representation of the sender.
      * @return A result indicating whether the restoration was successful or not.
      */
     [[nodiscard]] tl::expected<void, std::string> restore_from_json(const nlohmann::json& json);
+
+    /**
+     * @return The NMOS source of this sender.
+     */
+    [[nodiscard]] const nmos::SourceAudio& get_nmos_source() const;
+
+    /**
+     * @return The NMOS flow of this sender.
+     */
+    [[nodiscard]] const nmos::FlowAudioRaw& get_nmos_flow() const;
+
+    /**
+     * @return The NMOS sender of this sender.
+     */
+    [[nodiscard]] const nmos::Sender& get_nmos_sender() const;
 
     // rtsp_server::handler overrides
     void on_request(rtsp::Connection::RequestEvent event) const override;
@@ -288,5 +308,11 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     void update_rtp_senders();
     void update_state(bool update_advertisement, bool announce, bool update_nmos);
 };
+
+void tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination
+);
+
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Configuration& config);
 
 }  // namespace rav

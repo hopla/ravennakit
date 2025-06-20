@@ -465,6 +465,18 @@ void rav::RavennaSender::set_network_interface_config(NetworkInterfaceConfig net
     update_state(false, false, true);
 }
 
+const rav::nmos::SourceAudio& rav::RavennaSender::get_nmos_source() const {
+    return nmos_source_;
+}
+
+const rav::nmos::FlowAudioRaw& rav::RavennaSender::get_nmos_flow() const {
+    return nmos_flow_;
+}
+
+const rav::nmos::Sender& rav::RavennaSender::get_nmos_sender() const {
+    return nmos_sender_;
+}
+
 nlohmann::json rav::RavennaSender::to_json() const {
     nlohmann::json root;
     root["session_id"] = session_id_;
@@ -473,6 +485,16 @@ nlohmann::json rav::RavennaSender::to_json() const {
     root["nmos_source_uuid"] = boost::uuids::to_string(nmos_source_.id);
     root["nmos_flow_uuid"] = boost::uuids::to_string(nmos_flow_.id);
     return root;
+}
+
+boost::json::object rav::RavennaSender::to_boost_json() const {
+    return {
+        {"session_id", session_id_},
+        {"configuration", boost::json::value_from(configuration_)},
+        {"nmos_sender_uuid", boost::uuids::to_string(nmos_sender_.id)},
+        {"nmos_source_uuid", boost::uuids::to_string(nmos_source_.id)},
+        {"nmos_flow_uuid", boost::uuids::to_string(nmos_flow_.id)},
+    };
 }
 
 tl::expected<void, std::string> rav::RavennaSender::restore_from_json(const nlohmann::json& json) {
@@ -964,4 +986,29 @@ void rav::RavennaSender::update_state(const bool update_advertisement, const boo
     }
 
     update_shared_context();
+}
+
+void rav::tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination
+) {
+    jv = {
+        {"interface_by_rank", destination.interface_by_rank.value()},
+        {"address", destination.endpoint.address().to_string()},
+        {"port", destination.endpoint.port()},
+        {"enabled", destination.enabled},
+    };
+}
+
+void rav::tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Configuration& config
+) {
+    jv = {
+        {"session_name", config.session_name},
+        {"destinations", boost::json::value_from(config.destinations)},
+        {"ttl", config.ttl},
+        {"payload_type", config.payload_type},
+        {"packet_time", boost::json::value_from(config.packet_time)},
+        {"audio_format", boost::json::value_from(config.audio_format)},
+        {"enabled", config.enabled},
+    };
 }

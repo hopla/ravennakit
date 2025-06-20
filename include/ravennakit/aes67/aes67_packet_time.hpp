@@ -24,9 +24,11 @@ namespace rav::aes67 {
  */
 class PacketTime {
   public:
+    Fraction<uint8_t> fraction {};
+
     PacketTime() = default;
 
-    PacketTime(const uint8_t numerator, const uint8_t denominator) : fraction_ {numerator, denominator} {}
+    PacketTime(const uint8_t numerator, const uint8_t denominator) : fraction {numerator, denominator} {}
 
     /**
      * @param sample_rate The sample rate of the audio.
@@ -34,11 +36,11 @@ class PacketTime {
      */
     [[nodiscard]] float signaled_ptime(const uint32_t sample_rate) const {
         if (sample_rate % 48000 > 0) {
-            return static_cast<float>(fraction_.numerator) * static_cast<float>(sample_rate / 48000 + 1)  // NOLINT
-                * 48000 / static_cast<float>(sample_rate) / static_cast<float>(fraction_.denominator);
+            return static_cast<float>(fraction.numerator) * static_cast<float>(sample_rate / 48000 + 1)  // NOLINT
+                * 48000 / static_cast<float>(sample_rate) / static_cast<float>(fraction.denominator);
         }
 
-        return static_cast<float>(fraction_.numerator) / static_cast<float>(fraction_.denominator);
+        return static_cast<float>(fraction.numerator) / static_cast<float>(fraction.denominator);
     }
 
     /**
@@ -53,10 +55,10 @@ class PacketTime {
      * @returns True if the packet time is valid, false otherwise.
      */
     [[nodiscard]] bool is_valid() const {
-        if (fraction_.denominator == 0) {
+        if (fraction.denominator == 0) {
             return false;
         }
-        if (fraction_.numerator == 0) {
+        if (fraction.numerator == 0) {
             return false;
         }
         return true;
@@ -108,7 +110,7 @@ class PacketTime {
     }
 
     friend bool operator==(const PacketTime& lhs, const PacketTime& rhs) {
-        return lhs.fraction_ == rhs.fraction_;
+        return lhs.fraction == rhs.fraction;
     }
 
     friend bool operator!=(const PacketTime& lhs, const PacketTime& rhs) {
@@ -121,7 +123,7 @@ class PacketTime {
      * @return A JSON object representing this AudioFormat.
      */
     [[nodiscard]] nlohmann::json to_json() const {
-        return nlohmann::json {fraction_.numerator, fraction_.denominator};
+        return nlohmann::json {fraction.numerator, fraction.denominator};
     }
 
     /**
@@ -140,9 +142,14 @@ class PacketTime {
     }
 
 #endif
-
-  private:
-    Fraction<uint8_t> fraction_ {};
 };
+
+#if RAV_HAS_BOOST_JSON
+
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const PacketTime& packet_time) {
+    jv = {packet_time.fraction.numerator, packet_time.fraction.denominator};
+}
+
+#endif
 
 }  // namespace rav::aes67

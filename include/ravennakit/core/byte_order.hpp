@@ -268,4 +268,4 @@ inline void validate_byte_order() {
 #endif
 }
 
-}  // namespace rav::byte_order
+}  // namespace rav

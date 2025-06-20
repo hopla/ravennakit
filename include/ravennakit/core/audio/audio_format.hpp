@@ -168,4 +168,18 @@ struct AudioFormat {
 #endif
 };
 
+#if RAV_HAS_BOOST_JSON
+
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const AudioFormat& audio_format) {
+    jv = {
+        {"byte_order", AudioFormat::to_string(audio_format.byte_order)},
+        {"channel_ordering", AudioFormat::to_string(audio_format.ordering)},
+        {"encoding", audio_encoding_to_string(audio_format.encoding)},
+        {"num_channels", audio_format.num_channels},
+        {"sample_rate", audio_format.sample_rate},
+    };
+}
+
+#endif
+
 }  // namespace rav

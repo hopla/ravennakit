@@ -134,6 +134,9 @@ TEST_CASE("RavennaReceiver") {
         rav::test_ravenna_receiver_configuration_json(config, config.to_json());
         rav::test_ravenna_receiver_configuration_json(config, boost::json::value_from(config));
 
+#if !RAV_LINUX
+        // On Linux there is no implementation for the dnssd browser which makes the next code error out. Until the
+        // browser is implemented we'll keep the tests disabled.
         boost::asio::io_context io_context;
         rav::RavennaBrowser ravenna_browser(io_context);
         rav::RavennaRtspClient rtsp_client(io_context, ravenna_browser);
@@ -141,9 +144,9 @@ TEST_CASE("RavennaReceiver") {
         rav::rtp::Receiver rtp_receiver(udp_receiver);
         rav::RavennaReceiver receiver(io_context, rtsp_client, rtp_receiver, rav::Id {1});
         REQUIRE(receiver.set_configuration(config));
-
         rav::test_ravenna_receiver_json(receiver, receiver.to_json());
         rav::test_ravenna_receiver_json(receiver, receiver.to_boost_json());
+#endif
     }
 }
 

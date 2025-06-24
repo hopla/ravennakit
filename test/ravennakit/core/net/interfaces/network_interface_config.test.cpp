@@ -17,18 +17,16 @@ TEST_CASE("NetworkInterfaceConfig") {
     rav::NetworkInterfaceConfig config;
     config.set_interface(rav::Rank(0), "1");
     config.set_interface(rav::Rank(1), "2");
-
-    test_network_interface_config_json(config, config.to_json());
+    test_network_interface_config_json(config, config.to_boost_json());
 }
 
-void rav::test_network_interface_config_json(const NetworkInterfaceConfig& config, const nlohmann::json& json) {
+void rav::test_network_interface_config_json(const NetworkInterfaceConfig& config, const boost::json::value& json) {
     REQUIRE(json.is_array());
-    const auto& interfaces = config.get_interfaces();
-    REQUIRE(json.size() == interfaces.size());
+    REQUIRE(json.as_array().size() == config.interfaces.size());
 
-    for (const auto& i : json) {
+    for (const auto& i : json.as_array()) {
         REQUIRE(i.is_object());
-        auto rank = Rank(i.at("rank").get<uint8_t>());
-        REQUIRE(i.at("identifier") == interfaces.at(rank));
+        auto rank = Rank(i.at("rank").to_number<uint8_t>());
+        REQUIRE(i.at("identifier").as_string() == config.interfaces.at(rank));
     }
 }

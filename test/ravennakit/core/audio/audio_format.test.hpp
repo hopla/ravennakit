@@ -14,7 +14,6 @@
 
 namespace rav {
 
-void test_audio_format_json(const AudioFormat& audio_format, const nlohmann::json& json);
 void test_audio_format_json(const AudioFormat& audio_format, const boost::json::value& json);
 
 }  // namespace rav

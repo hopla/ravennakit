@@ -339,7 +339,6 @@ TEST_CASE("nmos::Node") {
         rav::ptp::Instance ptp_instance(io_context);
         rav::nmos::Node node(io_context, ptp_instance);
         REQUIRE(node.set_configuration(config));
-        rav::nmos::test_nmos_node_json(node, node.to_json());
     }
 }
 
@@ -353,9 +352,4 @@ void rav::nmos::test_nmos_node_configuration_json(const Node::Configuration& con
     REQUIRE(json.at("api_port") == config.api_port);
     REQUIRE(json.at("label").as_string() == config.label);
     REQUIRE(json.at("description").as_string() == config.description);
-}
-
-void rav::nmos::test_nmos_node_json(const Node& node, const boost::json::value& json) {
-    REQUIRE(json.is_object());
-    test_nmos_node_configuration_json(node.get_configuration(), json.at("configuration"));
 }

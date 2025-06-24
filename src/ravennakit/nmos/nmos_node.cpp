@@ -1823,7 +1823,7 @@ void rav::nmos::Node::set_network_interface_config(NetworkInterfaceConfig config
     self_.interfaces.clear();
     const auto& system_interfaces = NetworkInterfaceList::get_system_interfaces();
 
-    for (const auto& [_, id] : config.get_interfaces()) {
+    for (const auto& [_, id] : config.interfaces) {
         auto* iface = system_interfaces.get_interface(id);
         if (iface == nullptr) {
             RAV_ERROR("Network interface with ID {} not found", id);
@@ -1872,12 +1872,6 @@ std::optional<size_t> rav::nmos::Node::index_of_supported_api_version(const ApiV
         return std::distance(k_node_api_versions.begin(), it);
     }
     return std::nullopt;
-}
-
-boost::json::object rav::nmos::Node::to_json() const {
-    return {
-        {"configuration", configuration_.to_json()},
-    };
 }
 
 void rav::nmos::Node::ptp_parent_changed(const ptp::ParentDs& parent) {

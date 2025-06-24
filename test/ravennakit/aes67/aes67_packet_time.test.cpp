@@ -103,7 +103,6 @@ TEST_CASE("aes67_packet_time") {
 
     SECTION("To JSON") {
         auto test_packet_time = [](const rav::aes67::PacketTime& packet_time) {
-            rav::aes67::test_packet_time_json(packet_time, packet_time.to_json());
             rav::aes67::test_packet_time_json(packet_time, boost::json::value_from(packet_time));
         };
 
@@ -113,11 +112,6 @@ TEST_CASE("aes67_packet_time") {
         test_packet_time(rav::aes67::PacketTime::ms_1());
         test_packet_time(rav::aes67::PacketTime::ms_4());
     }
-}
-
-void rav::aes67::test_packet_time_json(const PacketTime& packet_time, const nlohmann::json& json) {
-    REQUIRE(json.at(0) == packet_time.fraction.numerator);
-    REQUIRE(json.at(1) == packet_time.fraction.denominator);
 }
 
 void rav::aes67::test_packet_time_json(const PacketTime& packet_time, const boost::json::value& json) {

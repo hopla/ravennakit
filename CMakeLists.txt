@@ -50,7 +50,6 @@ find_package(Catch2 CONFIG REQUIRED)
 find_package(CLI11 CONFIG REQUIRED)
 find_package(portaudio CONFIG REQUIRED)
 find_package(nanobench CONFIG REQUIRED)
-find_package(nlohmann_json CONFIG REQUIRED)
 find_package(boost_asio CONFIG REQUIRED)
 find_package(boost_container CONFIG REQUIRED)
 find_package(boost_beast CONFIG REQUIRED)
@@ -102,7 +101,6 @@ target_link_libraries(ravennakit
         rav_recommended_lto_flags
         PUBLIC
         fmt::fmt
-        nlohmann_json::nlohmann_json
         $<$<BOOL:${RAV_ENABLE_SPDLOG}>:spdlog::spdlog>
         Boost::asio
         Boost::beast

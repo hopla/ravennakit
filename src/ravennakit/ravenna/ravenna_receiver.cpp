@@ -42,13 +42,6 @@ bool is_connection_info_valid(const rav::sdp::ConnectionInfoField& conn) {
 
 }  // namespace
 
-nlohmann::json rav::RavennaReceiver::to_json() const {
-    nlohmann::json root;
-    root["configuration"] = configuration_.to_json();
-    root["nmos_receiver_uuid"] = boost::uuids::to_string(nmos_receiver_.id);
-    return root;
-}
-
 boost::json::object rav::RavennaReceiver::to_boost_json() const {
     return {
         {"configuration", boost::json::value_from(configuration_)},
@@ -56,15 +49,16 @@ boost::json::object rav::RavennaReceiver::to_boost_json() const {
     };
 }
 
-tl::expected<void, std::string> rav::RavennaReceiver::restore_from_json(const nlohmann::json& json) {
+tl::expected<void, std::string> rav::RavennaReceiver::restore_from_json(const boost::json::value& json) {
     try {
-        auto config = Configuration::from_json(json.at("configuration"));
-        if (!config) {
-            return tl::unexpected(config.error());
+        auto config = boost::json::try_value_to<Configuration>(json.at("configuration"));
+
+        if (config.has_error()) {
+            return tl::unexpected(config.error().message());
         }
 
         const auto nmos_receiver_uuid =
-            boost::uuids::string_generator()(json.at("nmos_receiver_uuid").get<std::string>());
+            boost::uuids::string_generator()(json.at("nmos_receiver_uuid").as_string().c_str());
 
         auto result = set_configuration(*config);
         if (!result) {
@@ -97,40 +91,6 @@ rav::rtp::AudioReceiver::SessionStats rav::RavennaReceiver::get_stream_stats(con
 
 const rav::nmos::ReceiverAudio& rav::RavennaReceiver::get_nmos_receiver() const {
     return nmos_receiver_;
-}
-
-nlohmann::json rav::RavennaReceiver::Configuration::to_json() const {
-    return nlohmann::json {
-        {"session_name", session_name},
-        {"delay_frames", delay_frames},
-        {"enabled", enabled},
-        {"auto_update_sdp", auto_update_sdp},
-        {"sdp", sdp.to_string().value_or("")}
-    };
-}
-
-tl::expected<rav::RavennaReceiver::Configuration, std::string>
-rav::RavennaReceiver::Configuration::from_json(const nlohmann::json& json) {
-    try {
-        Configuration config {};
-        config.session_name = json.at("session_name").get<std::string>();
-        config.delay_frames = json.at("delay_frames").get<uint32_t>();
-        config.enabled = json.at("enabled").get<bool>();
-        config.auto_update_sdp = json.at("auto_update_sdp").get<bool>();
-
-        const auto sdp_text = json.at("sdp").get<std::string>();
-        if (!sdp_text.empty()) {
-            auto sdp = sdp::SessionDescription::parse_new(sdp_text);
-            if (!sdp) {
-                return tl::unexpected(fmt::format("Failed to parse SDP: {}", sdp.error()));
-            }
-            config.sdp = std::move(*sdp);
-        }
-
-        return config;
-    } catch (const std::exception& e) {
-        return tl::unexpected(e.what());
-    }
 }
 
 rav::RavennaReceiver::RavennaReceiver(
@@ -423,7 +383,7 @@ tl::expected<void, std::string> rav::RavennaReceiver::update_state(const bool up
         nmos_receiver_.subscription.active = configuration_.enabled;
         nmos_receiver_.transport = "urn:x-nmos:transport:rtp.mcast";
         nmos_receiver_.interface_bindings.clear();
-        for (const auto& [rank, id] : network_interface_config_.get_interfaces()) {
+        for (const auto& [rank, id] : network_interface_config_.interfaces) {
             nmos_receiver_.interface_bindings.push_back(id);
         }
 
@@ -519,7 +479,7 @@ void rav::RavennaReceiver::set_nmos_node(nmos::Node* nmos_node) {
     nmos_node_ = nmos_node;
     if (nmos_node_ != nullptr) {
         RAV_ASSERT(nmos_receiver_.is_valid(), "NMOS receiver must be valid at this point");
-        if (!nmos_node_->add_or_update_receiver({nmos_receiver_})) {
+        if (!nmos_node_->add_or_update_receiver(nmos_receiver_)) {
             RAV_ERROR("Failed to add NMOS receiver with ID: {}", boost::uuids::to_string(nmos_receiver_.id));
         }
     }
@@ -559,4 +519,15 @@ void rav::tag_invoke(
         {"auto_update_sdp", config.auto_update_sdp},
         {"sdp", config.sdp.to_string().value_or("")}
     };
+}
+
+rav::RavennaReceiver::Configuration
+rav::tag_invoke(const boost::json::value_to_tag<RavennaReceiver::Configuration>&, const boost::json::value& jv) {
+    RavennaReceiver::Configuration config;
+    config.session_name = jv.at("session_name").as_string();
+    config.delay_frames = jv.at("delay_frames").to_number<uint32_t>();
+    config.enabled = jv.at("enabled").as_bool();
+    config.auto_update_sdp = jv.at("auto_update_sdp").as_bool();
+    config.sdp = sdp::SessionDescription::parse_new(jv.at("sdp").as_string().c_str()).value();
+    return config;
 }

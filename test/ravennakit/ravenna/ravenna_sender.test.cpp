@@ -26,7 +26,6 @@ TEST_CASE("RavennaSender") {
     );
 
     for (auto& destination : destinations) {
-        rav::test_ravenna_sender_destination_json(destination, destination.to_json());
         rav::test_ravenna_sender_destination_json(destination, boost::json::value_from(destination));
     }
 
@@ -37,7 +36,6 @@ TEST_CASE("RavennaSender") {
     audio_format.sample_rate = 44100;
     audio_format.ordering = rav::AudioFormat::ChannelOrdering::interleaved;
 
-    test_audio_format_json(audio_format, audio_format.to_json());
     test_audio_format_json(audio_format, boost::json::value_from(audio_format));
 
     rav::RavennaSender::Configuration config;
@@ -49,7 +47,6 @@ TEST_CASE("RavennaSender") {
     config.ttl = 15;
     config.destinations = destinations;
 
-    test_ravenna_sender_configuration_json(config, config.to_json());
     test_ravenna_sender_configuration_json(config, boost::json::value_from(config));
 
     boost::asio::io_context io_context;
@@ -60,18 +57,15 @@ TEST_CASE("RavennaSender") {
         io_context, *advertiser, rtsp_server, ptp_instance, rav::Id{1}, 1
     );
     REQUIRE(sender.set_configuration(config).has_value());
-
-    rav::test_ravenna_sender_json(sender, sender.to_json());
+    const auto sender_json = sender.to_boost_json();
+    rav::test_ravenna_sender_json(sender, sender_json);
     rav::test_ravenna_sender_json(sender, sender.to_boost_json());
-}
 
-void rav::test_ravenna_sender_json(const RavennaSender& sender, const nlohmann::json& json) {
-    REQUIRE(json.is_object());
-    REQUIRE(json.at("session_id") == sender.get_session_id());
-    REQUIRE(json.at("nmos_sender_uuid") == boost::uuids::to_string(sender.get_nmos_sender().id));
-    REQUIRE(json.at("nmos_source_uuid") == boost::uuids::to_string(sender.get_nmos_source().id));
-    REQUIRE(json.at("nmos_flow_uuid") == boost::uuids::to_string(sender.get_nmos_flow().id));
-    test_ravenna_sender_configuration_json(sender.get_configuration(), json.at("configuration"));
+    rav::RavennaSender sender2(
+       io_context, *advertiser, rtsp_server, ptp_instance, rav::Id{2}, 2
+   );
+    REQUIRE(sender2.restore_from_json(sender_json));
+    rav::test_ravenna_sender_json(sender2, sender_json);
 }
 
 void rav::test_ravenna_sender_json(const RavennaSender& sender, const boost::json::value& json) {
@@ -84,32 +78,12 @@ void rav::test_ravenna_sender_json(const RavennaSender& sender, const boost::jso
 }
 
 void rav::test_ravenna_sender_destination_json(
-    const RavennaSender::Destination& destination, const nlohmann::json& json
-) {
-    REQUIRE(json.at("enabled") == destination.enabled);
-    REQUIRE(json.at("address") == destination.endpoint.address().to_string());
-    REQUIRE(json.at("port") == destination.endpoint.port());
-    REQUIRE(json.at("interface_by_rank") == destination.interface_by_rank.value());
-}
-
-void rav::test_ravenna_sender_destination_json(
     const RavennaSender::Destination& destination, const boost::json::value& json
 ) {
     REQUIRE(json.at("enabled") == destination.enabled);
     REQUIRE(json.at("address").as_string() == destination.endpoint.address().to_string());
     REQUIRE(json.at("port") == destination.endpoint.port());
     REQUIRE(json.at("interface_by_rank") == destination.interface_by_rank.value());
-}
-
-void rav::test_ravenna_sender_destinations_json(
-    const std::vector<RavennaSender::Destination>& destinations, const nlohmann::json& json
-) {
-    REQUIRE(json.is_array());
-    REQUIRE(json.size() == destinations.size());
-
-    for (size_t i = 0; i < json.size(); i++) {
-        test_ravenna_sender_destination_json(destinations.at(i), json.at(i));
-    }
 }
 
 void rav::test_ravenna_sender_destinations_json(
@@ -121,18 +95,6 @@ void rav::test_ravenna_sender_destinations_json(
     for (size_t i = 0; i < json.as_array().size(); i++) {
         test_ravenna_sender_destination_json(destinations.at(i), json.as_array().at(i));
     }
-}
-
-void rav::test_ravenna_sender_configuration_json(
-    const RavennaSender::Configuration& config, const nlohmann::json& json
-) {
-    REQUIRE(json.at("session_name") == config.session_name);
-    REQUIRE(json.at("ttl") == config.ttl);
-    REQUIRE(json.at("payload_type") == config.payload_type);
-    REQUIRE(json.at("enabled") == config.enabled);
-    test_ravenna_sender_destinations_json(config.destinations, json.at("destinations"));
-    test_audio_format_json(config.audio_format, json.at("audio_format"));
-    test_packet_time_json(config.packet_time, json.at("packet_time"));
 }
 
 void rav::test_ravenna_sender_configuration_json(

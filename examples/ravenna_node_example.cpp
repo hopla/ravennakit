@@ -24,7 +24,7 @@ struct ravenna_node final: rav::RavennaNode::Subscriber, rav::RavennaReceiver::S
     explicit ravenna_node(const rav::NetworkInterface::Identifier& primary_interface) {
         rav::NetworkInterfaceConfig config;
         config.set_interface(rav::Rank::primary(), primary_interface);
-        node.set_network_interface_config(config);
+        node.set_network_interface_config(config).wait();
         node.subscribe(this).wait();
     }
 

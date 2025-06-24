@@ -14,7 +14,6 @@
 
 namespace rav::aes67 {
 
-void test_packet_time_json(const PacketTime& packet_time, const nlohmann::json& json);
 void test_packet_time_json(const PacketTime& packet_time, const boost::json::value& json);
 
 }  // namespace rav

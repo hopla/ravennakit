@@ -11,10 +11,8 @@
 #pragma once
 
 #include "ravenna_browser.hpp"
-#include "ravenna_config.hpp"
 #include "ravenna_rtsp_client.hpp"
 #include "ravenna_receiver.hpp"
-#include "ravenna_sender.hpp"
 #include "ravenna_sender.hpp"
 #include "ravennakit/core/audio/audio_buffer_view.hpp"
 #include "ravennakit/core/sync/realtime_shared_object.hpp"
@@ -24,8 +22,6 @@
 #include "ravennakit/ptp/ptp_instance.hpp"
 #include "ravennakit/rtp/detail/rtp_sender.hpp"
 #include "ravennakit/rtsp/rtsp_server.hpp"
-
-#include <nlohmann/json.hpp>
 
 #include <string>
 
@@ -315,14 +311,14 @@ class RavennaNode {
     /**
      * @returns A JSON representation of the node.
      */
-    [[nodiscard]] std::future<nlohmann::json> to_json();
+    [[nodiscard]] std::future<boost::json::object> to_boost_json();
 
     /**
      * Restores the node from a JSON representation.
      * @param json The JSON representation of the node.
      * @return A future that will be set when the operation is complete.
      */
-    [[nodiscard]] std::future<tl::expected<void, std::string>> restore_from_json(const nlohmann::json& json);
+    [[nodiscard]] std::future<tl::expected<void, std::string>> restore_from_boost_json(const boost::json::value& json);
 
     /**
      * Schedules some work on the maintenance thread using boost::asio::dispatch. This is useful for synchronizing with
@@ -390,7 +386,7 @@ private:
 
     SubscriberList<Subscriber> subscribers_;
     RealtimeSharedObject<RealtimeSharedContext> realtime_shared_context_;
-    RavennaConfig config_;
+    NetworkInterfaceConfig network_interface_config_;
 
     [[nodiscard]] bool update_realtime_shared_context();
     uint32_t generate_unique_session_id() const;

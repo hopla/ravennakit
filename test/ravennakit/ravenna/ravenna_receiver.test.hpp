@@ -14,10 +14,8 @@
 
 namespace rav {
 
-void test_ravenna_receiver_json(const RavennaReceiver& receiver, const nlohmann::json& json);
 void test_ravenna_receiver_json(const RavennaReceiver& receiver, const boost::json::value& json);
 
-void test_ravenna_receiver_configuration_json(const RavennaReceiver::Configuration& config, const nlohmann::json& json);
 void test_ravenna_receiver_configuration_json(
     const RavennaReceiver::Configuration& config, const boost::json::value& json
 );

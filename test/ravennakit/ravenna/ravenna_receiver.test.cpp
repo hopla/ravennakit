@@ -122,7 +122,7 @@ TEST_CASE("RavennaReceiver") {
         REQUIRE(parameters->streams[1].rank == rav::Rank(1));
     }
 
-    SECTION("Test JSON serialization") {
+    SECTION("To JSON") {
         rav::RavennaReceiver::Configuration config;
         config.session_name = "Session name";
         config.auto_update_sdp = true;
@@ -131,7 +131,6 @@ TEST_CASE("RavennaReceiver") {
         config.sdp =
             rav::sdp::SessionDescription::parse_new("v=0\r\no=- 1731086923289383 0 IN IP4 192.168.4.8\r\n").value();
 
-        rav::test_ravenna_receiver_configuration_json(config, config.to_json());
         rav::test_ravenna_receiver_configuration_json(config, boost::json::value_from(config));
 
 #if !RAV_LINUX
@@ -144,34 +143,44 @@ TEST_CASE("RavennaReceiver") {
         rav::rtp::Receiver rtp_receiver(udp_receiver);
         rav::RavennaReceiver receiver(io_context, rtsp_client, rtp_receiver, rav::Id {1});
         REQUIRE(receiver.set_configuration(config));
-        rav::test_ravenna_receiver_json(receiver, receiver.to_json());
         rav::test_ravenna_receiver_json(receiver, receiver.to_boost_json());
 #endif
     }
-}
 
-void rav::test_ravenna_receiver_json(const RavennaReceiver& receiver, const nlohmann::json& json) {
-    REQUIRE(json.is_object());
-    REQUIRE(json.at("nmos_receiver_uuid") == boost::uuids::to_string(receiver.get_nmos_receiver().id));
-    test_ravenna_receiver_configuration_json(receiver.get_configuration(), json.at("configuration"));
+    SECTION("From JSON") {
+        rav::RavennaReceiver::Configuration config;
+        config.session_name = "Session name";
+        config.auto_update_sdp = true;
+        config.enabled = false;
+        config.delay_frames = 480;
+        config.sdp =
+            rav::sdp::SessionDescription::parse_new("v=0\r\no=- 1731086923289383 0 IN IP4 192.168.4.8\r\n").value();
+
+        auto json = boost::json::value_from(config);
+        auto restored = boost::json::value_to<rav::RavennaReceiver::Configuration>(json);
+        rav::test_ravenna_receiver_configuration_json(restored, json);
+
+#if !RAV_LINUX
+        // On Linux there is no implementation for the dnssd browser which makes the next code error out. Until the
+        // browser is implemented we'll keep the tests disabled.
+        boost::asio::io_context io_context;
+        rav::RavennaBrowser ravenna_browser(io_context);
+        rav::RavennaRtspClient rtsp_client(io_context, ravenna_browser);
+        rav::UdpReceiver udp_receiver(io_context);
+        rav::rtp::Receiver rtp_receiver(udp_receiver);
+        rav::RavennaReceiver receiver(io_context, rtsp_client, rtp_receiver, rav::Id {1});
+        REQUIRE(receiver.set_configuration(config));
+        const auto receiver_json = receiver.to_boost_json();
+        REQUIRE(receiver.restore_from_json(receiver_json));
+        rav::test_ravenna_receiver_json(receiver, receiver_json);
+#endif
+    }
 }
 
 void rav::test_ravenna_receiver_json(const RavennaReceiver& receiver, const boost::json::value& json) {
     REQUIRE(json.is_object());
     REQUIRE(json.at("nmos_receiver_uuid").as_string() == boost::uuids::to_string(receiver.get_nmos_receiver().id));
     test_ravenna_receiver_configuration_json(receiver.get_configuration(), json.at("configuration"));
-}
-
-void rav::test_ravenna_receiver_configuration_json(
-    const RavennaReceiver::Configuration& config, const nlohmann::json& json
-) {
-    REQUIRE(json.is_object());
-    REQUIRE(json.at("session_name") == config.session_name);
-    REQUIRE(json.at("auto_update_sdp") == config.auto_update_sdp);
-    REQUIRE(json.at("enabled") == config.enabled);
-    REQUIRE(json.at("delay_frames") == config.delay_frames);
-    auto sdp = config.sdp.to_string().value();
-    REQUIRE(json.at("sdp") == sdp);
 }
 
 void rav::test_ravenna_receiver_configuration_json(

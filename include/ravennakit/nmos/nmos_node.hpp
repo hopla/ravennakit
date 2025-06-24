@@ -293,11 +293,6 @@ class Node: public ptp::Instance::Subscriber {
      */
     [[nodiscard]] static std::optional<size_t> index_of_supported_api_version(const ApiVersion& version);
 
-    /**
-     * @returns A JSON representation of the node.
-     */
-    boost::json::object to_json() const;
-
     void ptp_parent_changed(const ptp::ParentDs& parent) override;
     void ptp_port_changed_state(const ptp::Port& port) override;
 

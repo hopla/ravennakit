@@ -22,16 +22,7 @@ TEST_CASE("AudioFormat") {
     audio_format.num_channels = 2;
     audio_format.ordering = rav::AudioFormat::ChannelOrdering::interleaved;
 
-    test_audio_format_json(audio_format, audio_format.to_json());
     test_audio_format_json(audio_format, boost::json::value_from(audio_format));
-}
-
-void rav::test_audio_format_json(const AudioFormat& audio_format, const nlohmann::json& json) {
-    REQUIRE(json.at("byte_order") == AudioFormat::to_string(audio_format.byte_order));
-    REQUIRE(json.at("channel_ordering") == AudioFormat::to_string(audio_format.ordering));
-    REQUIRE(json.at("encoding") == audio_encoding_to_string(audio_format.encoding));
-    REQUIRE(json.at("num_channels") == audio_format.num_channels);
-    REQUIRE(json.at("sample_rate") == audio_format.sample_rate);
 }
 
 void rav::test_audio_format_json(const AudioFormat& audio_format, const boost::json::value& json) {

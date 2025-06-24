@@ -78,12 +78,12 @@ TEST_CASE("RavennaNode") {
     node_config.operation_mode = rav::nmos::OperationMode::mdns_p2p;
     node_config.registry_address = "127.0.0.1";
 
-    rav::RavennaConfig ravenna_config;
-    ravenna_config.network_interfaces.set_interface(rav::Rank(0), "en0-not-valid");
-    ravenna_config.network_interfaces.set_interface(rav::Rank(1), "en1-not-valid");
+    rav::NetworkInterfaceConfig network_interface_config;
+    network_interface_config.set_interface(rav::Rank(0), "en0-not-valid");
+    network_interface_config.set_interface(rav::Rank(1), "en1-not-valid");
 
     rav::RavennaNode ravenna_node;
-    ravenna_node.set_network_interface_config(ravenna_config.network_interfaces).get();
+    ravenna_node.set_network_interface_config(network_interface_config).get();
     const auto id1 = ravenna_node.create_receiver(receiver1).get().value();
     REQUIRE(id1.is_valid());
     const auto id2 = ravenna_node.create_receiver(receiver2).get().value();
@@ -94,31 +94,25 @@ TEST_CASE("RavennaNode") {
     REQUIRE(id4.is_valid());
     REQUIRE(ravenna_node.set_nmos_configuration(node_config).get().has_value());
 
-    SECTION("nlohmann json") {
-        auto json = ravenna_node.to_json().get();
-        INFO(json.dump());
-        rav::test_network_interface_config_json(
-            ravenna_config.network_interfaces, json.at("config").at("network_config")
-        );
-        rav::nmos::test_nmos_node_configuration_json(
-            node_config, rav::nlohmann_to_boost_json(json.at("nmos_node").at("configuration"))
-        );
+    SECTION("json") {
+        auto json = ravenna_node.to_boost_json().get();
+        rav::test_network_interface_config_json(network_interface_config, json.at("config").at("network_config"));
+        rav::nmos::test_nmos_node_configuration_json(node_config, json.at("nmos_node").at("configuration"));
         REQUIRE(
-            boost::uuids::string_generator()(json.at("nmos_device_id").get<std::string>())
+            boost::uuids::string_generator()(json.at("nmos_device_id").as_string().c_str())
             == ravenna_node.get_nmos_device_id().get()
         );
 
         auto json_senders = json.at("senders");
         REQUIRE(json_senders.is_array());
-        REQUIRE(json_senders.size() == 2);
+        REQUIRE(json_senders.as_array().size() == 2);
 
         rav::test_ravenna_sender_configuration_json(sender1, json_senders.at(0).at("configuration"));
         rav::test_ravenna_sender_configuration_json(sender2, json_senders.at(1).at("configuration"));
 
         auto json_receivers = json.at("receivers");
-        INFO(json_receivers.dump());
         REQUIRE(json_receivers.is_array());
-        REQUIRE(json_receivers.size() == 2);
+        REQUIRE(json_receivers.as_array().size() == 2);
 
         rav::test_ravenna_receiver_configuration_json(receiver1, json_receivers.at(0).at("configuration"));
         rav::test_ravenna_receiver_configuration_json(receiver2, json_receivers.at(1).at("configuration"));

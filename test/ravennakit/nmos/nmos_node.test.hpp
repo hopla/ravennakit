@@ -15,6 +15,5 @@
 namespace rav::nmos {
 
 void test_nmos_node_configuration_json(const Node::Configuration& config, const boost::json::value& json);
-void test_nmos_node_json(const Node& node, const boost::json::value& json);
 
 }  // namespace rav::nmos

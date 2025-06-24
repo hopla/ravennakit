@@ -15,22 +15,16 @@
 
 namespace rav {
 
-void test_ravenna_sender_json(const RavennaSender& sender, const nlohmann::json& json);
 void test_ravenna_sender_json(const RavennaSender& sender, const boost::json::value& json);
 
-void test_ravenna_sender_destination_json(const RavennaSender::Destination& destination, const nlohmann::json& json);
 void test_ravenna_sender_destination_json(
     const RavennaSender::Destination& destination, const boost::json::value& json
 );
 
 void test_ravenna_sender_destinations_json(
-    const std::vector<RavennaSender::Destination>& destinations, const nlohmann::json& json
-);
-void test_ravenna_sender_destinations_json(
     const std::vector<RavennaSender::Destination>& destinations, const boost::json::value& json
 );
 
-void test_ravenna_sender_configuration_json(const RavennaSender::Configuration& config, const nlohmann::json& json);
 void test_ravenna_sender_configuration_json(const RavennaSender::Configuration& config, const boost::json::value& json);
 
 }  // namespace rav

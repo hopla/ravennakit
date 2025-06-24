@@ -14,6 +14,6 @@
 
 namespace rav {
 
-void test_network_interface_config_json(const NetworkInterfaceConfig& config, const nlohmann::json& json);
+void test_network_interface_config_json(const NetworkInterfaceConfig& config, const boost::json::value& json);
 
-}
+}  // namespace rav

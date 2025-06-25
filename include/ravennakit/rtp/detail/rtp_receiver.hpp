@@ -102,19 +102,6 @@ class Receiver {
     bool unsubscribe(const Subscriber* subscriber);
 
   private:
-    // TODO: Remove
-    class SynchronizationSource {
-      public:
-        explicit SynchronizationSource(const uint32_t ssrc) : ssrc_(ssrc) {}
-
-        [[nodiscard]] uint32_t get_ssrc() const {
-            return ssrc_;
-        }
-
-      private:
-        uint32_t ssrc_ {};
-    };
-
     class SessionContext: UdpReceiver::Subscriber {
       public:
         explicit SessionContext(UdpReceiver& udp_receiver, Session session, boost::asio::ip::address_v4 interface_address);
@@ -135,7 +122,7 @@ class Receiver {
         UdpReceiver& udp_receiver_;
         Session session_;
         boost::asio::ip::address_v4 interface_address_;
-        std::vector<SynchronizationSource> synchronization_sources_;
+        std::vector<uint32_t> synchronization_sources_;
         SubscriberList<Receiver::Subscriber> subscribers_;
 
         void handle_incoming_rtp_data(const ExtendedUdpSocket::RecvEvent& event);

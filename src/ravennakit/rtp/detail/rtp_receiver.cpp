@@ -124,16 +124,16 @@ void rav::rtp::Receiver::SessionContext::handle_incoming_rtp_data(const Extended
 
     bool did_find_stream = false;
 
-    for (auto& state : synchronization_sources_) {
-        if (state.get_ssrc() == packet.ssrc()) {
+    for (const auto& ssrc : synchronization_sources_) {
+        if (ssrc == packet.ssrc()) {
             did_find_stream = true;
         }
     }
 
     if (!did_find_stream) {
-        const auto& it = synchronization_sources_.emplace_back(packet.ssrc());
+        auto ssrc = synchronization_sources_.emplace_back(packet.ssrc());
         RAV_TRACE(
-            "Added new stream with SSRC {} from {}:{}", it.get_ssrc(), event.src_endpoint.address().to_string(),
+            "Added new stream with SSRC {} from {}:{}", ssrc, event.src_endpoint.address().to_string(),
             event.src_endpoint.port()
         );
     }

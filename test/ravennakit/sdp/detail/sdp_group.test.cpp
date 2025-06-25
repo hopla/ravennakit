@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("sdp group") {
+TEST_CASE("rav::sdp::Group") {
     SECTION("Parse group line") {
         const auto group_line = "DUP primary secondary";
         auto group = rav::sdp::Group::parse_new(group_line);

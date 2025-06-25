@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("reference_clock", "[reference_clock]") {
+TEST_CASE("rav::sdp::ReferenceClock") {
     SECTION("Test IEEE1588-2008 with domain") {
         const auto str = "ptp=IEEE1588-2008:39-A7-94-FF-FE-07-CB-D0:1";
         auto ref_clock = rav::sdp::ReferenceClock::parse_new(str);

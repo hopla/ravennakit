@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("rtp_filter") {
+TEST_CASE("rav::rtp::Filter") {
     const auto connection_address = boost::asio::ip::make_address("239.3.8.1");
     rav::rtp::Filter filter(connection_address);
     SECTION("matches") {

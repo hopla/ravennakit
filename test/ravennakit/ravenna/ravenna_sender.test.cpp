@@ -16,7 +16,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("RavennaSender") {
+TEST_CASE("rav::RavennaSender") {
     std::vector<rav::RavennaSender::Destination> destinations;
     destinations.push_back(
         {rav::Rank(0), boost::asio::ip::udp::endpoint(boost::asio::ip::make_address("239.0.0.1"), 5005), true}

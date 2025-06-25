@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("source_filter", "[source_filter]") {
+TEST_CASE("rav::sdp::SourceFilter") {
     SECTION("Example 1") {
         auto filter = rav::sdp::SourceFilter::parse_new(" incl IN IP4 232.3.4.5 192.0.2.10");
         REQUIRE(filter);

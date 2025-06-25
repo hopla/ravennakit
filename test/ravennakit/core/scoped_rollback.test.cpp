@@ -12,7 +12,7 @@
 
 #include "catch2/catch_all.hpp"
 
-TEST_CASE("rollback::rollback()", "[rollback]") {
+TEST_CASE("rav::ScopedRollback") {
     int count = 0;
     SECTION("Rollback with initial function") {
         {
@@ -28,7 +28,7 @@ TEST_CASE("rollback::rollback()", "[rollback]") {
             rav::ScopedRollback rollback([&count] {
                 count++;
             });
-            rollback.commit();
+            rollback.reset();
         }
         REQUIRE(count == 0);
     }

@@ -14,7 +14,7 @@
 #include <thread>
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("exclusive_access_guard") {
+TEST_CASE("rav::ExclusiveAccessGuard") {
     SECTION("Exclusive access violation") {
         rav::ExclusiveAccessGuard guard;
 

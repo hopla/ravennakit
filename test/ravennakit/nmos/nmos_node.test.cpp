@@ -98,7 +98,7 @@ class NodeTestHttpClient final: public rav::HttpClientBase {
 
 }  // namespace
 
-TEST_CASE("nmos::Node") {
+TEST_CASE("rav::nmos::Node") {
     SECTION("Supported api versions") {
         auto versions = rav::nmos::Node::k_node_api_versions;
         REQUIRE(versions.size() == 2);

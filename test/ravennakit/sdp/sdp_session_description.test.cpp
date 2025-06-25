@@ -14,7 +14,7 @@
 
 #include "ravennakit/core/util.hpp"
 
-TEST_CASE("session_description") {
+TEST_CASE("rav::sdp::SessionDescription") {
     SECTION("Test crlf delimited string") {
         constexpr auto crlf =
             "v=0\r\n"

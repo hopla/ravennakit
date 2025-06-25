@@ -13,7 +13,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("HttpServer") {
+TEST_CASE("rav::HttpServer") {
     SECTION("Simple GET request") {
         boost::asio::io_context io_context;
         rav::HttpServer server(io_context);

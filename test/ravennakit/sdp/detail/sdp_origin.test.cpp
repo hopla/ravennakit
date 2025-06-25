@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("media_description | origin_field") {
+TEST_CASE("rav::sdp::OriginField") {
     SECTION("Parse origin line") {
         auto origin = rav::sdp::OriginField::parse_new("o=- 13 0 IN IP4 192.168.15.52");
         REQUIRE(origin);

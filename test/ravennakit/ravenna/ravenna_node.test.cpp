@@ -16,7 +16,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("RavennaNode") {
+TEST_CASE("rav::RavennaNode") {
     rav::AudioFormat audio_format;
     audio_format.encoding = rav::AudioEncoding::pcm_s24;
     audio_format.byte_order = rav::AudioFormat::ByteOrder::be;

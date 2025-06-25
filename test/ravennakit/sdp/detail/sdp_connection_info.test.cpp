@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("media_description | connection_info_field") {
+TEST_CASE("rav::sdp::ConnectionInfoField") {
     SECTION("Parse connection line") {
         auto connection = rav::sdp::ConnectionInfoField::parse_new("c=IN IP4 239.1.15.52");
         REQUIRE(connection);

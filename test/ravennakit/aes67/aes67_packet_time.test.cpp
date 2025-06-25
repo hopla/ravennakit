@@ -14,7 +14,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("aes67_packet_time") {
+TEST_CASE("rav::aes67::PacketTime") {
     constexpr float eps = 0.005f;
     SECTION("125 microseconds") {
         const auto pt = rav::aes67::PacketTime::us_125();

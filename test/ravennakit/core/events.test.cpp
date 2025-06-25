@@ -23,7 +23,7 @@ struct int_event {
 };
 }
 
-TEST_CASE("events", "[events]") {
+TEST_CASE("rav::EventEmitter") {
     rav::VectorBuffer<std::string> fired_events;
 
     rav::EventEmitter<str_event, int_event> events;

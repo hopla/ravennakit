@@ -12,7 +12,7 @@
 
 #include "ravennakit/sdp/detail/sdp_media_clock_source.hpp"
 
-TEST_CASE("media_clock", "[media_clock]") {
+TEST_CASE("rav::sdp::MediaClockSource", "[media_clock]") {
     SECTION("Parse direct only") {
         constexpr auto line = "direct";
         const auto clock = rav::sdp::MediaClockSource::parse_new(line);

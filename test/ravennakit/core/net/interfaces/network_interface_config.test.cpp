@@ -13,7 +13,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("NetworkInterfaceConfig") {
+TEST_CASE("rav::NetworkInterfaceConfig") {
     rav::NetworkInterfaceConfig config;
     config.set_interface(rav::Rank(0), "1");
     config.set_interface(rav::Rank(1), "2");

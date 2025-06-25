@@ -14,7 +14,7 @@
 #include <nanobench.h>
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("AudioFormat") {
+TEST_CASE("rav::AudioFormat") {
     rav::AudioFormat audio_format;
     audio_format.byte_order = rav::AudioFormat::ByteOrder::be;
     audio_format.encoding = rav::AudioEncoding::pcm_s24;

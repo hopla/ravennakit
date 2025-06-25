@@ -15,7 +15,7 @@
 #include <catch2/catch_all.hpp>
 #include <fmt/format.h>
 
-TEST_CASE("HttpClient") {
+TEST_CASE("rav::HttpClient") {
     SECTION("get_async") {
         boost::asio::io_context io_context;
 

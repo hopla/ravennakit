@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("id", "[id]") {
+TEST_CASE("rav::Id", "[id]") {
     SECTION("Invalid id") {
         constexpr rav::Id invalid_id;
         REQUIRE_FALSE(invalid_id.is_valid());

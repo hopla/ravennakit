@@ -13,7 +13,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("RavennaReceiver") {
+TEST_CASE("rav::RavennaReceiver") {
     SECTION("Create audio receiver parameters from Anubis SDP") {
         constexpr auto k_anubis_sdp =
             "v=0\r\n"

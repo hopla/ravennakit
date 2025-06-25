@@ -57,10 +57,9 @@ class ScopedRollback {
     ScopedRollback& operator=(ScopedRollback&&) = delete;
 
     /**
-     * Commits the rollback, clears the stored function.
-     * Call this when the rollback is no longer needed.
+     * Clears the stored function (if there is one) without calling it.
      */
-    void commit() {
+    void reset() {
         rollback_function_ = {};
     }
 

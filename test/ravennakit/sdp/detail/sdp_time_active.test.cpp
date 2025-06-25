@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("media_description | time_active_field") {
+TEST_CASE("rav::sdp::TimeActiveField") {
     SECTION("Test time field") {
         auto time = rav::sdp::TimeActiveField::parse_new("t=123456789 987654321");
         REQUIRE(time);

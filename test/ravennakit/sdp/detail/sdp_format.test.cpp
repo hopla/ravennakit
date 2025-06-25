@@ -12,7 +12,7 @@
 
 #include <catch2/catch_all.hpp>
 
-TEST_CASE("media_description | format") {
+TEST_CASE("rav::sdp::Format") {
     SECTION("98/L16/48000/2") {
         auto fmt = rav::sdp::Format::parse_new("98 L16/48000/2");
         REQUIRE(fmt);

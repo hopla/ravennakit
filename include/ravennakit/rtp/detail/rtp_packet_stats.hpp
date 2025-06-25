@@ -11,7 +11,6 @@
 #pragma once
 
 #include "ravennakit/core/tracy.hpp"
-#include "ravennakit/core/containers/ring_buffer.hpp"
 #include "ravennakit/core/util/wrapping_uint.hpp"
 #include "ravennakit/rtp/rtp_packet_view.hpp"
 

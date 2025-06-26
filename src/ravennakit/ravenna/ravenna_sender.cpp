@@ -620,21 +620,21 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
         };
 
         sdp::MediaDescription media;
-        media.add_connection_info(connection_info);
-        media.set_media_type("audio");
-        media.set_port(5004);
-        media.set_protocol("RTP/AVP");
-        media.add_format(sdp_format.value());
-        media.add_source_filter(filter);
-        media.set_clock_domain(clock_domain);
-        media.set_sync_time(0);
-        media.set_ref_clock(ref_clock);
-        media.set_direction(sdp::MediaDirection::recvonly);
-        media.set_ptime(get_signaled_ptime());
-        media.set_framecount(get_framecount());
+        media.connection_infos.push_back(connection_info);
+        media.media_type = "audio";
+        media.port = 5004;
+        media.protocol = "RTP/AVP";
+        media.add_or_update_format(sdp_format.value());
+        media.add_or_update_source_filter(filter);
+        media.ravenna_clock_domain = clock_domain;
+        media.ravenna_sync_time = 0;
+        media.reference_clock = ref_clock;
+        media.media_direction = sdp::MediaDirection::recvonly;
+        media.ptime = get_signaled_ptime();
+        media.ravenna_framecount = get_framecount();
 
         if (num_active_destinations > 1) {
-            media.set_mid(dst.interface_by_rank.to_ordinal_latin());
+            media.mid = dst.interface_by_rank.to_ordinal_latin();
             group.tags.push_back(dst.interface_by_rank.to_ordinal_latin());
         }
 

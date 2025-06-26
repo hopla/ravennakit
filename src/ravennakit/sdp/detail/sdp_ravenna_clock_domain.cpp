@@ -45,7 +45,7 @@ const char* rav::sdp::to_string(const RavennaClockDomain::SyncSource source) {
     }
 }
 
-tl::expected<std::string, std::string> rav::sdp::to_string(const RavennaClockDomain& ravenna_clock_domain) {
+std::string rav::sdp::to_string(const RavennaClockDomain& ravenna_clock_domain) {
     return fmt::format(
         "a={}:{} {}", RavennaClockDomain::k_attribute_name, to_string(ravenna_clock_domain.source),
         ravenna_clock_domain.domain

@@ -56,7 +56,7 @@ rav::sdp::SessionDescription::parse_new(const std::string& sdp_text) {
                     return tl::unexpected(result.error());
                 }
                 if (!sd.media_descriptions_.empty()) {
-                    sd.media_descriptions_.back().add_connection_info(std::move(*result));
+                    sd.media_descriptions_.back().connection_infos.push_back(std::move(*result));
                 } else {
                     sd.connection_info_ = std::move(*result);
                 }
@@ -71,7 +71,7 @@ rav::sdp::SessionDescription::parse_new(const std::string& sdp_text) {
                 break;
             }
             case 'm': {
-                auto desc = MediaDescription::parse_new(*line);
+                auto desc = parse_media_description(*line);
                 if (!desc) {
                     return tl::unexpected(desc.error());
                 }
@@ -94,7 +94,7 @@ rav::sdp::SessionDescription::parse_new(const std::string& sdp_text) {
             }
             case 'i': {
                 if (!sd.media_descriptions_.empty()) {
-                    sd.media_descriptions_.back().set_session_information(std::string(line->substr(2)));
+                    sd.media_descriptions_.back().session_information = std::string(line->substr(2));
                 } else {
                     sd.session_information_ = line->substr(2);
                 }
@@ -254,11 +254,7 @@ tl::expected<std::string, std::string> rav::sdp::SessionDescription::to_string(c
 
     // Clock domain
     if (clock_domain().has_value()) {
-        auto clock = sdp::to_string(*ravenna_clock_domain_);
-        if (!clock) {
-            return clock;
-        }
-        fmt::format_to(std::back_inserter(sdp), "{}{}", clock.value(), newline);
+        fmt::format_to(std::back_inserter(sdp), "{}{}", sdp::to_string(*ravenna_clock_domain_), newline);
     }
 
     // Ref clock
@@ -283,11 +279,7 @@ tl::expected<std::string, std::string> rav::sdp::SessionDescription::to_string(c
 
     // Media descriptions
     for (const auto& media : media_descriptions_) {
-        auto media_str = media.to_string(newline);
-        if (!media_str) {
-            return media_str;
-        }
-        fmt::format_to(std::back_inserter(sdp), "{}", media_str.value());
+        fmt::format_to(std::back_inserter(sdp), "{}", sdp::to_string(media));
     }
 
     return sdp;

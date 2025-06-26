@@ -113,29 +113,29 @@ TEST_CASE("rav::sdp::SessionDescription") {
             REQUIRE(descriptions.size() == 1);
 
             const auto& media = descriptions[0];
-            REQUIRE(media.media_type() == "audio");
-            REQUIRE(media.port() == 5004);
-            REQUIRE(media.number_of_ports() == 1);
-            REQUIRE(media.protocol() == "RTP/AVP");
-            REQUIRE(media.formats().size() == 1);
+            REQUIRE(media.media_type == "audio");
+            REQUIRE(media.port == 5004);
+            REQUIRE(media.number_of_ports == 1);
+            REQUIRE(media.protocol == "RTP/AVP");
+            REQUIRE(media.formats.size() == 1);
 
-            auto format = media.formats()[0];
+            auto format = media.formats[0];
             REQUIRE(format.payload_type == 98);
             REQUIRE(format.encoding_name == "L16");
             REQUIRE(format.clock_rate == 48000);
             REQUIRE(format.num_channels == 2);
-            REQUIRE(media.connection_infos().size() == 1);
+            REQUIRE(media.connection_infos.size() == 1);
 
-            const auto& conn = media.connection_infos().back();
+            const auto& conn = media.connection_infos.back();
             REQUIRE(conn.network_type == rav::sdp::NetwType::internet);
             REQUIRE(conn.address_type == rav::sdp::AddrType::ipv4);
             REQUIRE(conn.address == "239.1.15.52");
             REQUIRE(conn.ttl.has_value() == true);
             REQUIRE(*conn.ttl == 15);
-            REQUIRE(static_cast<int64_t>(media.ptime().value()) == 1);
+            REQUIRE(static_cast<int64_t>(media.ptime.value()) == 1);
 
             SECTION("Test refclk on media") {
-                const auto& refclk = media.ref_clock();
+                const auto& refclk = media.reference_clock;
                 REQUIRE(refclk.has_value());
                 REQUIRE(refclk->source_ == rav::sdp::ReferenceClock::ClockSource::ptp);
                 REQUIRE(refclk->ptp_version_ == rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008);
@@ -144,18 +144,18 @@ TEST_CASE("rav::sdp::SessionDescription") {
             }
 
             SECTION("Test sync-time") {
-                REQUIRE(media.sync_time().value() == 0);
+                REQUIRE(media.ravenna_sync_time.value() == 0);
             }
 
             SECTION("Test mediaclk on media") {
-                const auto& media_clock = media.media_clock().value();
+                const auto& media_clock = media.media_clock.value();
                 REQUIRE(media_clock.mode == rav::sdp::MediaClockSource::ClockMode::direct);
                 REQUIRE(media_clock.offset.value() == 0);
                 REQUIRE_FALSE(media_clock.rate.has_value());
             }
 
             SECTION("Test source-filter on media") {
-                const auto& filters = media.source_filters();
+                const auto& filters = media.source_filters;
                 REQUIRE(filters.size() == 1);
                 const auto& filter = filters[0];
                 REQUIRE(filter.mode == rav::sdp::FilterMode::include);
@@ -167,11 +167,11 @@ TEST_CASE("rav::sdp::SessionDescription") {
             }
 
             SECTION("Framecount") {
-                REQUIRE(media.framecount() == 48);
+                REQUIRE(media.ravenna_framecount == 48);
             }
 
             SECTION("Unknown attributes") {
-                const auto& attributes = media.attributes();
+                const auto& attributes = media.attributes;
                 REQUIRE(attributes.size() == 2);
                 REQUIRE(attributes.at("palign") == "0");
                 REQUIRE(attributes.at("midi-pre2") == "50040 0,0;0,1");
@@ -240,27 +240,27 @@ TEST_CASE("rav::sdp::SessionDescription") {
         REQUIRE(session.time_active().stop_time == 0);
         REQUIRE(session.media_descriptions().size() == 1);
         const auto& media = session.media_descriptions()[0];
-        REQUIRE(media.media_type() == "audio");
-        REQUIRE(media.port() == 5004);
-        REQUIRE(media.number_of_ports() == 1);
-        REQUIRE(media.protocol() == "RTP/AVP");
-        REQUIRE(media.formats().size() == 1);
-        REQUIRE(media.session_information().value() == "Channels 1-8");
-        const auto& format = media.formats()[0];
+        REQUIRE(media.media_type == "audio");
+        REQUIRE(media.port == 5004);
+        REQUIRE(media.number_of_ports == 1);
+        REQUIRE(media.protocol == "RTP/AVP");
+        REQUIRE(media.formats.size() == 1);
+        REQUIRE(media.session_information.value() == "Channels 1-8");
+        const auto& format = media.formats[0];
         REQUIRE(format.payload_type == 96);
         REQUIRE(format.encoding_name == "L24");
         REQUIRE(format.clock_rate == 48000);
         REQUIRE(format.num_channels == 8);
-        REQUIRE(media.direction() == rav::sdp::MediaDirection::recvonly);
-        REQUIRE(static_cast<int64_t>(media.ptime().value()) == 1);
-        REQUIRE(media.ref_clock().has_value());
-        const auto& refclk = media.ref_clock().value();
+        REQUIRE(media.media_direction == rav::sdp::MediaDirection::recvonly);
+        REQUIRE(static_cast<int64_t>(media.ptime.value()) == 1);
+        REQUIRE(media.reference_clock.has_value());
+        const auto& refclk = media.reference_clock.value();
         REQUIRE(refclk.source_ == rav::sdp::ReferenceClock::ClockSource::ptp);
         REQUIRE(refclk.ptp_version_ == rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008);
         REQUIRE(refclk.gmid_ == "39-A7-94-FF-FE-07-CB-D0");
         REQUIRE(refclk.domain_ == 0);
-        REQUIRE(media.media_clock().has_value());
-        const auto& media_clock = media.media_clock().value();
+        REQUIRE(media.media_clock.has_value());
+        const auto& media_clock = media.media_clock.value();
         REQUIRE(media_clock.mode == rav::sdp::MediaClockSource::ClockMode::direct);
         REQUIRE(media_clock.offset.value() == 963214424);
         REQUIRE_FALSE(media_clock.rate.has_value());
@@ -303,27 +303,27 @@ TEST_CASE("rav::sdp::SessionDescription") {
         REQUIRE(session.time_active().stop_time == 0);
         REQUIRE(session.media_descriptions().size() == 1);
         const auto& media = session.media_descriptions()[0];
-        REQUIRE(media.media_type() == "audio");
-        REQUIRE(media.port() == 5004);
-        REQUIRE(media.number_of_ports() == 1);
-        REQUIRE(media.protocol() == "RTP/AVP");
-        REQUIRE(media.formats().size() == 1);
-        REQUIRE(media.session_information().value() == "Channels 1-8");
-        const auto& format = media.formats()[0];
+        REQUIRE(media.media_type == "audio");
+        REQUIRE(media.port == 5004);
+        REQUIRE(media.number_of_ports == 1);
+        REQUIRE(media.protocol == "RTP/AVP");
+        REQUIRE(media.formats.size() == 1);
+        REQUIRE(media.session_information.value() == "Channels 1-8");
+        const auto& format = media.formats[0];
         REQUIRE(format.payload_type == 96);
         REQUIRE(format.encoding_name == "L24");
         REQUIRE(format.clock_rate == 48000);
         REQUIRE(format.num_channels == 8);
-        REQUIRE(media.direction() == rav::sdp::MediaDirection::sendonly);
-        REQUIRE(rav::is_within(media.ptime().value(), 0.250f, 0.00001f));
-        REQUIRE(media.ref_clock().has_value());
-        const auto& refclk = media.ref_clock().value();
+        REQUIRE(media.media_direction == rav::sdp::MediaDirection::sendonly);
+        REQUIRE(rav::is_within(media.ptime.value(), 0.250f, 0.00001f));
+        REQUIRE(media.reference_clock.has_value());
+        const auto& refclk = media.reference_clock.value();
         REQUIRE(refclk.source_ == rav::sdp::ReferenceClock::ClockSource::ptp);
         REQUIRE(refclk.ptp_version_ == rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008);
         REQUIRE(refclk.gmid_ == "39-A7-94-FF-FE-07-CB-D0");
         REQUIRE(refclk.domain_ == 0);
-        REQUIRE(media.media_clock().has_value());
-        const auto& media_clock = media.media_clock().value();
+        REQUIRE(media.media_clock.has_value());
+        const auto& media_clock = media.media_clock.value();
         REQUIRE(media_clock.mode == rav::sdp::MediaClockSource::ClockMode::direct);
         REQUIRE(media_clock.offset.value() == 2216659908);
         REQUIRE_FALSE(media_clock.rate.has_value());
@@ -377,7 +377,7 @@ TEST_CASE("rav::sdp::SessionDescription") {
             const auto& media = descriptions[0];
 
             SECTION("Test source-filter on media") {
-                const auto& filters = media.source_filters();
+                const auto& filters = media.source_filters;
                 REQUIRE(filters.size() == 1);
                 const auto& filter = filters[0];
                 REQUIRE(filter.mode == rav::sdp::FilterMode::include);
@@ -433,7 +433,7 @@ TEST_CASE("rav::sdp::SessionDescription") {
             const auto& media = descriptions[0];
 
             SECTION("Unknown attributes on media") {
-                const auto& attributes = media.attributes();
+                const auto& attributes = media.attributes;
                 REQUIRE(attributes.size() == 3);
                 REQUIRE(attributes.at("unknown-attribute-media") == "unknown-attribute-media-value");
                 REQUIRE(attributes.at("palign") == "0");
@@ -511,8 +511,11 @@ TEST_CASE("rav::sdp::SessionDescription") {
         }
 
         SECTION("Source filters") {
-            rav::sdp::SourceFilter filter{
-                rav::sdp::FilterMode::include, rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "239.1.16.51",
+            rav::sdp::SourceFilter filter {
+                rav::sdp::FilterMode::include,
+                rav::sdp::NetwType::internet,
+                rav::sdp::AddrType::ipv4,
+                "239.1.16.51",
                 {"192.168.16.51"}
             };
             sdp.add_source_filter(filter);
@@ -521,25 +524,25 @@ TEST_CASE("rav::sdp::SessionDescription") {
         }
 
         rav::sdp::MediaDescription md1;
-        md1.set_media_type("audio");
-        md1.set_port(5004);
-        md1.set_number_of_ports(1);
-        md1.set_protocol("RTP/AVP");
-        md1.add_format({98, "L16", 44100, 2});
-        md1.add_connection_info({rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.1", 15, {}});
-        md1.set_ptime(20.f);
-        md1.set_max_ptime(60.f);
-        md1.set_direction(rav::sdp::MediaDirection::recvonly);
-        md1.set_ref_clock(
-            {rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
-            }
+        md1.media_type = "audio";
+        md1.port = 5004;
+        md1.number_of_ports = 1;
+        md1.protocol = "RTP/AVP";
+        md1.add_or_update_format({98, "L16", 44100, 2});
+        md1.connection_infos.push_back({rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.1", 15, {}}
         );
-        md1.set_media_clock(
-            {rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})}
-        );
-        md1.set_clock_domain(rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1});
-        md1.set_sync_time(1234);
-        md1.set_clock_deviation(std::optional<rav::Fraction<unsigned>>({1001, 1000}));
+        md1.ptime = 20.f;
+        md1.max_ptime = 60.f;
+        md1.media_direction = rav::sdp::MediaDirection::recvonly;
+        md1.reference_clock = {
+            rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
+        };
+        md1.media_clock = {
+            rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})
+        };
+        md1.ravenna_clock_domain = rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1};
+        md1.ravenna_sync_time = 1234;
+        md1.ravenna_clock_deviation = std::optional<rav::Fraction<unsigned>>({1001, 1000});
         sdp.add_media_description(md1);
 
         expected +=
@@ -611,7 +614,7 @@ TEST_CASE("rav::sdp::SessionDescription") {
         }
 
         SECTION("Reference clock attribute") {
-            rav::sdp::ReferenceClock ref_clock{
+            rav::sdp::ReferenceClock ref_clock {
                 rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008,
                 "00-1D-C1-FF-FE-51-9E-F7", 0
             };
@@ -636,8 +639,11 @@ TEST_CASE("rav::sdp::SessionDescription") {
         }
 
         SECTION("Source filters") {
-            rav::sdp::SourceFilter filter{
-                rav::sdp::FilterMode::include, rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "239.1.16.51",
+            rav::sdp::SourceFilter filter {
+                rav::sdp::FilterMode::include,
+                rav::sdp::NetwType::internet,
+                rav::sdp::AddrType::ipv4,
+                "239.1.16.51",
                 {"192.168.16.51"}
             };
             sdp.add_source_filter(filter);
@@ -646,26 +652,28 @@ TEST_CASE("rav::sdp::SessionDescription") {
         }
 
         rav::sdp::MediaDescription primary;
-        primary.set_media_type("audio");
-        primary.set_port(5004);
-        primary.set_number_of_ports(1);
-        primary.set_protocol("RTP/AVP");
-        primary.add_format({98, "L16", 44100, 2});
-        primary.add_connection_info({rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.1", 15, {}});
-        primary.set_ptime(20.f);
-        primary.set_max_ptime(60.f);
-        primary.set_direction(rav::sdp::MediaDirection::recvonly);
-        primary.set_ref_clock(
-            {rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
-            }
+        primary.media_type = "audio";
+        primary.port = 5004;
+        primary.number_of_ports = 1;
+        primary.protocol = "RTP/AVP";
+        primary.add_or_update_format({98, "L16", 44100, 2});
+        primary.connection_infos.push_back(
+            {rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.1", 15, {}}
         );
-        primary.set_media_clock(
-            {rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})}
-        );
-        primary.set_clock_domain(rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1});
-        primary.set_sync_time(1234);
-        primary.set_clock_deviation(std::optional<rav::Fraction<unsigned>>({1001, 1000}));
-        primary.set_mid("primary");
+        primary.ptime = 20.f;
+        primary.max_ptime = 60.f;
+        primary.media_direction = rav::sdp::MediaDirection::recvonly;
+        primary.reference_clock = {
+            rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
+        };
+        primary.media_clock = {
+            rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})
+        };
+        primary.ravenna_clock_domain =
+            rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1};
+        primary.ravenna_sync_time = 1234;
+        primary.ravenna_clock_deviation = std::optional<rav::Fraction<unsigned>>({1001, 1000});
+        primary.mid = "primary";
         sdp.add_media_description(primary);
 
         expected +=
@@ -683,26 +691,28 @@ TEST_CASE("rav::sdp::SessionDescription") {
             "a=clock-deviation:1001/1000\r\n";
 
         rav::sdp::MediaDescription secondary;
-        secondary.set_media_type("audio");
-        secondary.set_port(5004);
-        secondary.set_number_of_ports(1);
-        secondary.set_protocol("RTP/AVP");
-        secondary.add_format({98, "L16", 44100, 2});
-        secondary.add_connection_info({rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.2", 15, {}});
-        secondary.set_ptime(20.f);
-        secondary.set_max_ptime(60.f);
-        secondary.set_direction(rav::sdp::MediaDirection::recvonly);
-        secondary.set_ref_clock(
-            {rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
-            }
+        secondary.media_type = "audio";
+        secondary.port = 5004;
+        secondary.number_of_ports = 1;
+        secondary.protocol = "RTP/AVP";
+        secondary.add_or_update_format({98, "L16", 44100, 2});
+        secondary.connection_infos.push_back(
+            {rav::sdp::NetwType::internet, rav::sdp::AddrType::ipv4, "192.168.1.2", 15, {}}
         );
-        secondary.set_media_clock(
-            {rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})}
-        );
-        secondary.set_clock_domain(rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1});
-        secondary.set_sync_time(1234);
-        secondary.set_clock_deviation(std::optional<rav::Fraction<unsigned>>({1001, 1000}));
-        secondary.set_mid("secondary");
+        secondary.ptime = 20.f;
+        secondary.max_ptime = 60.f;
+        secondary.media_direction = rav::sdp::MediaDirection::recvonly;
+        secondary.reference_clock = {
+            rav::sdp::ReferenceClock::ClockSource::ptp, rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008, "gmid", 1
+        };
+        secondary.media_clock = {
+            rav::sdp::MediaClockSource::ClockMode::direct, 5, std::optional<rav::Fraction<int>>({48000, 1})
+        };
+        secondary.ravenna_clock_domain =
+            rav::sdp::RavennaClockDomain {rav::sdp::RavennaClockDomain::SyncSource::ptp_v2, 1};
+        secondary.ravenna_sync_time = 1234;
+        secondary.ravenna_clock_deviation = std::optional<rav::Fraction<unsigned>>({1001, 1000});
+        secondary.mid = "secondary";
         sdp.add_media_description(secondary);
 
         expected +=
@@ -881,29 +891,29 @@ TEST_CASE("rav::sdp::SessionDescription") {
 
             SECTION("Primary") {
                 const auto& media = descriptions[0];
-                REQUIRE(media.media_type() == "audio");
-                REQUIRE(media.port() == 5004);
-                REQUIRE(media.number_of_ports() == 1);
-                REQUIRE(media.protocol() == "RTP/AVP");
-                REQUIRE(media.formats().size() == 1);
+                REQUIRE(media.media_type == "audio");
+                REQUIRE(media.port == 5004);
+                REQUIRE(media.number_of_ports == 1);
+                REQUIRE(media.protocol == "RTP/AVP");
+                REQUIRE(media.formats.size() == 1);
 
-                auto format = media.formats()[0];
+                auto format = media.formats[0];
                 REQUIRE(format.payload_type == 98);
                 REQUIRE(format.encoding_name == "L24");
                 REQUIRE(format.clock_rate == 48000);
                 REQUIRE(format.num_channels == 64);
-                REQUIRE(media.connection_infos().size() == 1);
+                REQUIRE(media.connection_infos.size() == 1);
 
-                const auto& conn = media.connection_infos().back();
+                const auto& conn = media.connection_infos.back();
                 REQUIRE(conn.network_type == rav::sdp::NetwType::internet);
                 REQUIRE(conn.address_type == rav::sdp::AddrType::ipv4);
                 REQUIRE(conn.address == "239.3.8.1");
                 REQUIRE(conn.ttl.has_value() == true);
                 REQUIRE(*conn.ttl == 31);
-                REQUIRE(static_cast<int64_t>(media.ptime().value() * 100.f) == 12);
+                REQUIRE(static_cast<int64_t>(media.ptime.value() * 100.f) == 12);
 
                 SECTION("Test refclk on media") {
-                    const auto& refclk = media.ref_clock();
+                    const auto& refclk = media.reference_clock;
                     REQUIRE(refclk.has_value());
                     REQUIRE(refclk->source_ == rav::sdp::ReferenceClock::ClockSource::ptp);
                     REQUIRE(refclk->ptp_version_ == rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008);
@@ -912,18 +922,18 @@ TEST_CASE("rav::sdp::SessionDescription") {
                 }
 
                 SECTION("Test sync-time") {
-                    REQUIRE(media.sync_time().value() == 0);
+                    REQUIRE(media.ravenna_sync_time.value() == 0);
                 }
 
                 SECTION("Test mediaclk on media") {
-                    const auto& media_clock = media.media_clock().value();
+                    const auto& media_clock = media.media_clock.value();
                     REQUIRE(media_clock.mode == rav::sdp::MediaClockSource::ClockMode::direct);
                     REQUIRE(media_clock.offset.value() == 0);
                     REQUIRE_FALSE(media_clock.rate.has_value());
                 }
 
                 SECTION("Test source-filter on media") {
-                    const auto& filters = media.source_filters();
+                    const auto& filters = media.source_filters;
                     REQUIRE(filters.size() == 1);
                     const auto& filter = filters[0];
                     REQUIRE(filter.mode == rav::sdp::FilterMode::include);
@@ -935,11 +945,11 @@ TEST_CASE("rav::sdp::SessionDescription") {
                 }
 
                 SECTION("Framecount") {
-                    REQUIRE(media.framecount() == 6);
+                    REQUIRE(media.ravenna_framecount == 6);
                 }
 
                 SECTION("Mid") {
-                    auto mid = media.get_mid();
+                    auto mid = media.mid;
                     REQUIRE(mid.has_value());
                     REQUIRE(*mid == "primary");
                 }
@@ -947,29 +957,29 @@ TEST_CASE("rav::sdp::SessionDescription") {
 
             SECTION("Secondary") {
                 const auto& media = descriptions[1];
-                REQUIRE(media.media_type() == "audio");
-                REQUIRE(media.port() == 5004);
-                REQUIRE(media.number_of_ports() == 1);
-                REQUIRE(media.protocol() == "RTP/AVP");
-                REQUIRE(media.formats().size() == 1);
+                REQUIRE(media.media_type == "audio");
+                REQUIRE(media.port == 5004);
+                REQUIRE(media.number_of_ports == 1);
+                REQUIRE(media.protocol == "RTP/AVP");
+                REQUIRE(media.formats.size() == 1);
 
-                auto format = media.formats()[0];
+                auto format = media.formats[0];
                 REQUIRE(format.payload_type == 98);
                 REQUIRE(format.encoding_name == "L24");
                 REQUIRE(format.clock_rate == 48000);
                 REQUIRE(format.num_channels == 64);
-                REQUIRE(media.connection_infos().size() == 1);
+                REQUIRE(media.connection_infos.size() == 1);
 
-                const auto& conn = media.connection_infos().back();
+                const auto& conn = media.connection_infos.back();
                 REQUIRE(conn.network_type == rav::sdp::NetwType::internet);
                 REQUIRE(conn.address_type == rav::sdp::AddrType::ipv4);
                 REQUIRE(conn.address == "239.4.8.2");
                 REQUIRE(conn.ttl.has_value() == true);
                 REQUIRE(*conn.ttl == 31);
-                REQUIRE(static_cast<int64_t>(media.ptime().value() * 100.f) == 12);
+                REQUIRE(static_cast<int64_t>(media.ptime.value() * 100.f) == 12);
 
                 SECTION("Test refclk on media") {
-                    const auto& refclk = media.ref_clock();
+                    const auto& refclk = media.reference_clock;
                     REQUIRE(refclk.has_value());
                     REQUIRE(refclk->source_ == rav::sdp::ReferenceClock::ClockSource::ptp);
                     REQUIRE(refclk->ptp_version_ == rav::sdp::ReferenceClock::PtpVersion::IEEE_1588_2008);
@@ -978,18 +988,18 @@ TEST_CASE("rav::sdp::SessionDescription") {
                 }
 
                 SECTION("Test sync-time") {
-                    REQUIRE(media.sync_time().value() == 0);
+                    REQUIRE(media.ravenna_sync_time.value() == 0);
                 }
 
                 SECTION("Test mediaclk on media") {
-                    const auto& media_clock = media.media_clock().value();
+                    const auto& media_clock = media.media_clock.value();
                     REQUIRE(media_clock.mode == rav::sdp::MediaClockSource::ClockMode::direct);
                     REQUIRE(media_clock.offset.value() == 0);
                     REQUIRE_FALSE(media_clock.rate.has_value());
                 }
 
                 SECTION("Test source-filter on media") {
-                    const auto& filters = media.source_filters();
+                    const auto& filters = media.source_filters;
                     REQUIRE(filters.size() == 1);
                     const auto& filter = filters[0];
                     REQUIRE(filter.mode == rav::sdp::FilterMode::include);
@@ -1001,11 +1011,11 @@ TEST_CASE("rav::sdp::SessionDescription") {
                 }
 
                 SECTION("Framecount") {
-                    REQUIRE(media.framecount() == 6);
+                    REQUIRE(media.ravenna_framecount == 6);
                 }
 
                 SECTION("Mid") {
-                    auto mid = media.get_mid();
+                    auto mid = media.mid;
                     REQUIRE(mid.has_value());
                     REQUIRE(*mid == "secondary");
                 }

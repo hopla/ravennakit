@@ -44,7 +44,7 @@ struct RavennaClockDomain {
  * @param ravenna_clock_domain The ravenna clock domain.
  * @return The string representation of this structure.
  */
-[[nodiscard]] tl::expected<std::string, std::string> to_string(const RavennaClockDomain& ravenna_clock_domain);
+[[nodiscard]] std::string to_string(const RavennaClockDomain& ravenna_clock_domain);
 
 /**
  * Validates the values of this structure.

@@ -10,8 +10,10 @@
 
 #include "ravennakit/ravenna/ravenna_node.hpp"
 
-#include <utility>
+#include "ravennakit/core/platform/windows/priority.hpp"
 #include "ravennakit/ravenna/ravenna_sender.hpp"
+
+#include <utility>
 
 rav::RavennaNode::RavennaNode() :
     rtsp_server_(io_context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), 0)),
@@ -44,6 +46,11 @@ rav::RavennaNode::RavennaNode() :
 #if RAV_APPLE
         pthread_setname_np("ravenna_node_maintenance");
 #endif
+
+#if RAV_WINDOWS
+        WindowsThreadCharacteristics set_thread_characteristics(TEXT("Pro Audio"));
+#endif
+
         while (true) {
             try {
                 while (!io_context_.stopped()) {

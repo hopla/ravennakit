@@ -8,8 +8,6 @@
  * Copyright (c) 2025 Owllab. All rights reserved.
  */
 
-#pragma once
-
 #include "ravennakit/core/platform/windows/query_performance_counter.hpp"
 
 #include <catch2/catch_all.hpp>

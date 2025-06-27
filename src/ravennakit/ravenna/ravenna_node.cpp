@@ -11,7 +11,7 @@
 #include "ravennakit/ravenna/ravenna_node.hpp"
 
 #include "ravennakit/core/platform/apple/priority.hpp"
-#include "ravennakit/core/platform/windows/priority.hpp"
+#include "ravennakit/core/platform/windows/thread_characteristics.hpp"
 #include "ravennakit/ravenna/ravenna_sender.hpp"
 
 #include <utility>

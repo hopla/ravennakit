@@ -20,17 +20,6 @@
 
 using boost::asio::ip::udp;
 
-void* operator new(const size_t count) {
-    const auto ptr = malloc(count);
-    TracyAlloc(ptr, count);
-    return ptr;
-}
-
-void operator delete(void* ptr) {
-    TracyFree(ptr);
-    free(ptr);
-}
-
 namespace {
 constexpr auto k_num_packets = 20000;
 

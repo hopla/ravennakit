@@ -222,7 +222,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     void ptp_parent_changed(const ptp::ParentDs& parent) override;
 
   private:
-    [[maybe_unused]] boost::asio::io_context& io_context_;
+    boost::asio::io_context& io_context_;
     dnssd::Advertiser& advertiser_;
     rtsp::Server& rtsp_server_;
     ptp::Instance& ptp_instance_;

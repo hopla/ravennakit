@@ -21,4 +21,11 @@ size_t stl_remove_if(Container& container, Pred pred) {
     return old_size - container.size();
 }
 
+template<typename Map, typename Key>
+auto stl_get_or_default(const Map& map, const Key& key) -> typename Map::mapped_type {
+    if (auto it = map.find(key); it != map.end())
+        return it->second;
+    return typename Map::mapped_type{};
+}
+
 }  // namespace rav

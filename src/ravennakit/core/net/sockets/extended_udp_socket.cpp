@@ -14,12 +14,6 @@
 #include "ravennakit/core/platform/windows/wsa_recv_msg_function.hpp"
 #include "ravennakit/core/platform/windows/qos_flow.hpp"
 
-#if RAV_APPLE
-    #define IP_RECVDSTADDR_PKTINFO IP_RECVDSTADDR
-#else
-    #define IP_RECVDSTADDR_PKTINFO IP_PKTINFO
-#endif
-
 #if RAV_WINDOWS
 size_t rav::receive_from_socket(
     boost::asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, boost::asio::ip::udp::endpoint& src_endpoint,

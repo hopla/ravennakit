@@ -14,6 +14,12 @@
 
 #include <boost/asio.hpp>
 
+#if RAV_APPLE
+    #define IP_RECVDSTADDR_PKTINFO IP_RECVDSTADDR
+#else
+    #define IP_RECVDSTADDR_PKTINFO IP_PKTINFO
+#endif
+
 namespace rav {
 
 /**

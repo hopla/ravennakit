@@ -38,7 +38,7 @@
     receiver.add_stream(rav::Id(1), sessions, filters, interface_addresses, io_context);
 
     while (true) {
-        receiver.do_high_prio_processing();
+        receiver.read_incoming_packets();
 
         rav::rtp::Receiver3::PacketBuffer buffer;
         for (auto& stream : receiver.streams) {

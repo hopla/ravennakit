@@ -22,6 +22,6 @@ static constexpr auto k_max_payload = 1440;
 /**
  * The standard 1500-byte Ethernet MTU is assumed. From AES67-2023 6.3.
  */
-static constexpr auto k_max_mtu = 1400;
+static constexpr auto k_mtu = 1500;
 
 }  // namespace rav::aes67::constants

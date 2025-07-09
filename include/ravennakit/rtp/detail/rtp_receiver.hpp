@@ -38,7 +38,7 @@ struct Receiver3 {
     using ArrayOfSessions = std::array<Session, k_max_num_rtp_sessions_per_stream>;
     using ArrayOfFilters = std::array<Filter, k_max_num_rtp_sessions_per_stream>;
     using ArrayOfAddresses = std::array<boost::asio::ip::address_v4, k_max_num_rtp_sessions_per_stream>;
-    using PacketBuffer = std::array<uint8_t, aes67::constants::k_max_mtu>;
+    using PacketBuffer = std::array<uint8_t, aes67::constants::k_mtu>;
     using PacketFifo =
         boost::lockfree::spsc_queue<PacketBuffer, boost::lockfree::capacity<20>, boost::lockfree::fixed_sized<true>>;
 
@@ -47,10 +47,8 @@ struct Receiver3 {
         available = 0,
         /// Ready to be processed by the network thread
         ready,
-        /// The network thread should stop using this entity, and change state to `ready_to_be_closed`
+        /// The network thread should stop using this entity, and change state to `available`
         should_be_closed,
-        /// Released by the network thread, ready to be closed and put back into available state
-        ready_to_be_closed,
     };
 
     struct SocketWithContext {
@@ -63,7 +61,7 @@ struct Receiver3 {
     };
 
     struct RedundantStream {
-        Id associated_id;
+        Id id;
         ArrayOfSessions sessions;
         ArrayOfFilters filters;
         PacketFifo fifo;
@@ -78,7 +76,7 @@ struct Receiver3 {
         Id id, const ArrayOfSessions& sessions, const ArrayOfFilters& filters,
         const ArrayOfAddresses& interface_addresses, boost::asio::io_context& io_context
     );
-    void do_high_prio_processing();
+    void read_incoming_packets();
 };
 
 /**

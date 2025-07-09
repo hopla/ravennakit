@@ -125,7 +125,7 @@ bool rav::rtp::Receiver3::add_stream(
     );
 
     for (auto& stream : streams) {
-        if (stream.associated_id == id) {
+        if (stream.id == id) {
             RAV_WARNING("A stream for given id already exists");
             return false;  // Stream already exists
         }
@@ -149,7 +149,7 @@ bool rav::rtp::Receiver3::add_stream(
         stream = &streams.emplace_back();
     }
 
-    stream->associated_id = id;
+    stream->id = id;
     stream->sessions = sessions;
     stream->filters = filters;
     while (stream->fifo.pop()) {}  // Clear the fifo
@@ -177,9 +177,9 @@ bool rav::rtp::Receiver3::add_stream(
     return true;
 }
 
-void rav::rtp::Receiver3::do_high_prio_processing() {
+void rav::rtp::Receiver3::read_incoming_packets() {
     for (auto& ctx : sockets) {
-        std::array<uint8_t, 1500> receive_buffer {};
+        std::array<uint8_t, rav::aes67::constants::k_mtu> receive_buffer {};
 
         if (ctx.state.load(std::memory_order_acquire) != State::ready) {
             continue;
@@ -233,7 +233,7 @@ void rav::rtp::Receiver3::do_high_prio_processing() {
                 continue;
             }
 
-            std::array<uint8_t, aes67::constants::k_max_mtu> packet {};
+            std::array<uint8_t, aes67::constants::k_mtu> packet {};
             std::memcpy(packet.data(), receive_buffer.data(), bytes_received);
 
             fmt::println(
@@ -249,7 +249,8 @@ void rav::rtp::Receiver3::do_high_prio_processing() {
 
     for (auto& ctx : sockets) {
         if (ctx.state.load(std::memory_order_acquire) == State::should_be_closed) {
-            ctx.state.store(State::ready_to_be_closed, std::memory_order_release);
+            ctx.socket.close(); // TODO: Can we defer this call to close to the maintenance thread?
+            ctx.state.store(State::available, std::memory_order_release);
         }
     }
 }

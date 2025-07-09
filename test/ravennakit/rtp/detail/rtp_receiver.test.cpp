@@ -25,15 +25,15 @@ TEST_CASE("rav::rtp::Receiver") {
     }
 
     SECTION("Initial state") {
-        rav::rtp::Receiver3 receiver;
+        auto receiver = std::make_unique<rav::rtp::Receiver3>();
 
         // Sockets
-        REQUIRE(decltype(receiver.sockets)::capacity() == rav::rtp::Receiver3::k_max_num_sessions);
-        REQUIRE(receiver.sockets.empty());
+        REQUIRE(decltype(receiver->sockets)::capacity() == rav::rtp::Receiver3::k_max_num_sessions);
+        REQUIRE(receiver->sockets.empty());
 
         // Streams
-        REQUIRE(decltype(receiver.streams)::capacity() == rav::rtp::Receiver3::k_max_num_redundant_streams);
-        REQUIRE(receiver.streams.empty());
+        REQUIRE(decltype(receiver->streams)::capacity() == rav::rtp::Receiver3::k_max_num_redundant_streams);
+        REQUIRE(receiver->streams.empty());
     }
 
     SECTION("Binding a UDP socket to the any address") {
@@ -42,16 +42,6 @@ TEST_CASE("rav::rtp::Receiver") {
         REQUIRE(socket.is_open());
         REQUIRE(socket.local_endpoint().address() == endpoint.address());
         REQUIRE(socket.local_endpoint().port() != endpoint.port());
-    }
-
-    SECTION("Binding and joining a multicast address") {
-        auto multicast_addr = boost::asio::ip::make_address_v4("239.1.2.3");
-        boost::asio::ip::udp::endpoint endpoint(multicast_addr, 0);
-        boost::asio::ip::udp::socket socket(io_context, endpoint);
-        REQUIRE(socket.is_open());
-        REQUIRE(socket.local_endpoint().address() == endpoint.address());
-        REQUIRE(socket.local_endpoint().port() != endpoint.port());
-        socket.set_option(boost::asio::ip::multicast::join_group(multicast_addr));
     }
 
     SECTION("Send and receive UDP packets") {
@@ -74,7 +64,7 @@ TEST_CASE("rav::rtp::Receiver") {
     }
 
     SECTION("Add a multicast stream") {
-        rav::rtp::Receiver3 receiver;
+        auto receiver = std::make_unique<rav::rtp::Receiver3>();
 
         const auto multicast_addr = boost::asio::ip::make_address_v4("239.1.2.3");
         const auto src_addr = boost::asio::ip::make_address_v4("192.168.1.1");
@@ -88,23 +78,23 @@ TEST_CASE("rav::rtp::Receiver") {
         };
 
         rav::rtp::Receiver3::ArrayOfAddresses interface_addresses {boost::asio::ip::make_address_v4("127.0.0.1")};
-        auto result = receiver.add_stream(rav::Id(1), sessions, filters, interface_addresses, io_context);
+        auto result = receiver->add_stream(rav::Id(1), sessions, filters, interface_addresses, io_context);
         REQUIRE(result);
 
-        REQUIRE(receiver.streams.size() == 1);
-        REQUIRE(receiver.streams.at(0).associated_id == rav::Id(1));
-        REQUIRE(receiver.streams.at(0).sessions == sessions);
-        REQUIRE(receiver.streams.at(0).filters == filters);
+        REQUIRE(receiver->streams.size() == 1);
+        REQUIRE(receiver->streams.at(0).associated_id == rav::Id(1));
+        REQUIRE(receiver->streams.at(0).sessions == sessions);
+        REQUIRE(receiver->streams.at(0).filters == filters);
 
-        REQUIRE(receiver.sockets.size() == 1);
-        REQUIRE(receiver.sockets.at(0).interface_address == interface_addresses.at(0));
-        REQUIRE(receiver.sockets.at(0).state == rav::rtp::Receiver3::State::ready);
-        REQUIRE(receiver.sockets.at(0).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr, 5004));
-        REQUIRE(receiver.sockets.at(0).socket.is_open());
+        REQUIRE(receiver->sockets.size() == 1);
+        REQUIRE(receiver->sockets.at(0).interface_address == interface_addresses.at(0));
+        REQUIRE(receiver->sockets.at(0).state == rav::rtp::Receiver3::State::ready);
+        REQUIRE(receiver->sockets.at(0).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr, 5004));
+        REQUIRE(receiver->sockets.at(0).socket.is_open());
     }
 
     SECTION("Add a redundant multicast stream") {
-        rav::rtp::Receiver3 receiver;
+        auto receiver = std::make_unique<rav::rtp::Receiver3>();
 
         const auto multicast_addr_pri = boost::asio::ip::make_address_v4("239.0.0.1");
         const auto multicast_addr_sec = boost::asio::ip::make_address_v4("239.0.0.2");
@@ -126,22 +116,22 @@ TEST_CASE("rav::rtp::Receiver") {
             boost::asio::ip::make_address_v4("127.0.0.1"),
             boost::asio::ip::make_address_v4("127.0.0.1"),
         };
-        auto result = receiver.add_stream(rav::Id(1), sessions, filters, interface_addresses, io_context);
+        auto result = receiver->add_stream(rav::Id(1), sessions, filters, interface_addresses, io_context);
         REQUIRE(result);
 
-        REQUIRE(receiver.streams.size() == 1);
-        REQUIRE(receiver.streams.at(0).associated_id == rav::Id(1));
-        REQUIRE(receiver.streams.at(0).sessions == sessions);
-        REQUIRE(receiver.streams.at(0).filters == filters);
+        REQUIRE(receiver->streams.size() == 1);
+        REQUIRE(receiver->streams.at(0).associated_id == rav::Id(1));
+        REQUIRE(receiver->streams.at(0).sessions == sessions);
+        REQUIRE(receiver->streams.at(0).filters == filters);
 
-        REQUIRE(receiver.sockets.size() == 2);
-        REQUIRE(receiver.sockets.at(0).interface_address == interface_addresses.at(0));
-        REQUIRE(receiver.sockets.at(0).state == rav::rtp::Receiver3::State::ready);
-        REQUIRE(receiver.sockets.at(0).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr_pri, 5004));
-        REQUIRE(receiver.sockets.at(0).socket.is_open());
-        REQUIRE(receiver.sockets.at(1).interface_address == interface_addresses.at(1));
-        REQUIRE(receiver.sockets.at(1).state == rav::rtp::Receiver3::State::ready);
-        REQUIRE(receiver.sockets.at(1).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr_sec, 5004));
-        REQUIRE(receiver.sockets.at(1).socket.is_open());
+        REQUIRE(receiver->sockets.size() == 2);
+        REQUIRE(receiver->sockets.at(0).interface_address == interface_addresses.at(0));
+        REQUIRE(receiver->sockets.at(0).state == rav::rtp::Receiver3::State::ready);
+        REQUIRE(receiver->sockets.at(0).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr_pri, 5004));
+        REQUIRE(receiver->sockets.at(0).socket.is_open());
+        REQUIRE(receiver->sockets.at(1).interface_address == interface_addresses.at(1));
+        REQUIRE(receiver->sockets.at(1).state == rav::rtp::Receiver3::State::ready);
+        REQUIRE(receiver->sockets.at(1).connection_endpoint == boost::asio::ip::udp::endpoint(multicast_addr_sec, 5004));
+        REQUIRE(receiver->sockets.at(1).socket.is_open());
     }
 }

@@ -70,18 +70,13 @@ TEST_CASE("rav::rtp::Receiver") {
     SECTION("Send and receive to and from many multicast groups") {
         auto multicast_base_address = boost::asio::ip::make_address_v4("239.0.0.1");
         auto interface_address = boost::asio::ip::address_v4::loopback();
-        constexpr uint32_t k_num_multicast_groups = 512;
+        static constexpr uint32_t k_num_multicast_groups = 512;
 
 #if RAV_WINDOWS
         boost::asio::ip::udp::socket rx(io_context, {interface_address, 0});
 #else
         boost::asio::ip::udp::socket rx(io_context, {multicast_base_address, 0});
 #endif
-
-        for (uint32_t i = 0; i < k_num_multicast_groups; ++i) {
-            boost::asio::ip::address_v4 addr(multicast_base_address.to_uint() + i);
-            rx.set_option(boost::asio::ip::multicast::join_group(addr, interface_address));
-        }
 
         boost::asio::ip::udp::socket tx(io_context, {interface_address, 0});
         tx.set_option(boost::asio::ip::multicast::outbound_interface(interface_address));
@@ -103,14 +98,26 @@ TEST_CASE("rav::rtp::Receiver") {
             }
         });
 
-        std::set<uint32_t> received;
-        uint32_t receiver_buffer = 0;
+        std::thread rx_thead([&rx] {
+            std::set<uint32_t> received;
+            uint32_t receiver_buffer = 0;
 
-        while (received.size() < k_num_multicast_groups) {
-            rx.receive(boost::asio::buffer(&receiver_buffer, sizeof(receiver_buffer)));
-            received.insert(receiver_buffer);
+            while (received.size() < k_num_multicast_groups) {
+                rx.receive(boost::asio::buffer(&receiver_buffer, sizeof(receiver_buffer)));
+                received.insert(receiver_buffer);
+            }
+        });
+
+        // Give rx_thread time to get going
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        // Join the groups here to test thead safely (by enabling TSAN)
+        for (uint32_t i = 0; i < k_num_multicast_groups; ++i) {
+            boost::asio::ip::address_v4 addr(multicast_base_address.to_uint() + i);
+            rx.set_option(boost::asio::ip::multicast::join_group(addr, interface_address));
         }
 
+        rx_thead.join();
         keep_going = false;
         tx_thead.join();
     }

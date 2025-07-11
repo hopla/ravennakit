@@ -96,14 +96,15 @@ TEST_CASE("rav::rtp::Receiver") {
     }
 
     SECTION("Send and receive to and from many multicast groups") {
+        auto interface_address = boost::asio::ip::address_v4::loopback();
+#if RAV_WINDOWS
         auto iface = rav::NetworkInterfaceList::get_system_interfaces().find_by_type(
             rav::NetworkInterface::Type::wired_ethernet
         );
-
-        REQUIRE(iface);
-
-        auto interface_address = iface->get_first_ipv4_address();
-
+        if (iface != nullptr) {
+            interface_address = iface->get_first_ipv4_address();
+        }
+#endif
         auto multicast_base_address = boost::asio::ip::make_address_v4("239.0.0.1");
         static constexpr uint32_t k_num_multicast_groups = 1;
 

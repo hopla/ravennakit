@@ -110,7 +110,7 @@ TEST_CASE("rav::rtp::Receiver") {
 #if RAV_WINDOWS
         boost::asio::ip::udp::socket rx(io_context, {interface_address, 0});
 #else
-        boost::asio::ip::udp::socket rx(io_context, {multicast_base_address, 0});
+        boost::asio::ip::udp::socket rx(io_context, {boost::asio::ip::address_v4::any(), 0});
 #endif
 
         boost::asio::ip::udp::socket tx(io_context, {interface_address, 0});
@@ -125,10 +125,7 @@ TEST_CASE("rav::rtp::Receiver") {
                 boost::asio::ip::address_v4(multicast_base_address.to_uint() + i), port
             );
             while (keep_going) {
-                boost::system::error_code ec;
-                tx.send_to(boost::asio::buffer(&i, sizeof(i)), endpoint, 0, ec);
-                INFO(ec.message());
-                REQUIRE_FALSE(ec);
+                tx.send_to(boost::asio::buffer(&i, sizeof(i)), endpoint);
                 if (++i >= k_num_multicast_groups) {
                     i = 0;
                 }
@@ -141,10 +138,7 @@ TEST_CASE("rav::rtp::Receiver") {
             uint32_t receiver_buffer = 0;
 
             while (received.size() < k_num_multicast_groups) {
-                boost::system::error_code ec;
-                rx.receive(boost::asio::buffer(&receiver_buffer, sizeof(receiver_buffer)), 0, ec);
-                INFO(ec.message());
-                REQUIRE_FALSE(ec);
+                rx.receive(boost::asio::buffer(&receiver_buffer, sizeof(receiver_buffer)));
                 received.insert(receiver_buffer);
             }
         });

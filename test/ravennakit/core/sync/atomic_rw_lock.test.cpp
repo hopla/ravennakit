@@ -45,36 +45,32 @@ TEST_CASE("rav::AtomicRwLock") {
         lock.unlock_exclusive();
     }
 
-    SECTION("Test writer-starvation avoidance") {
-        rav::AtomicRwLock lock;
-
-    }
-
     SECTION("Single writer, multiple readers") {
         rav::AtomicRwLock lock;
 
         std::atomic_bool error {};
-        std::atomic_bool done {false};
 
         static constexpr size_t k_max_value = 200;
 
-        std::atomic<int8_t> counter {};
+        std::atomic<int8_t> exclusive_counter {};
 
         std::vector<std::thread> readers;
         readers.reserve(20);
 
         // Try locks
         for (int i = 0; i < 10; ++i) {
-            readers.emplace_back([&lock, &counter, &error, &done] {
-                while (!done) {
+            readers.emplace_back([&lock, &exclusive_counter, &error] {
+                int succeeded_times = 0;
+                while (succeeded_times < 10) {
                     if (lock.try_lock_shared()) {
-                        if (counter.fetch_add(2, std::memory_order_relaxed) % 2 != 0) {
+                        if (exclusive_counter.fetch_add(2, std::memory_order_relaxed) % 2 != 0) {
                             // Odd which means a writer is active
                             error = true;
                             return;
                         }
+                        succeeded_times++;
                         std::this_thread::sleep_for(std::chrono::milliseconds(15));
-                        if (counter.fetch_sub(2, std::memory_order_relaxed) % 2 != 0) {
+                        if (exclusive_counter.fetch_sub(2, std::memory_order_relaxed) % 2 != 0) {
                             // Odd which means a writer is active
                             error = true;
                             return;
@@ -88,19 +84,21 @@ TEST_CASE("rav::AtomicRwLock") {
 
         // Locks
         for (int i = 0; i < 10; ++i) {
-            readers.emplace_back([&lock, &error, &done, &counter] {
-                while (!done) {
+            readers.emplace_back([&lock, &error, &exclusive_counter] {
+                int succeeded_times = 0;
+                while (succeeded_times < 10) {
                     if (!lock.lock_shared()) {
                         error = true;
                         return;
                     }
-                    if (counter.fetch_add(2, std::memory_order_relaxed) % 2 != 0) {
+                    if (exclusive_counter.fetch_add(2, std::memory_order_relaxed) % 2 != 0) {
                         // Odd which means a writer is active
                         error = true;
                         return;
                     }
+                    succeeded_times++;
                     std::this_thread::sleep_for(std::chrono::milliseconds(15));
-                    if (counter.fetch_sub(2, std::memory_order_relaxed) % 2 != 0) {
+                    if (exclusive_counter.fetch_sub(2, std::memory_order_relaxed) % 2 != 0) {
                         // Odd which means a writer is active
                         error = true;
                         return;
@@ -110,25 +108,24 @@ TEST_CASE("rav::AtomicRwLock") {
             });
         }
 
-        std::thread writer([&lock, &error, &counter, &done]() {
+        std::thread writer([&lock, &error, &exclusive_counter]() {
             for (size_t i = 0; i < k_max_value; ++i) {
                 if (!lock.lock_exclusive()) {
                     error = true;
                     return;
                 }
-                if (counter.fetch_add(1, std::memory_order_relaxed) > 0) {
+                if (exclusive_counter.fetch_add(1, std::memory_order_relaxed) > 0) {
                     error = true;
                     return;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                if (counter.fetch_sub(1, std::memory_order_relaxed) != 1) {
+                if (exclusive_counter.fetch_sub(1, std::memory_order_relaxed) != 1) {
                     error = true;
                     return;
                 };
                 lock.unlock_exclusive();
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
-            done = true;
         });
 
         writer.join();

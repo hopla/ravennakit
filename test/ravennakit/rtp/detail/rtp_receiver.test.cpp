@@ -12,6 +12,8 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <thread>
+
 namespace {
 using MulticastMembershipChangesVector =
     std::vector<std::tuple<bool, uint16_t, boost::asio::ip::address_v4, boost::asio::ip::address_v4>>;

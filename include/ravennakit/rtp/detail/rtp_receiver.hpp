@@ -20,6 +20,7 @@
 #include "ravennakit/core/util/subscriber_list.hpp"
 #include "ravennakit/core/net/sockets/extended_udp_socket.hpp"
 #include "ravennakit/core/net/sockets/udp_receiver.hpp"
+#include "ravennakit/core/sync/atomic_rw_lock.hpp"
 #include "ravennakit/core/util/id.hpp"
 #include "ravennakit/core/util/safe_function.hpp"
 
@@ -65,12 +66,12 @@ struct Receiver3 {
      * Holds the structures to receive incoming data from redundant sources into a single buffer.
      */
     struct Reader {
-        Id id;
+        Id id; // To associate with another entity, and to determine whether this reader is already being used.
         ArrayOfSessions sessions;
         ArrayOfFilters filters;
         PacketFifo fifo;
         Ringbuffer receive_buffer;
-        std::atomic<State> state {State::available};
+        AtomicRwLock rw_lock;
     };
 
     boost::container::static_vector<Reader, k_max_num_readers> readers;
@@ -89,6 +90,7 @@ struct Receiver3 {
     bool add_reader(
         Id id, const ArrayOfSessions& sessions, const ArrayOfFilters& filters, boost::asio::io_context& io_context
     );
+    bool remove_reader(Id id);
     void read_incoming_packets();
 };
 

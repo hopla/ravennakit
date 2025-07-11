@@ -51,7 +51,7 @@ class Defer {
     Defer& operator=(Defer&&) = delete;
 
     /**
-     * Clears the stored function (if there is one) without calling it.
+     * Prevent the function to be called upon desctruction.
      */
     void reset() {
         call_upon_destruction_ = false;

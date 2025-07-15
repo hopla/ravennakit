@@ -42,6 +42,7 @@ bool rav::UdpReceiver::subscribe(
 #if RAV_WINDOWS
     auto& context = find_or_create_socket_context({interface_address, port});
 #else
+    // Binding to a specific interface, and then joining a multicast group doesn't work on macOS.
     auto& context = find_or_create_socket_context({boost::asio::ip::address_v4::any(), port});
 #endif
 

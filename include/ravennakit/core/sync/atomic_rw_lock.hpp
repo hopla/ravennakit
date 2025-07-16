@@ -22,22 +22,31 @@ namespace rav {
  */
 class AtomicRwLock {
   public:
+    /// The max number of tries before giving up (preventing runaway code).
     static constexpr size_t k_loop_upper_bound = 1'000'000;
-    const uint32_t k_yield_threshold = 10;      // The number of iterations after which a function will start yielding
-    const uint32_t k_sleep_threshold = 10'000;  // The number of iterations after which a function will start sleeping.
 
+    /// The number of iterations after which a function will start yielding.
+    static constexpr uint32_t k_yield_threshold = 10;
+
+    /// The number of iterations after which a function will start sleeping.
+    static constexpr uint32_t k_sleep_threshold = 10'000;
+
+    /// Exclusive unlock function.
     struct Exclusive {
         static void unlock(AtomicRwLock* lock) {
             lock->unlock_exclusive();
         }
     };
 
+    /// Shared unlock function.
     struct Shared {
         static void unlock(AtomicRwLock* lock) {
             lock->unlock_shared();
         }
     };
 
+    /// Guards access to a critical region. When this class goes out of scope it will unlock the AtomicRwLock if valid,
+    /// otherwise does nothing.
     template<typename T>
     struct AccessGuard {
         explicit AccessGuard(AtomicRwLock* lock) : rw_lock(lock) {}
@@ -72,10 +81,10 @@ class AtomicRwLock {
      * Attempts to acquire an exclusive lock, spinning util it succeeds, or until the loop upper bounds is reached.
      * Thread safe: yes
      * Wait-free: no
-     * @return True if the lock was acquired, or false if the loop upper bound was reached.
+     * @return A guard which holds on to the lock as long as it's alive. Check for validity before using.
      */
     [[nodiscard]] AccessGuard<Exclusive> lock_exclusive() {
-        // Try taking the shortcut
+        // Try the shortcut
         if (auto guard = try_lock_exclusive()) {
             return guard;
         }
@@ -106,7 +115,7 @@ class AtomicRwLock {
      * Note: this call can fail if a reader is trying to get access at the same time.
      * Thread safe: yes
      * Wait-free: yes
-     * @return True if the lock was acquired, or false if not.
+     * @return A guard which holds on to the lock as long as it's alive. Check for validity before using.
      */
     [[nodiscard]] AccessGuard<Exclusive> try_lock_exclusive() {
         uint32_t e = 0;
@@ -120,7 +129,7 @@ class AtomicRwLock {
      * Attempts to acquire a shared lock, spinning util it succeeds, or until the loop upper bounds is reached.
      * Thread safe: yes
      * Wait-free: no
-     * @return True if the lock was acquired, or false if the loop upper bound was reached.
+     * @return A guard which holds on to the lock as long as it's alive. Check for validity before using.
      */
     [[nodiscard]] AccessGuard<Shared> lock_shared() {
         for (size_t i = 0; i < k_loop_upper_bound; ++i) {
@@ -143,7 +152,7 @@ class AtomicRwLock {
      * This call will always succeed if there are no writers (waiting).
      * Thread safe: yes
      * Wait-free: yes
-     * @return True if the lock was acquired, or false if not.
+     * @return A guard which holds on to the lock as long as it's alive. Check for validity before using.
      */
     [[nodiscard]] AccessGuard<Shared> try_lock_shared() {
         uint32_t prev_readers = readers.load(std::memory_order_acquire);

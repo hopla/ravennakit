@@ -25,8 +25,8 @@ namespace rav {
  */
 template<class T>
 class WrappingUint {
-    static_assert(std::is_integral_v<T>, "sequence_number only supports integral types");
-    static_assert(std::is_unsigned_v<T>, "sequence_number only supports unsigned types");
+    static_assert(std::is_integral_v<T>, "WrappingUint only supports integral types");
+    static_assert(std::is_unsigned_v<T>, "WrappingUint only supports unsigned types");
 
   public:
     /**

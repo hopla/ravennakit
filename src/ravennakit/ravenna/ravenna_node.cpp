@@ -43,17 +43,9 @@ rav::RavennaNode::RavennaNode() :
     auto f = promise.get_future();
     maintenance_thread_ = std::thread([this, p = std::move(promise)]() mutable {
         p.set_value(std::this_thread::get_id());
+        TRACY_SET_THREAD_NAME("ravenna_node_maintenance");
 #if RAV_APPLE
         pthread_setname_np("ravenna_node_maintenance");
-        constexpr auto min_packet_time = 125 * 1000;       // 125us
-        constexpr auto max_packet_time = 4 * 1000 * 1000;  // 4ms
-        if (!set_thread_realtime(min_packet_time, max_packet_time, max_packet_time * 2)) {
-            RAV_ERROR("Failed to set thread realtime");
-        }
-#endif
-
-#if RAV_WINDOWS
-        WindowsThreadCharacteristics set_thread_characteristics(TEXT("Pro Audio"));
 #endif
 
         while (true) {
@@ -69,6 +61,35 @@ rav::RavennaNode::RavennaNode() :
         }
     });
     maintenance_thread_id_ = f.get();
+
+    network_thread_ = std::thread([this] {
+        TRACY_SET_THREAD_NAME("ravenna_node_network");
+#if RAV_APPLE
+        pthread_setname_np("ravenna_node_network");
+        constexpr auto min_packet_time = 125 * 1000;       // 125us
+        constexpr auto max_packet_time = 4 * 1000 * 1000;  // 4ms
+        if (!set_thread_realtime(min_packet_time, max_packet_time, max_packet_time * 2)) {
+            RAV_ERROR("Failed to set thread realtime");
+        }
+#endif
+
+#if RAV_WINDOWS
+        WindowsThreadCharacteristics set_thread_characteristics(TEXT("Pro Audio"));
+#endif
+
+        while (keep_going_.load(std::memory_order_acquire)) {
+            try {
+                while (keep_going_.load(std::memory_order_acquire)) {
+                    rtp_receiver3_.read_incoming_packets();
+                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+                }
+                break;
+            } catch (const std::exception& e) {
+                RAV_ERROR("Unhandled exception on network thread: {}", e.what());
+                RAV_ASSERT_FALSE("Unhandled exception on network thread");
+            }
+        }
+    });
 }
 
 rav::RavennaNode::~RavennaNode() {
@@ -78,9 +99,13 @@ rav::RavennaNode::~RavennaNode() {
     for (const auto& sender : senders_) {
         sender->set_nmos_node(nullptr);  // Prevent receiver from sending NMOS updates upon destruction
     }
+    keep_going_.store(false, std::memory_order_release);
     io_context_.stop();
     if (maintenance_thread_.joinable()) {
         maintenance_thread_.join();
+    }
+    if (network_thread_.joinable()) {
+        network_thread_.join();
     }
 }
 

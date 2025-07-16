@@ -358,6 +358,8 @@ class RavennaNode {
 
     boost::asio::io_context io_context_;
     rtp::Receiver3 rtp_receiver3_ {io_context_};
+    std::atomic<bool> keep_going_ {true};
+    std::thread network_thread_;
     std::thread maintenance_thread_;
     std::thread::id maintenance_thread_id_;
     Id::Generator id_generator_;

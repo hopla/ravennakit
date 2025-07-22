@@ -22,7 +22,8 @@
 #include <utility>
 
 namespace {
-constexpr int k_block_size = 256;
+constexpr int k_block_size = 32;
+constexpr uint32_t k_delay = 240;  // Delay should at least be 2 times k_block_size
 
 void portaudio_iterate_devices(const std::function<bool(PaDeviceIndex index, const PaDeviceInfo&)>& callback) {
     const auto num_devices = Pa_GetDeviceCount();
@@ -130,7 +131,7 @@ class PortaudioStream {
         output_params.suggestedLatency = Pa_GetDeviceInfo(*device_index)->defaultLowOutputLatency;
         output_params.hostApiSpecificStreamInfo = nullptr;
 
-        auto error =
+        const auto error =
             Pa_OpenStream(&stream_, nullptr, &output_params, sample_rate, k_block_size, paNoFlag, callback, user_data);
 
         if (error != paNoError) {
@@ -172,16 +173,16 @@ class PortaudioStream {
     PaStream* stream_ = nullptr;
 };
 
-class RavennaReceiverExample: public rav::RavennaReceiver::Subscriber {
+class RavennaReceiverExample: public rav::RavennaReceiver::Subscriber, public rav::ptp::Instance::Subscriber {
   public:
     explicit RavennaReceiverExample(
         rav::RavennaNode& ravenna_node, const std::string& stream_name, std::string audio_device_name
     ) :
         ravenna_node_(ravenna_node), audio_device_name_(std::move(audio_device_name)) {
         rav::RavennaReceiver::Configuration config;
-        config.delay_frames = 480;  // 10ms at 48KHz
         config.enabled = true;
         config.session_name = stream_name;
+        // No need to set the delay, because RAVENNAKIT doesn't use this value
 
         auto id = ravenna_node_.create_receiver(config).get();
         if (!id) {
@@ -190,9 +191,11 @@ class RavennaReceiverExample: public rav::RavennaReceiver::Subscriber {
         receiver_id_ = *id;
 
         ravenna_node_.subscribe_to_receiver(receiver_id_, this).wait();
+        ravenna_node_.subscribe_to_ptp_instance(this).wait();
     }
 
     ~RavennaReceiverExample() override {
+        ravenna_node_.unsubscribe_from_ptp_instance(this).wait();
         if (receiver_id_.is_valid()) {
             ravenna_node_.unsubscribe_from_receiver(receiver_id_, this).wait();
             ravenna_node_.remove_receiver(receiver_id_).wait();
@@ -240,24 +243,53 @@ class RavennaReceiverExample: public rav::RavennaReceiver::Subscriber {
 
         const auto buffer_size = frame_count * audio_format_.bytes_per_frame();
 
-        if (!ravenna_node_.read_data_realtime(receiver_id_, static_cast<uint8_t*>(output), buffer_size, {}, {})) {
+        auto& local_clock = get_local_clock();
+        if (!local_clock.is_calibrated()) {
+            // As long as the PTP clock is not stable, we will output silence
             std::memset(output, audio_format_.ground_value(), buffer_size);
-            RAV_WARNING("Failed to read data");
-            TRACY_MESSAGE("Failed to read data");
             return paContinue;
         }
+
+        const auto ptp_ts =
+            static_cast<uint32_t>(get_local_clock().now().to_samples(audio_format_.sample_rate)) - k_delay;
+
+        // First we try to read data
+        auto rtp_ts =
+            ravenna_node_.read_data_realtime(receiver_id_, static_cast<uint8_t*>(output), buffer_size, {}, {});
+
+        // If reading data fails (which is expected when no audio callbacks have been made for a while) we output
+        // silence.
+        if (!rtp_ts) {
+            std::memset(output, audio_format_.ground_value(), buffer_size);
+            return paContinue;
+        }
+
+        auto drift = rav::WrappingUint32(ptp_ts).diff(rav::WrappingUint32(*rtp_ts));
+
+        // If the drift becomes too big, we reset the timestamp to the current time to realign incoming data with the
+        // audio callbacks
+        if (static_cast<uint32_t>(std::abs(drift)) > frame_count * 2) {
+            rtp_ts =
+                ravenna_node_.read_data_realtime(receiver_id_, static_cast<uint8_t*>(output), buffer_size, ptp_ts, {});
+            RAV_WARNING("Re-aligned stream by {} samples", -drift);
+            drift = rav::WrappingUint32(ptp_ts).diff(rav::WrappingUint32(*rtp_ts));
+        }
+
+        TRACY_PLOT("drift", static_cast<double>(drift));
 
         if (audio_format_.byte_order == rav::AudioFormat::ByteOrder::be) {
             rav::swap_bytes(static_cast<uint8_t*>(output), buffer_size, audio_format_.bytes_per_sample());
         }
 
         return paContinue;
+
     }
 
     static int stream_callback(
         const void* input, void* output, const unsigned long frameCount, const PaStreamCallbackTimeInfo* timeInfo,
         const PaStreamCallbackFlags statusFlags, void* userData
     ) {
+        RAV_ASSERT(userData, "userData is null");
         return static_cast<RavennaReceiverExample*>(userData)->stream_callback(
             input, output, frameCount, timeInfo, statusFlags
         );

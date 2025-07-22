@@ -290,24 +290,18 @@ void do_realtime_maintenance(rav::rtp::Receiver3::Reader& reader) {
                 break;
             }
 
-            // const auto seq = rtp_packet_view.sequence_number();
-            // const auto ts = rtp_packet_view.timestamp();
-            // const auto payload = rtp_packet_view.payload_data();
-
             rav::WrappingUint32 packet_timestamp(rtp_packet->timestamp);
-            if (!reader.first_packet_timestamp) {
-                RAV_TRACE("First packet timestamp: {}", packet_timestamp.value());
-                reader.first_packet_timestamp = packet_timestamp;
+            const auto num_frames = static_cast<uint32_t>(rtp_packet->data_len) / reader.audio_format.bytes_per_frame();
+            auto packet_most_recent_ts = rav::WrappingUint32(rtp_packet->timestamp + num_frames - 1);
+
+            if (!reader.most_recent_ts.has_value()) {
+                RAV_TRACE("First packet at: {}", packet_timestamp.value());
+                reader.most_recent_ts = packet_most_recent_ts;
                 reader.receive_buffer.set_next_ts(packet_timestamp.value());
                 reader.next_ts_to_read = packet_timestamp;
             }
 
-            // Update most recent ts
-            const auto num_frames = static_cast<uint32_t>(rtp_packet->data_len) / reader.audio_format.bytes_per_frame();
-            auto packet_most_recent_ts = rav::WrappingUint32(rtp_packet->timestamp + num_frames - 1);
-            if (reader.most_recent_ts && packet_most_recent_ts > *reader.most_recent_ts) {
-                reader.most_recent_ts = packet_most_recent_ts;
-            } else {
+            if (packet_most_recent_ts > *reader.most_recent_ts) {
                 reader.most_recent_ts = packet_most_recent_ts;
             }
 
@@ -361,7 +355,7 @@ std::optional<uint32_t> read_data_from_reader_realtime(
 
     do_realtime_maintenance(reader);
 
-    if (!reader.first_packet_timestamp.has_value()) {
+    if (!reader.most_recent_ts.has_value()) {
         return {};  // No data has been received yet
     }
 
@@ -416,7 +410,7 @@ void rav::rtp::Receiver3::Reader::reset() {
     seq = 0;
     receive_buffer.clear();
     read_audio_data_buffer = {};
-    first_packet_timestamp = {};
+    most_recent_ts = {};
     next_ts_to_read = {};
 }
 
@@ -667,7 +661,7 @@ void rav::rtp::Receiver3::read_incoming_packets() {
                     stream.prev_packet_time_ns = recv_time;
                 }
 
-                PacketBuffer packet{};
+                PacketBuffer packet {};
                 packet.timestamp = view.timestamp();
                 packet.seq = view.sequence_number();
                 packet.data_len = static_cast<uint16_t>(payload.size_bytes());
@@ -675,7 +669,6 @@ void rav::rtp::Receiver3::read_incoming_packets() {
 
                 auto state = stream.state.load(std::memory_order_relaxed);
                 if (state != StreamState::no_consumer && !stream.packets.push(packet)) {
-                    TRACY_MESSAGE("Failed to push packet");
                     stream.state.store(StreamState::no_consumer, std::memory_order_relaxed);
                 } else {
                     stream.state.store(StreamState::receiving, std::memory_order_relaxed);

@@ -160,7 +160,6 @@ struct Receiver3 {
         // Audio thread
         Ringbuffer receive_buffer;
         std::vector<uint8_t> read_audio_data_buffer;
-        std::optional<WrappingUint32> first_packet_timestamp;
         std::optional<WrappingUint32> most_recent_ts;  // ts of the latest received data
         WrappingUint32 next_ts_to_read;
 

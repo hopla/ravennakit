@@ -337,10 +337,6 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configur
         }
     }
 
-    if (config.delay_frames == 0) {
-        RAV_WARNING("Delay is set to 0 frames, which is most likely not what you want");
-    }
-
     // Determine changes to apply
 
     bool do_update_nmos = false;
@@ -394,8 +390,6 @@ tl::expected<void, std::string> rav::RavennaReceiver::set_configuration(Configur
     if (!configuration_.auto_update_sdp) {
         configuration_.session_name = configuration_.sdp.session_name;
     }
-
-    // TODO: Set delay (frames)
 
     for (auto* subscriber : subscribers_) {
         subscriber->ravenna_receiver_configuration_updated(*this, configuration_);
@@ -581,7 +575,7 @@ void rav::tag_invoke(
         {"delay_frames", config.delay_frames},
         {"enabled", config.enabled},
         {"auto_update_sdp", config.auto_update_sdp},
-        {"sdp", rav::sdp::to_string(config.sdp)}
+        {"sdp", sdp::to_string(config.sdp)}
     };
 }
 

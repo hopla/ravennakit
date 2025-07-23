@@ -456,10 +456,10 @@ rav::rtp::AudioReceiver::AudioReceiver(boost::asio::io_context& io_context) {
 
 rav::rtp::AudioReceiver::~AudioReceiver() {
     for (auto& reader : readers) {
-        RAV_ASSERT(!reader.id.is_valid(), "There should be no active readers at this point");
+        RAV_ASSERT_NO_THROW(!reader.id.is_valid(), "There should be no active readers at this point");
     }
     for (auto& socket : sockets) {
-        RAV_ASSERT(!socket.socket.is_open(), "There should be no active socket at this point");
+        RAV_ASSERT_NO_THROW(!socket.socket.is_open(), "There should be no active socket at this point");
     }
 }
 

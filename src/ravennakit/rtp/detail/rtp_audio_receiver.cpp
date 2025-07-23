@@ -321,6 +321,8 @@ void do_realtime_maintenance(rav::rtp::AudioReceiver::Reader& reader) {
                 reader.most_recent_ts = packet_most_recent_ts;
             }
 
+            TRACY_PLOT("Packet margin: {}", static_cast<double>(reader.next_ts_to_read.diff(packet_timestamp)));
+
             // Determine whether whole packet is too old
             if (packet_timestamp + stream.packet_time_frames <= reader.next_ts_to_read) {
                 // RAV_WARNING("Packet too late: seq={}, ts={}", packet->seq, packet->timestamp);

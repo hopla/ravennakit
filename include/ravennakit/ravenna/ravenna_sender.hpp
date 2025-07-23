@@ -88,7 +88,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     };
 
     RavennaSender(
-        boost::asio::io_context& io_context, rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
+        rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
         ptp::Instance& ptp_instance, Id id, uint32_t session_id
     );
 
@@ -204,7 +204,6 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     void ptp_parent_changed(const ptp::ParentDs& parent) override;
 
   private:
-    boost::asio::io_context& io_context_;
     rtp::AudioSender& rtp_audio_sender_;
     dnssd::Advertiser& advertiser_;
     rtsp::Server& rtsp_server_;

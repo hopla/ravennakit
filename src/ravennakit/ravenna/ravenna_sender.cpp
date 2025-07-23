@@ -25,10 +25,9 @@
 #endif
 
 rav::RavennaSender::RavennaSender(
-    boost::asio::io_context& io_context, rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser,
-    rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, const Id id, const uint32_t session_id
+    rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
+    ptp::Instance& ptp_instance, const Id id, const uint32_t session_id
 ) :
-    io_context_(io_context),
     rtp_audio_sender_(rtp_audio_sender),
     advertiser_(advertiser),
     rtsp_server_(rtsp_server),

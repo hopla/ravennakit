@@ -168,8 +168,7 @@ std::future<tl::expected<rav::Id, std::string>>
 rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
     auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_sender = std::make_unique<RavennaSender>(
-            io_context_, rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(),
-            generate_unique_session_id()
+            rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id()
         );
         if (initial_config.session_name.empty()) {
             initial_config.session_name = fmt::format("Sender {}", new_sender->get_session_id());
@@ -530,7 +529,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
 
             for (auto& sender : senders) {
                 auto new_sender = std::make_unique<RavennaSender>(
-                    io_context_, rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1
+                    rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1
                 );
                 new_sender->set_network_interface_config(*network_interface_config);
                 if (auto result = new_sender->restore_from_json(sender); !result) {

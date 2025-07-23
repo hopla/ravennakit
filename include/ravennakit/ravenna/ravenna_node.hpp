@@ -258,19 +258,12 @@ class RavennaNode {
     );
 
     /**
-     * Schedules data to be sent onto the network.
-     * @param sender_id The id of the sender.
-     * @param buffer The buffer to send.
-     * @param timestamp The timestamp of the data.
+     * @copydoc rtp::AudioSender::send_data_realtime
      */
     [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
 
     /**
-     * Schedules audio data to be sent onto the network.
-     * @param sender_id The id of the sender.
-     * @param buffer The buffer to send.
-     * @param timestamp The timestamp of the data.
-     * @return True if the data was sent, false if something went wrong.
+     * @copydoc rtp::AudioSender::send_audio_data_realtime
      */
     [[nodiscard]] bool
     send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
@@ -338,10 +331,6 @@ class RavennaNode {
     }
 
   private:
-    struct RealtimeSharedContext {
-        std::vector<RavennaSender*> senders;
-    };
-
     boost::asio::io_context io_context_;
     rtp::AudioReceiver rtp_receiver_ {io_context_};
     rtp::AudioSender rtp_sender_ {io_context_};
@@ -365,10 +354,8 @@ class RavennaNode {
     nmos::Device nmos_device_;
 
     SubscriberList<Subscriber> subscribers_;
-    RealtimeSharedObject<RealtimeSharedContext> realtime_shared_context_;
     NetworkInterfaceConfig network_interface_config_;
 
-    [[nodiscard]] bool update_realtime_shared_context();
     uint32_t generate_unique_session_id() const;
     void do_maintenance() const;
 };

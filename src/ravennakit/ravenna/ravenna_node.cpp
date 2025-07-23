@@ -128,9 +128,6 @@ rav::RavennaNode::create_receiver(RavennaReceiver::Configuration initial_config)
         for (const auto& s : subscribers_) {
             s->ravenna_receiver_added(*it);
         }
-        if (!update_realtime_shared_context()) {
-            RAV_ERROR("Failed to update realtime shared context");
-        }
         return it->get_id();
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
@@ -146,10 +143,6 @@ std::future<void> rav::RavennaNode::remove_receiver(Id receiver_id) {
                 receivers_.erase(it);
                 for (const auto& s : subscribers_) {
                     s->ravenna_receiver_removed(receiver_id);
-                }
-                if (!update_realtime_shared_context()) {
-                    // If this happens we're out of luck, because the object will be deleted after this.
-                    RAV_ERROR("Failed to update realtime shared context");
                 }
                 return;
             }
@@ -193,9 +186,6 @@ rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
         for (const auto& s : subscribers_) {
             s->ravenna_sender_added(*it);
         }
-        if (!update_realtime_shared_context()) {
-            RAV_ERROR("Failed to update realtime shared context");
-        }
         return it->get_id();
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
@@ -211,10 +201,6 @@ std::future<void> rav::RavennaNode::remove_sender(Id sender_id) {
                 senders_.erase(it);  // It is empty by now
                 for (const auto& s : subscribers_) {
                     s->ravenna_sender_removed(sender_id);
-                }
-                if (!update_realtime_shared_context()) {
-                    // If this happens we're out of luck, because the object will be deleted after this.
-                    RAV_ERROR("Failed to update realtime shared context");
                 }
                 return;
             }
@@ -645,21 +631,9 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
             return tl::unexpected(fmt::format("Failed to parse RavennaNode JSON: {}", e.what()));
         }
 
-        if (!update_realtime_shared_context()) {
-            RAV_ERROR("Failed to update realtime shared context");
-        }
-
         return {};
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
-}
-
-bool rav::RavennaNode::update_realtime_shared_context() {
-    auto new_context = std::make_unique<RealtimeSharedContext>();
-    for (auto& sender : senders_) {
-        new_context->senders.emplace_back(sender.get());
-    }
-    return realtime_shared_context_.update(std::move(new_context));
 }
 
 uint32_t rav::RavennaNode::generate_unique_session_id() const {

@@ -178,9 +178,9 @@ class WavFilePlayer: public rav::ptp::Instance::Subscriber {
             rav::swap_bytes(audio_buffer_.data(), num_read, audio_format_.bytes_per_sample());
         }
 
-        if (!sender_->send_data_realtime(rav::BufferView(audio_buffer_.data(), num_read).const_view(), rtp_ts_)) {
-            RAV_ERROR("Failed to send audio data");
-        }
+        // if (!sender_->send_data_realtime(rav::BufferView(audio_buffer_.data(), num_read).const_view(), rtp_ts_)) {
+        //     RAV_ERROR("Failed to send audio data");
+        // }
 
         rtp_ts_ += static_cast<uint32_t>(num_read) / audio_format_.bytes_per_frame();
     }

@@ -97,7 +97,7 @@ struct AudioSender {
     /**
      * Schedules audio data for sending. A call to this function is realtime safe and thread safe as long as only one
      * thread makes the call.
-     * @param id
+     * @param id The id of the writer.
      * @param input_buffer The buffer to send.
      * @param timestamp The timestamp of the buffer.
      * @return True if the buffer was sent, or false if something went wrong.

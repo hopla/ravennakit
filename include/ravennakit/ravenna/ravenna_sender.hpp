@@ -165,24 +165,6 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     [[nodiscard]] uint32_t get_framecount() const;
 
     /**
-     * Schedules data for sending. A call to this function is realtime safe and thread safe as long as only one thread
-     * makes the call.
-     * @param buffer The buffer to send.
-     * @param timestamp The timestamp of the buffer.
-     * @returns True if the buffer was sent, or false if something went wrong.
-     */
-    [[nodiscard]] bool send_data_realtime(BufferView<const uint8_t> buffer, uint32_t timestamp);
-
-    /**
-     * Schedules audio data for sending. A call to this function is realtime safe and thread safe as long as only one
-     * thread makes the call.
-     * @param input_buffer The buffer to send.
-     * @param timestamp The timestamp of the buffer.
-     * @return True if the buffer was sent, or false if something went wrong.
-     */
-    [[nodiscard]] bool send_audio_data_realtime(const AudioBufferView<const float>& input_buffer, uint32_t timestamp);
-
-    /**
      * Sets the network interface config for the receiver.
      * @param network_interface_config The configuration of the network interface to use.
      */
@@ -238,51 +220,21 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     int32_t clock_domain_ {};
     ptp::ClockIdentity grandmaster_identity_;
     NetworkInterfaceConfig network_interface_config_;
-    std::map<Rank, rtp::Sender> rtp_senders_;
 
     nmos::SourceAudio nmos_source_;
     nmos::FlowAudioRaw nmos_flow_;
     nmos::Sender nmos_sender_;
 
-    boost::asio::high_resolution_timer timer_;  // TODO: Replace with AsioTimer to avoid crashes on shutdown
     SubscriberList<Subscriber> subscribers_;
     std::string status_message_;
-
-    struct Packet {
-        uint32_t rtp_timestamp {};
-        uint32_t payload_size_bytes {};
-        std::array<uint8_t, aes67::constants::k_max_payload> payload {};
-    };
-
-    struct SharedContext {
-        // Audio thread:
-        ByteBuffer rtp_packet_buffer;
-        std::vector<uint8_t> intermediate_send_buffer;
-        std::vector<uint8_t> intermediate_audio_buffer;
-        uint32_t packet_time_frames;
-        rtp::Packet rtp_packet;
-        AudioFormat audio_format;
-        rtp::Ringbuffer rtp_buffer;
-
-        // Audio thread writes and network thread reads:
-        FifoBuffer<Packet, Fifo::Spsc> outgoing_data;
-    };
-
-    Rcu<SharedContext> shared_context_;
-    Rcu<SharedContext>::Reader send_data_realtime_reader_ {shared_context_.create_reader()};
-    Rcu<SharedContext>::Reader send_outgoing_data_reader_ {shared_context_.create_reader()};
 
     /**
      * Sends an announce request to all connected clients.
      */
     void send_announce() const;
     [[nodiscard]] tl::expected<sdp::SessionDescription, std::string> build_sdp() const;
-    void start_timer();
-    void stop_timer();
-    void update_shared_context();
     void generate_auto_addresses_if_needed();
     bool generate_auto_addresses_if_needed(std::vector<Destination>& destinations) const;
-    void update_rtp_senders();
     void update_state(bool update_advertisement, bool announce, bool update_nmos);
 };
 

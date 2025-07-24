@@ -178,7 +178,7 @@ rav::rtp::AudioSender::AudioSender(boost::asio::io_context& io_context) {
 
 rav::rtp::AudioSender::~AudioSender() {
     for (auto& writer : writers) {
-        RAV_ASSERT(!writer.id.is_valid(), "There should be no active writers at this point");
+        RAV_ASSERT_NO_THROW(!writer.id.is_valid(), "There should be no active writers at this point");
     }
 }
 

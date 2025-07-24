@@ -40,6 +40,10 @@ inline uint64_t mach_absolute_time_ns() {
     return mach_absolute_time_to_nanoseconds(mach_absolute_time());
 }
 
+inline bool mach_wait_until_ns(const uint64_t nanoseconds) {
+    return mach_wait_until(mach_nanoseconds_to_absolute_time(nanoseconds)) == KERN_SUCCESS;
+}
+
 }  // namespace rav
 
 #endif

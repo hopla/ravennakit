@@ -236,6 +236,10 @@ bool rav::rtp::AudioSender::set_interfaces(const ArrayOfAddresses& interfaces) {
 
         RAV_ASSERT(interfaces.size() == writer.sockets.size(), "Sockets and interfaces should be equal");
 
+        if (!writer.id.is_valid()) {
+            continue; // Writer not in use
+        }
+
         for (size_t i = 0; i < interfaces.size(); i++) {
             boost::system::error_code ec;
             writer.sockets[i].set_option(boost::asio::ip::multicast::outbound_interface(interfaces[i]), ec);

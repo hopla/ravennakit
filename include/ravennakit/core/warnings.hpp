@@ -19,7 +19,7 @@ _Pragma("clang diagnostic ignored \"-Wextra-semi\"") _Pragma("clang diagnostic i
 #elif defined(__GNUC__) && (__GNUC__ >= 5)
     #define RAV_BEGIN_IGNORE_WARNINGS _Pragma("GCC diagnostic push")
 #elif defined(_MSC_VER)
-    #define RAV_BEGIN_IGNORE_WARNINGS _Pragma("warning (push, 0)")
+    #define RAV_BEGIN_IGNORE_WARNINGS _Pragma("warning (push, 0)") _Pragma("warning(disable:4668)")
 #endif
 
 #if defined(__clang__)

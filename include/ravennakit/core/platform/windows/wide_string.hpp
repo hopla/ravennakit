@@ -24,7 +24,7 @@ namespace rav {
  * @param wchar_str The wide string to convert.
  * @return The UTF-8 string.
  */
-std::string wide_string_to_string(PWCHAR wchar_str) {
+inline std::string wide_string_to_string(PWCHAR wchar_str) {
     // https://learn.microsoft.com/en-us/windows/win32/api/stringapiset/nf-stringapiset-widechartomultibyte
 
     if (wchar_str == nullptr) {

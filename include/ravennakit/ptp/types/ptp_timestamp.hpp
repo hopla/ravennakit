@@ -277,18 +277,27 @@ struct Timestamp {
      * @return The current timestamp as an RFC 3339 string.
      */
     std::string to_rfc3339_tai() {
-        if (seconds_ > std::numeric_limits<std::time_t>::max()) {
+        if (seconds_ > static_cast<uint64_t>(std::numeric_limits<std::time_t>::max())) {
             return {};
         }
         const auto time = static_cast<std::time_t>(seconds_);
-        std::tm tm {};
-        if (gmtime_r(&time, &tm) == nullptr) {
+
+#if RAV_WINDOWS
+        struct tm tm_result {};
+        if (gmtime_s(&tm_result, &time) != 0) {
             return {};
         }
 
+#else
+        std::tm tm_result {};
+        if (gmtime_r(&time, &tm_result) == nullptr) {
+            return {};
+        }
+#endif
+
         return fmt::format(
-            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
-            tm.tm_min, tm.tm_sec, nanoseconds_
+            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z", tm_result.tm_year + 1900, tm_result.tm_mon + 1,
+            tm_result.tm_mday, tm_result.tm_hour, tm_result.tm_min, tm_result.tm_sec, nanoseconds_
         );
     }
 

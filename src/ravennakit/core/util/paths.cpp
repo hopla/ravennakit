@@ -7,10 +7,9 @@
 #include "ravennakit/core/util/paths.hpp"
 
 #include "ravennakit/core/assert.hpp"
+#include "ravennakit/core/util/defer.hpp"
 
 #include <filesystem>
-#include <string>
-#include <vector>
 
 #if RAV_POSIX
 
@@ -64,11 +63,54 @@ std::filesystem::path get_home() {
 
 #endif
 
+#if RAV_WINDOWS
+
+    #include <winerror.h>
+    #include <stringapiset.h>
+    #include <ShlObj.h>
+
+namespace {
+
+std::filesystem::path get_known_windows_folder(REFKNOWNFOLDERID folderId) {
+    LPWSTR wsz_path = nullptr;
+    HRESULT hr;
+    hr = SHGetKnownFolderPath(folderId, KF_FLAG_CREATE, nullptr, &wsz_path);
+
+    rav::Defer free_ptr([wsz_path] {
+        CoTaskMemFree(wsz_path);
+    });
+
+    if (!SUCCEEDED(hr)) {
+        return {};
+    }
+
+    return wsz_path;
+}
+
+std::filesystem::path windows_get_roaming_app_data() {
+    return get_known_windows_folder(FOLDERID_RoamingAppData);
+}
+
+std::filesystem::path windows_get_program_data() {
+    return get_known_windows_folder(FOLDERID_ProgramData);
+}
+
+std::filesystem::path windows_get_local_app_data() {
+    return get_known_windows_folder(FOLDERID_LocalAppData);
+}
+
+}  // namespace
+
+#endif
+
 std::filesystem::path rav::paths::home() {
 #if RAV_POSIX
     return get_home();
+#elif RAV_WINDOWS
+    return get_known_windows_folder(FOLDERID_Profile);
 #else
-    return {}
+    RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
@@ -79,8 +121,11 @@ std::filesystem::path rav::paths::desktop() {
         return {};
     }
     return home / "Desktop";
+#elif RAV_WINDOWS
+    return get_known_windows_folder(FOLDERID_Desktop);
 #else
     RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
@@ -91,8 +136,11 @@ std::filesystem::path rav::paths::documents() {
         return {};
     }
     return home / "Documents";
+#elif RAV_WINDOWS
+    return get_known_windows_folder(FOLDERID_Documents);
 #else
     RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
@@ -103,8 +151,11 @@ std::filesystem::path rav::paths::pictures() {
         return {};
     }
     return home / "Pictures";
+#elif RAV_WINDOWS
+    return get_known_windows_folder(FOLDERID_Pictures);
 #else
     RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
@@ -115,8 +166,11 @@ std::filesystem::path rav::paths::downloads() {
         return {};
     }
     return home / "Downloads";
+#elif RAV_WINDOWS
+    return get_known_windows_folder(FOLDERID_Downloads);
 #else
     RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
@@ -127,19 +181,25 @@ std::filesystem::path rav::paths::application_data() {
         return {};
     }
     return home / "Library" / "Application Support";
+#elif RAV_WINDOWS
+    return windows_get_roaming_app_data();
 #else
     RAV_ASSERT_FALSE("Platform not supported");
+    return {};
 #endif
 }
 
 std::filesystem::path rav::paths::cache() {
-    #if RAV_MACOS
+#if RAV_MACOS
     const auto home = get_home();
     if (home.empty()) {
         return {};
     }
     return home / "Library" / "Caches";
-    #else
+#elif RAV_WINDOWS
+    return windows_get_local_app_data();
+#else
     RAV_ASSERT_FALSE("Platform not supported");
-    #endif
+    return {};
+#endif
 }

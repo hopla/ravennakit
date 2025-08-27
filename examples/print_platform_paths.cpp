@@ -8,11 +8,11 @@
 #include <fmt/format.h>
 
 int main() {
-    fmt::println("Home: {}", rav::paths::home().c_str());
-    fmt::println("Desktop: {}", rav::paths::desktop().c_str());
-    fmt::println("Documents: {}", rav::paths::documents().c_str());
-    fmt::println("Downloads: {}", rav::paths::downloads().c_str());
-    fmt::println("Pictures: {}", rav::paths::pictures().c_str());
-    fmt::println("Application data: {}", rav::paths::application_data().c_str());
-    fmt::println("Cache: {}", rav::paths::cache().c_str());
+    fmt::println("Home: {}", rav::paths::home().string());
+    fmt::println("Desktop: {}", rav::paths::desktop().string());
+    fmt::println("Documents: {}", rav::paths::documents().string());
+    fmt::println("Downloads: {}", rav::paths::downloads().string());
+    fmt::println("Pictures: {}", rav::paths::pictures().string());
+    fmt::println("Application data: {}", rav::paths::application_data().string());
+    fmt::println("Cache: {}", rav::paths::cache().string());
 }

@@ -448,12 +448,8 @@ std::future<void> rav::RavennaNode::set_network_interface_config(NetworkInterfac
         nmos_node_.set_network_interface_config(config);
 
         // Add or update PTP ports based on the new configuration
-        std::vector<std::pair<uint16_t, ip_address_v4>> ptp_ports;
-        for (const auto& [rank, address] : network_interface_config_.get_interface_ipv4_addresses()) {
-            ptp_ports.emplace_back(rank.value() + 1, address);
-        }
-
-        if (const auto result = ptp_instance_.update_ports(ptp_ports); !result) {
+        if (const auto result = ptp_instance_.update_ports(network_interface_config_.get_interface_ipv4_addresses());
+            !result) {
             RAV_ERROR("Failed to update port ports: {}", rav::ptp::to_string(result.error()));
         }
 

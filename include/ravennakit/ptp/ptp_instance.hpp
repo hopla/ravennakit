@@ -107,13 +107,12 @@ class Instance {
     add_or_update_port(uint16_t port_number, const boost::asio::ip::address_v4& interface_address);
 
     /**
-     * Updates the ports to match the entries in given array. This method will add ports when a port with given port
-     * number does not exist, and remove ports which exist but are not in the array.
+     * Updates the ports to match the entries in given array. The port number will be the index + 1. This method will
+     * add or update ports for elements with a valid ip address, and remove the remaining existing ports.
      * @param ports The port number and their interface address.
      * @return An expected indicating success or a failure.
      */
-    [[nodiscard]] tl::expected<void, Error>
-    update_ports(const std::vector<std::pair<uint16_t, boost::asio::ip::address_v4>>& ports);
+    [[nodiscard]] tl::expected<void, Error> update_ports(const std::vector<ip_address_v4>& ports);
 
     /**
      * @param port_number The port number to lookup.

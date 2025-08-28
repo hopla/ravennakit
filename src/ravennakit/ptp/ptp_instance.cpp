@@ -114,11 +114,21 @@ tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_or_update_port(
     return add_port(port_number, interface_address);
 }
 
-tl::expected<void, rav::ptp::Error>
-rav::ptp::Instance::update_ports(const std::vector<std::pair<uint16_t, boost::asio::ip::address_v4>>& ports) {
+tl::expected<void, rav::ptp::Error> rav::ptp::Instance::update_ports(const std::vector<ip_address_v4>& ports) {
+    if (ports.size() >= std::numeric_limits<uint16_t>::max()) {
+        return tl::unexpected(Error::too_many_ports);
+    }
+
     // Add or update ports
-    for (const auto& [port_number, interface_address] : ports) {
-        if (auto result = add_or_update_port(port_number, interface_address); !result) {
+    for (size_t i = 0; i < ports.size(); ++i) {
+        const auto port_number = static_cast<uint16_t>(i + 1);
+        if (ports[i].is_unspecified()) {
+            if (has_port(port_number)) {
+                std::ignore = remove_port(port_number);
+            }
+            continue;
+        }
+        if (auto result = add_or_update_port(port_number, ports[i]); !result) {
             return tl::unexpected(result.error());
         }
     }
@@ -128,9 +138,7 @@ rav::ptp::Instance::update_ports(const std::vector<std::pair<uint16_t, boost::as
         std::remove_if(
             ports_.begin(), ports_.end(),
             [&ports](const auto& port) {
-                return std::none_of(ports.begin(), ports.end(), [&port](const auto& pair) {
-                    return pair.first == port->get_port_identity().port_number;
-                });
+                return port->get_port_identity().port_number > ports.size();
             }
         ),
         ports_.end()

@@ -15,8 +15,8 @@
 
 TEST_CASE("rav::NetworkInterfaceConfig") {
     rav::NetworkInterfaceConfig config;
-    config.set_interface(rav::Rank(0), "1");
-    config.set_interface(rav::Rank(1), "2");
+    config.set_interface(0, "1");
+    config.set_interface(1, "2");
     test_network_interface_config_json(config, config.to_boost_json());
 }
 
@@ -26,7 +26,7 @@ void rav::test_network_interface_config_json(const NetworkInterfaceConfig& confi
 
     for (const auto& i : json.as_array()) {
         REQUIRE(i.is_object());
-        auto rank = Rank(i.at("rank").to_number<uint8_t>());
+        auto rank = i.at("rank").to_number<uint8_t>();
         REQUIRE(i.at("identifier").as_string() == config.interfaces.at(rank));
     }
 }

@@ -119,7 +119,7 @@ tl::expected<void, std::string> rav::RavennaSender::set_configuration(Configurat
                 );
             }
             num_enabled_destinations++;
-            auto* iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank);
+            auto* iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank.value());
             if (iface == nullptr) {
                 return tl::unexpected(fmt::format("{} interface not set", dst.interface_by_rank.to_ordinal_latin()));
             }
@@ -369,7 +369,7 @@ void rav::RavennaSender::send_announce() const {
     }
 
     const auto interface_address_string =
-        network_interface_config_.get_interface_ipv4_address(Rank::primary()).to_string();
+        network_interface_config_.get_interface_ipv4_address(Rank::primary().value()).to_string();
 
     rtsp::Request request;
     request.method = "ANNOUNCE";
@@ -421,7 +421,7 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
         0,
         sdp::NetwType::internet,
         sdp::AddrType::ipv4,
-        network_interface_config_.get_interface_ipv4_address(Rank::primary()).to_string(),
+        network_interface_config_.get_interface_ipv4_address(Rank::primary().value()).to_string(),
     };
 
     sdp::SessionDescription sdp;
@@ -456,7 +456,7 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
             sdp::NetwType::internet, sdp::AddrType::ipv4, dst_address_str, 15, {}
         };
 
-        auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank);
+        auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank.value());
         if (addr.is_unspecified()) {
             return tl::unexpected(fmt::format("No interface address for rank {}", dst.interface_by_rank.value()));
         }
@@ -509,9 +509,9 @@ bool rav::RavennaSender::generate_auto_addresses_if_needed(std::vector<Destinati
     bool changed = false;
     for (auto& dst : destinations) {
         if (dst.endpoint.address().is_unspecified()) {
-            const auto iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank);
+            const auto iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank.value());
             if (iface != nullptr) {
-                auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank);
+                auto addr = network_interface_config_.get_interface_ipv4_address(dst.interface_by_rank.value());
                 if (addr.is_unspecified()) {
                     RAV_WARNING("Invalid interface address for rank {}", dst.interface_by_rank.value());
                     continue;
@@ -570,7 +570,7 @@ void rav::RavennaSender::update_state(const bool update_advertisement, const boo
         nmos_sender_.interface_bindings.clear();
         for (const auto& dst : configuration_.destinations) {
             if (dst.enabled) {
-                const auto iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank);
+                const auto iface = network_interface_config_.get_interface_for_rank(dst.interface_by_rank.value());
                 if (iface != nullptr) {
                     nmos_sender_.interface_bindings.push_back(*iface);
                 } else {

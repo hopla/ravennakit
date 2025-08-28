@@ -1485,7 +1485,7 @@ void rav::nmos::Node::send_updated_resources_async() {
 void rav::nmos::Node::update_device(Device& device) {
     const auto endpoint = http_server_.get_local_endpoint();
     device.controls.clear();
-    for (auto& [rank, ip] : network_interface_config_.get_interface_ipv4_addresses()) {
+    for (auto& ip : network_interface_config_.get_interface_ipv4_addresses()) {
         Device::Control control;
         control.type = "urn:x-nmos:control:sr-ctrl/v1.1";
         control.href = fmt::format("http://{}:{}/x-nmos/connection/v1.1", ip.to_string(), endpoint.port());
@@ -1823,7 +1823,7 @@ void rav::nmos::Node::set_network_interface_config(NetworkInterfaceConfig config
     self_.interfaces.clear();
     const auto& system_interfaces = NetworkInterfaceList::get_system_interfaces();
 
-    for (const auto& [_, id] : config.interfaces) {
+    for (const auto& id : config.interfaces) {
         auto* iface = system_interfaces.get_interface(id);
         if (iface == nullptr) {
             RAV_ERROR("Network interface with ID {} not found", id);
@@ -1849,7 +1849,7 @@ void rav::nmos::Node::set_network_interface_config(NetworkInterfaceConfig config
 
     self_.api.endpoints.clear();
 
-    for (const auto& [rank, ip] : addrs) {
+    for (const auto& ip : addrs) {
         self_.api.endpoints.emplace_back(Self::Endpoint {ip.to_string(), http_endpoint.port(), "http", false});
     }
 

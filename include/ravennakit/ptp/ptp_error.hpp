@@ -24,6 +24,7 @@ enum class Error {
     invalid_clock_identity,
     port_invalid,
     port_already_exists,
+    too_many_ports,
 };
 
 inline const char* to_string(const Error error) {
@@ -50,6 +51,8 @@ inline const char* to_string(const Error error) {
             return "port invalid";
         case Error::port_already_exists:
             return "port already exists";
+        case Error::too_many_ports:
+            return "too many ports";
         default:
             return "unknown error";
     }

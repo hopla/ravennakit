@@ -77,8 +77,8 @@ TEST_CASE("rav::RavennaNode") {
     node_config.registry_address = "127.0.0.1";
 
     rav::NetworkInterfaceConfig network_interface_config;
-    network_interface_config.set_interface(rav::Rank(0), "en0-not-valid");
-    network_interface_config.set_interface(rav::Rank(1), "en1-not-valid");
+    network_interface_config.set_interface(0, "en0-not-valid");
+    network_interface_config.set_interface(1, "en1-not-valid");
 
 #if !RAV_LINUX
     // On Linux there is no implementation for the dnssd browser which makes the next code error out. Until the

@@ -250,7 +250,7 @@ tl::expected<void, std::string> rav::RavennaReceiver::update_nmos() {
     nmos_receiver_.subscription.active = configuration_.enabled;
     nmos_receiver_.transport = "urn:x-nmos:transport:rtp.mcast";
     nmos_receiver_.interface_bindings.clear();
-    for (const auto& [rank, id] : network_interface_config_.interfaces) {
+    for (const auto& id : network_interface_config_.interfaces) {
         nmos_receiver_.interface_bindings.push_back(id);
     }
 

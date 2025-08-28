@@ -51,4 +51,10 @@ std::filesystem::path application_data();
  */
 std::filesystem::path cache();
 
+/**
+ * macOS: /Users/<username>/Library/Caches (same as cache()).
+ * @return A path to the temporary folder, or an empty path if the folder could not be retrieved.
+ */
+std::filesystem::path temporary();
+
 }  // namespace rav::paths

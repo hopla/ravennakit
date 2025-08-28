@@ -17,4 +17,5 @@ int main() {
     fmt::println("Pictures: file://{}", rav::Uri::encode(rav::paths::pictures().string()));
     fmt::println("Application data: file://{}", rav::Uri::encode(rav::paths::application_data().string()));
     fmt::println("Cache: file://{}", rav::Uri::encode(rav::paths::cache().string()));
+    fmt::println("Temporary: file://{}", rav::Uri::encode(rav::paths::temporary().string()));
 }

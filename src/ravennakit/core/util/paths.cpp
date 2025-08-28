@@ -9,6 +9,7 @@
 #include "ravennakit/core/assert.hpp"
 #include "ravennakit/core/file.hpp"
 #include "ravennakit/core/string_parser.hpp"
+#include "ravennakit/core/util.hpp"
 #include "ravennakit/core/util/defer.hpp"
 
 #include <filesystem>
@@ -241,6 +242,25 @@ std::filesystem::path rav::paths::cache() {
     return windows_get_local_app_data();
 #elif RAV_LINUX
     return resolve_xdg_folder("XDG_CACHE_HOME", get_home() / ".cache");
+#else
+    RAV_ASSERT_FALSE("Platform not supported");
+    return {};
+#endif
+}
+
+std::filesystem::path rav::paths::temporary() {
+#if RAV_MACOS
+    return cache();
+#elif RAV_WINDOWS
+    WCHAR dest[2048];
+    dest[0] = 0;
+    GetTempPath ((DWORD) rav::num_elements_in_array (dest), dest);
+    return dest;
+#elif RAV_LINUX
+    if (auto* tmpdir = std::getenv("TMPDIR")) {
+        return tmpdir;
+    }
+    return {"/tmp"}
 #else
     RAV_ASSERT_FALSE("Platform not supported");
     return {};

@@ -9,13 +9,23 @@
 
 #include <fmt/format.h>
 
+namespace {
+void print(const char* subject, const std::filesystem::path& path) {
+#ifdef RAV_WINDOWS
+    fmt::println("{}: {}", subject, path.string());
+#else
+    fmt::println("{}: file://{}", subject, rav::Uri::encode(rav::paths::home().string()));
+#endif
+}
+}  // namespace
+
 int main() {
-    fmt::println("Home: file://{}", rav::Uri::encode(rav::paths::home().string()));
-    fmt::println("Desktop: file://{}", rav::Uri::encode(rav::paths::desktop().string()));
-    fmt::println("Documents: file://{}", rav::Uri::encode(rav::paths::documents().string()));
-    fmt::println("Downloads: file://{}", rav::Uri::encode(rav::paths::downloads().string()));
-    fmt::println("Pictures: file://{}", rav::Uri::encode(rav::paths::pictures().string()));
-    fmt::println("Application data: file://{}", rav::Uri::encode(rav::paths::application_data().string()));
-    fmt::println("Cache: file://{}", rav::Uri::encode(rav::paths::cache().string()));
-    fmt::println("Temporary: file://{}", rav::Uri::encode(rav::paths::temporary().string()));
+    print("Home", rav::paths::home());
+    print("Desktop", rav::paths::desktop().string());
+    print("Documents", rav::paths::documents().string());
+    print("Downloads", rav::paths::downloads().string());
+    print("Pictures", rav::paths::pictures().string());
+    print("Application data", rav::paths::application_data().string());
+    print("Cache", rav::paths::cache().string());
+    print("Temporary", rav::paths::temporary().string());
 }

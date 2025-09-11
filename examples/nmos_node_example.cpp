@@ -44,7 +44,7 @@ int main(const int argc, const char* argv[]) {
         RAV_ERROR("Invalid network interface(s): {}", result.error());
         return 1;
     }
-    
+
     static constexpr uint32_t k_num_devices = 2;
     static constexpr uint32_t k_num_sources_per_device = 2;
     static constexpr uint32_t k_num_senders_per_source = 2;

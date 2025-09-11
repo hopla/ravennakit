@@ -122,6 +122,9 @@ boost::json::array get_sender_transport_params_from_sdp(const rav::sdp::SessionD
     for (auto& media : sdp.media_descriptions) {
         rav::nmos::SenderTransportParamsRtp params {};
         params.destination_port = media.port;
+        params.source_port = media.port;  // TODO: This is probably not correct. I suspect that this should be the port
+                                          // of the sending socket, however we don't bind the socket and so there is no
+                                          // port. It's unclear how to acquire the correct port number here.
         if (!media.connection_infos.empty()) {
             params.destination_ip = media.connection_infos.front().address;
         } else {
@@ -805,7 +808,27 @@ rav::nmos::Node::Node(
 
             RAV_TRACE("{}: {}", std::string(request.target()), request.body());
 
-            ok_response(res, {});
+            boost::json::array transport_params;
+            TransportFile transport_file;
+            transport_file.type = "application/sdp";
+
+            const auto it = receiver_transport_files_.find(boost::uuids::string_generator()(*receiver_id));
+            if (it != receiver_transport_files_.end()) {
+                transport_params = get_receiver_transport_params_from_sdp(it->second);
+                transport_file.data = to_string(it->second);
+            }
+
+            ActivationResponse activation_response;
+
+            const boost::json::value value {
+                {"sender_id", boost::json::value_from(receiver->subscription.sender_id)},
+                {"master_enable", receiver->subscription.active},
+                {"activation", boost::json::value_from(activation_response)},
+                {"transport_params", transport_params},
+                {"transport_file", boost::json::value_from(transport_file)},
+            };
+
+            ok_response(res, boost::json::serialize(value));
         }
     );
 
@@ -1014,6 +1037,47 @@ rav::nmos::Node::Node(
                 set_error_response(res, http::status::not_found, "Not found", "Sender not found");
                 return;
             }
+
+            const auto transport_file = sender_transport_files_.find(boost::uuids::string_generator()(*sender_id));
+            if (transport_file == sender_transport_files_.end()) {
+                set_error_response(res, http::status::not_found, "Not found", "Sender transport file not found");
+                return;
+            }
+
+            ActivationResponse activation_response;
+            auto transport_params = get_sender_transport_params_from_sdp(transport_file->second);
+
+            const boost::json::value value {
+                {"receiver_id", boost::json::value_from(sender->subscription.receiver_id)},
+                {"master_enable", sender->subscription.active},
+                {"activation", boost::json::value_from(activation_response)},
+                {"transport_params", transport_params},
+            };
+
+            ok_response(res, boost::json::serialize(value));
+        }
+    );
+
+    http_server_.patch(
+        "/x-nmos/connection/{version}/single/senders/{sender_id}/staged",
+        [this](const HttpServer::Request& req, HttpServer::Response& res, const PathMatcher::Parameters& params) {
+            if (!get_valid_api_version_from_parameters(params, k_connection_api_versions).has_value()) {
+                return invalid_api_version_response(res);
+            }
+
+            const auto* sender_id = params.get("sender_id");
+            if (sender_id == nullptr) {
+                set_error_response(res, http::status::bad_request, "Invalid sender ID", "No sender ID provided");
+                return;
+            }
+
+            auto* sender = find_sender(boost::uuids::string_generator()(*sender_id));
+            if (sender == nullptr) {
+                set_error_response(res, http::status::not_found, "Not found", "Sender not found");
+                return;
+            }
+
+            RAV_TRACE("{}: {}", std::string(req.target()), req.body());
 
             const auto transport_file = sender_transport_files_.find(boost::uuids::string_generator()(*sender_id));
             if (transport_file == sender_transport_files_.end()) {

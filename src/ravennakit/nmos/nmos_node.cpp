@@ -51,14 +51,13 @@ void set_default_headers(rav::HttpServer::Response& res, const char* content_typ
  * @param status The HTTP status code.
  * @param error The error message.
  * @param debug The debug information.
- * @param content_type The mime type of the content.
  */
 void set_error_response(
     http::response<http::string_body>& res, const http::status status, const std::string& error,
-    const std::string& debug, const char* content_type = "application/json"
+    const std::string& debug
 ) {
     res.result(status);
-    set_default_headers(res, content_type);
+    set_default_headers(res, "application/json");
     res.body() = boost::json::serialize(
         boost::json::value_from(rav::nmos::ApiError {static_cast<unsigned>(status), error, debug})
     );
@@ -806,7 +805,34 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            RAV_TRACE("{}: {}", std::string(request.target()), request.body());
+            auto body = request.body();
+            RAV_TRACE("{} {}: {}", request.method_string(), std::string(request.target()), body);
+
+            auto json = boost::json::parse(body);
+
+            // Validate object
+            for (auto& member : json.as_object()) {
+                if (member.key() == "activation") {
+                    continue;
+                }
+                if (member.key() == "sender_id") {
+                    continue;
+                }
+                if (member.key() == "transport_params") {
+                    continue;
+                }
+                if (member.key() == "transport_file") {
+                    continue;
+                }
+                if (member.key() == "master_enable") {
+                    continue;
+                }
+                set_error_response(
+                    res, http::status::bad_request, "Bad Request", "Invalid JSON: unexpected key: " + std::string(member.key())
+                );
+                return;
+            }
+
 
             boost::json::array transport_params;
             TransportFile transport_file;
@@ -1077,11 +1103,44 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            RAV_TRACE("{}: {}", std::string(req.target()), req.body());
+            auto body = req.body();
+            RAV_TRACE("{} {}: {}", req.method_string(), std::string(req.target()), body);
+
+            auto json = boost::json::parse(body);
+
+            // Validate object
+            for (auto& member : json.as_object()) {
+                if (member.key() == "activation") {
+                    continue;
+                }
+                if (member.key() == "receiver_id") {
+                    continue;
+                }
+                if (member.key() == "transport_params") {
+                    continue;
+                }
+                if (member.key() == "master_enable") {
+                    continue;
+                }
+                set_error_response(
+                    res, http::status::bad_request, "Bad Request", "Invalid JSON: unexpected key: " + std::string(member.key())
+                );
+                return;
+            }
+
+            auto activation = json.try_at("activation");
+            auto transport = json.try_at("transport_params");
+
+            if (activation && !transport) {
+                set_error_response(
+                    res, http::status::bad_request, "Bad Request", "Invalid JSON: expecting transport_params"
+                );
+                return;
+            }
 
             const auto transport_file = sender_transport_files_.find(boost::uuids::string_generator()(*sender_id));
             if (transport_file == sender_transport_files_.end()) {
-                set_error_response(res, http::status::not_found, "Not found", "Sender transport file not found");
+                set_error_response(res, http::status::not_found, "Not Found", "Sender transport file not found");
                 return;
             }
 

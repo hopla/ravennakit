@@ -51,6 +51,11 @@ rav::RavennaSender::RavennaSender(
     destinations.emplace_back(Destination {Rank::secondary(), {boost::asio::ip::address_v4::any(), 5004}, true});
     configuration_.destinations = std::move(destinations);
 
+    nmos_sender_.set_receiver_id = [this](const std::optional<boost::uuids::uuid>& new_receiver_id) {
+        nmos_sender_.subscription.receiver_id = new_receiver_id;
+        return true;
+    };
+
     if (!ptp_instance_.subscribe(this)) {
         RAV_ERROR("Failed to subscribe to PTP instance");
     }

@@ -68,6 +68,8 @@ struct Sender: ResourceCore {
         }
         return true;
     }
+
+    SafeFunction<bool(const std::optional<boost::uuids::uuid>& new_receiver_id)> set_receiver_id;
 };
 
 inline void

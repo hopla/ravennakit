@@ -1173,6 +1173,14 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            if (auto result = json.try_at("receiver_id")) {
+                auto new_receiver_id = uuid_from_json(*result);
+                if (!sender->set_receiver_id(new_receiver_id)) {
+                    set_error_response(res, http::status::bad_request, "Bad Request", "Failed to change receiver id");
+                    return;
+                }
+            }
+
             auto activation = json.try_at("activation");
             auto transport = json.try_at("transport_params");
 

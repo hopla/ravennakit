@@ -195,6 +195,24 @@ boost::json::array get_receiver_constraints(const size_t num_constraints) {
     return constraints_array;
 }
 
+void update_nmos_sender_manifest_href(
+    rav::nmos::Sender& sender, const rav::NetworkInterfaceConfig& network_interface_config, const uint16_t port
+) {
+    const auto addrs = network_interface_config.get_interface_ipv4_addresses();
+
+    rav::ip_address_v4 address {};
+    if (!addrs.empty()) {
+        address = addrs[0];
+    }
+
+    auto uuid = boost::uuids::to_string(sender.id);
+
+    sender.manifest_href = fmt::format(
+        "http://{}:{}/x-nmos/connection/{}/single/senders/{}/transportfile", address.to_string(), port,
+        rav::nmos::Node::k_connection_api_versions.back().to_string(), uuid
+    );
+}
+
 }  // namespace
 
 std::array<rav::nmos::ApiVersion, 2> rav::nmos::Node::k_node_api_versions = {{
@@ -1341,6 +1359,7 @@ rav::nmos::Node::Node(
                 return;
             }
             ok_response(res, *sdp_text, "application/sdp");
+            res.set("Content-Disposition", "attachment; filename=\"transportfile.sdp\"");
         }
     );
 
@@ -1497,6 +1516,14 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
     }
 
     status_info_.api_port = http_endpoint.port();
+
+    for (auto* device : devices_) {
+        update_device(*device);
+    }
+
+    for (auto* sender : senders_) {
+        update_nmos_sender_manifest_href(*sender, network_interface_config_, http_endpoint.port());
+    }
 
     // Start the HTTP client to connect to the registry.
     if (configuration_.operation_mode == OperationMode::manual) {
@@ -2080,7 +2107,7 @@ bool rav::nmos::Node::add_or_update_sender(Sender* sender) {
         return false;
     }
 
-    sender->version = Version(get_local_clock().now());
+    RAV_ASSERT(!sender->device_id.is_nil(), "Sender should have a valid device ID");
 
     const auto it = std::find_if(senders_.begin(), senders_.end(), [sender](const Sender* s) {
         return s->id == sender->id;
@@ -2093,6 +2120,9 @@ bool rav::nmos::Node::add_or_update_sender(Sender* sender) {
         }
         senders_.push_back(sender);
     }
+
+    update_nmos_sender_manifest_href(*sender, network_interface_config_, http_server_.get_local_endpoint().port());
+    sender->version = Version(get_local_clock().now());
 
     if (status_ == Status::registered) {
         send_updated_resources_async();
@@ -2226,7 +2256,7 @@ void rav::nmos::Node::set_network_interface_config(NetworkInterfaceConfig config
         self_.interfaces.emplace_back(Self::Interface {std::nullopt, iface->get_mac_address()->to_string("-"), id});
     }
 
-    auto addrs = config.get_interface_ipv4_addresses();
+    const auto addrs = config.get_interface_ipv4_addresses();
     if (addrs.empty()) {
         RAV_ERROR("No IPv4 addresses found for the interface");
         return;
@@ -2242,6 +2272,10 @@ void rav::nmos::Node::set_network_interface_config(NetworkInterfaceConfig config
 
     for (auto* device : devices_) {
         update_device(*device);
+    }
+
+    for (auto* sender : senders_) {
+        update_nmos_sender_manifest_href(*sender, config, http_endpoint.port());
     }
 
     self_.version.update(get_local_clock().now());

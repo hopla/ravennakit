@@ -319,9 +319,13 @@ rav::HttpServer::on_request(const boost::beast::http::request<boost::beast::http
             (*match)(request, response, parameters);
             auto result_int = response.result_int();
             if (result_int >= 200 && result_int < 300) {
-                RAV_INFO("Response: {} {}", result_int, response.reason());
+                RAV_INFO(
+                    "{} {} {}", result_int, response.reason(), !response.body().empty() ? response.body().c_str() : ""
+                );
             } else {
-                RAV_WARNING("Response: {} {}", result_int, response.reason());
+                RAV_WARNING(
+                    "{} {} {}", result_int, response.reason(), !response.body().empty() ? response.body().c_str() : ""
+                );
             }
             return response;
         }

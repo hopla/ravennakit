@@ -70,8 +70,7 @@ struct Sender: ResourceCore {
         return true;
     }
 
-    SafeFunction<bool(const std::optional<boost::uuids::uuid>& new_receiver_id)> patch_receiver_id;
-    SafeFunction<bool(const SenderTransportParamsRtp& transport_params_rtp)> patch_transport_params;
+    SafeFunction<tl::expected<void, ApiError>(const boost::json::value& patch_request)> on_patch_request;
 };
 
 inline void

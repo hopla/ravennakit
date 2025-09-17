@@ -206,9 +206,13 @@ void rav::RavennaReceiver::do_maintenance() {
 }
 
 rav::RavennaReceiver::RavennaReceiver(
-    RavennaRtspClient& rtsp_client, rtp::AudioReceiver& rtp_audio_receiver, const Id id
+    RavennaRtspClient& rtsp_client, rtp::AudioReceiver& rtp_audio_receiver, const Id id,
+    NetworkInterfaceConfig network_interface_config
 ) :
-    rtsp_client_(rtsp_client), rtp_audio_receiver_(rtp_audio_receiver), id_(id) {
+    rtsp_client_(rtsp_client),
+    rtp_audio_receiver_(rtp_audio_receiver),
+    id_(id),
+    network_interface_config_(std::move(network_interface_config)) {
     nmos_receiver_.id = boost::uuids::random_generator()();
 
     for (auto& encoding : k_supported_encodings) {
@@ -216,32 +220,8 @@ rav::RavennaReceiver::RavennaReceiver(
     }
 
     nmos_receiver_.on_patch_request =
-        [this](const boost::json::value& patch_request) -> tl::expected<void, std::string> {
-        if (const auto result = patch_request.try_at("sender_id")) {
-            nmos_receiver_.subscription.sender_id = uuid_from_json(*result);
-        }
-
-        auto configuration = configuration_;
-        if (const auto result = patch_request.try_at("master_enable")) {
-            configuration.enabled = boost::json::value_to<bool>(*result);
-        }
-
-        if (const auto result = patch_request.try_at("transport_file")) {
-            const auto transport_file = boost::json::value_to<nmos::TransportFile>(*result);
-            if (transport_file.type != "application/sdp") {
-                return tl::unexpected("Expected application/sdp");
-            }
-            if (transport_file.data.empty()) {
-                return tl::unexpected("Expected non empty string");
-            }
-            auto sdp = sdp::parse_session_description(transport_file.data);
-            if (!sdp) {
-                return tl::unexpected(sdp.error());
-            }
-            configuration.sdp = *sdp;
-        }
-
-        return set_configuration(configuration);
+        [this](const boost::json::value& patch_request) -> tl::expected<void, nmos::ApiError> {
+        return handle_patch_request(patch_request);
     };
 }
 
@@ -311,6 +291,41 @@ tl::expected<void, std::string> rav::RavennaReceiver::update_rtsp() {
             RAV_ERROR("Failed to subscribe to session '{}'", configuration_.session_name);
             return tl::unexpected("Failed to subscribe to session");
         }
+    }
+
+    return {};
+}
+
+tl::expected<void, rav::nmos::ApiError>
+rav::RavennaReceiver::handle_patch_request(const boost::json::value& patch_request) {
+    if (const auto result = patch_request.try_at("sender_id")) {
+        nmos_receiver_.subscription.sender_id = uuid_from_json(*result);
+    }
+
+    auto configuration = configuration_;
+    if (const auto result = patch_request.try_at("master_enable")) {
+        configuration.enabled = boost::json::value_to<bool>(*result);
+    }
+
+    if (const auto result = patch_request.try_at("transport_file")) {
+        const auto transport_file = boost::json::value_to<nmos::TransportFile>(*result);
+        if (transport_file.type != "application/sdp") {
+            return tl::unexpected(nmos::ApiError {http::status::bad_request, "Expected application/sdp"});
+        }
+        if (transport_file.data.empty()) {
+            return tl::unexpected(nmos::ApiError {http::status::bad_request, "Expected non empty transport file"});
+        }
+        auto sdp = sdp::parse_session_description(transport_file.data);
+        if (!sdp) {
+            return tl::unexpected(
+                nmos::ApiError {http::status::bad_request, fmt::format("Failed to parse SDP: {}", sdp.error())}
+            );
+        }
+        configuration.sdp = *sdp;
+    }
+
+    if (auto t = set_configuration(configuration); !t) {
+        return tl::unexpected(nmos::ApiError {http::status::internal_server_error, t.error()});
     }
 
     return {};

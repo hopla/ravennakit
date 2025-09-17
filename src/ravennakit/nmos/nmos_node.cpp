@@ -50,6 +50,20 @@ void set_default_headers(rav::HttpServer::Response& res, const char* content_typ
 /**
  * Sets the error response with the given status, error message, and debug information.
  * @param res The response to set.
+ * @param error The error message.
+ */
+void set_error_response(http::response<http::string_body>& res, const rav::nmos::ApiError& error) {
+    const auto status = http::int_to_status(error.code);
+    res.result(status);
+    res.reason(http::obsolete_reason(status));
+    set_default_headers(res, "application/json");
+    res.body() = boost::json::serialize(boost::json::value_from(error));
+    res.prepare_payload();
+}
+
+/**
+ * Sets the error response with the given status, error message, and debug information.
+ * @param res The response to set.
  * @param status The HTTP status code.
  * @param error The error message.
  * @param debug The debug information.
@@ -58,12 +72,7 @@ void set_error_response(
     http::response<http::string_body>& res, const http::status status, const std::string& error,
     const std::string& debug
 ) {
-    res.result(status);
-    set_default_headers(res, "application/json");
-    res.body() = boost::json::serialize(
-        boost::json::value_from(rav::nmos::ApiError {static_cast<unsigned>(status), error, debug})
-    );
-    res.prepare_payload();
+    set_error_response(res, rav::nmos::ApiError {status, error, debug});
 }
 
 /**
@@ -842,9 +851,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            auto body = request.body();
-            RAV_TRACE("{} {}: {}", request.method_string(), std::string(request.target()), body);
-
+            const auto& body = request.body();
             auto json = boost::json::parse(body);
 
             if (!json.is_object()) {
@@ -891,7 +898,7 @@ rav::nmos::Node::Node(
             }
 
             if (auto result = receiver->on_patch_request(json); !result) {
-                set_error_response(res, http::status::bad_request, "Bad Request", result.error());
+                set_error_response(res, result.error());
                 return;
             }
 
@@ -1198,76 +1205,22 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            if (auto result = json.try_at("receiver_id")) {
-                auto new_receiver_id = uuid_from_json(*result);
-                if (!sender->patch_receiver_id(new_receiver_id)) {
-                    set_error_response(res, http::status::bad_request, "Bad Request", "Failed to change receiver id");
-                    return;
-                }
-            }
-
-            if (auto result = json.try_at("transport_params")) {
-                if (!result->is_array()) {
-                    set_error_response(
-                        res, http::status::bad_request, "Bad Request", "Transport params should be an array"
-                    );
-                    return;
-                }
-
-                for (auto& p : result->as_array()) {
-                    auto transport_params = boost::json::value_to<SenderTransportParamsRtp>(p);
-                    if (transport_params.source_ip.has_value() && transport_params.source_ip != "auto") {
+            // Refuse activation modes other than activate_immediate
+            if (const auto result = json.try_at("activation")) {
+                auto activation = boost::json::value_to<Activation>(*result);
+                if (const auto mode = activation.mode) {
+                    if (*mode != Activation::Mode::activate_immediate) {
                         set_error_response(
-                            res, http::status::bad_request, "Bad Request", "Changing source ip is not allowed"
-                        );
-                        return;
-                    }
-
-                    if (!std::holds_alternative<std::monostate>(transport_params.source_port)) {
-                        auto* source_port = std::get_if<std::string>(&transport_params.source_port);
-                        if (source_port == nullptr || *source_port != "auto") {
-                            set_error_response(
-                                res, http::status::not_implemented, "Not Implemented",
-                                "Changing source port is not implemented"
-                            );
-                            return;
-                        }
-                    }
-
-                    if (transport_params.destination_ip.has_value() && transport_params.destination_ip != "auto") {
-                        set_error_response(
-                            res, http::status::bad_request, "Bad Request", "Changing destination ip is not allowed"
-                        );
-                        return;
-                    }
-
-                    if (!std::holds_alternative<std::monostate>(transport_params.destination_port)) {
-                        auto* destination_port = std::get_if<std::string>(&transport_params.destination_port);
-                        if (destination_port == nullptr || *destination_port != "auto") {
-                            set_error_response(
-                                res, http::status::not_implemented, "Not Implemented",
-                                "Changing destination port is not implemented"
-                            );
-                            return;
-                        }
-                    }
-
-                    if (transport_params.rtp_enabled.has_value()) {
-                        set_error_response(
-                            res, http::status::bad_request, "Bad Request", "Changing RTP enabled is not allowed"
+                            res, http::status::not_implemented, "Not Implemented",
+                            "Only activate_immediate is implemented"
                         );
                         return;
                     }
                 }
             }
 
-            auto activation = json.try_at("activation");
-            auto transport = json.try_at("transport_params");
-
-            if (activation && !transport) {
-                set_error_response(
-                    res, http::status::bad_request, "Bad Request", "Invalid JSON: expecting transport_params"
-                );
+            if (auto result = sender->on_patch_request(json); !result) {
+                set_error_response(res, result.error());
                 return;
             }
 

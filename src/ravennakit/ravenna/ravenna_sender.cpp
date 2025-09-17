@@ -12,6 +12,7 @@
 #include "ravennakit/aes67/aes67_constants.hpp"
 #include "ravennakit/core/audio/audio_data.hpp"
 #include "ravennakit/nmos/detail/nmos_media_types.hpp"
+#include "ravennakit/nmos/detail/nmos_uuid.hpp"
 
 #include <boost/uuid/string_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -26,14 +27,15 @@
 
 rav::RavennaSender::RavennaSender(
     rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
-    ptp::Instance& ptp_instance, const Id id, const uint32_t session_id
+    ptp::Instance& ptp_instance, const Id id, const uint32_t session_id, NetworkInterfaceConfig network_interface_config
 ) :
     rtp_audio_sender_(rtp_audio_sender),
     advertiser_(advertiser),
     rtsp_server_(rtsp_server),
     ptp_instance_(ptp_instance),
     id_(id),
-    session_id_(session_id) {
+    session_id_(session_id),
+    network_interface_config_(std::move(network_interface_config)) {
     RAV_ASSERT(id_.is_valid(), "Sender ID must be valid");
     RAV_ASSERT(session_id != 0, "Session ID must be valid");
 
@@ -51,13 +53,9 @@ rav::RavennaSender::RavennaSender(
     destinations.emplace_back(Destination {Rank::secondary(), {boost::asio::ip::address_v4::any(), 5004}, true});
     configuration_.destinations = std::move(destinations);
 
-    nmos_sender_.patch_receiver_id = [this](const std::optional<boost::uuids::uuid>& new_receiver_id) {
-        nmos_sender_.subscription.receiver_id = new_receiver_id;
-        return true;
-    };
-
-    nmos_sender_.patch_transport_params = [](const nmos::SenderTransportParamsRtp&) {
-        return false;
+    nmos_sender_.on_patch_request =
+        [this](const boost::json::value& patch_request) -> tl::expected<void, nmos::ApiError> {
+        return handle_patch_request(patch_request);
     };
 
     if (!ptp_instance_.subscribe(this)) {
@@ -663,6 +661,58 @@ void rav::RavennaSender::update_state(const bool update_advertisement, const boo
     if (announce) {
         send_announce();
     }
+}
+
+tl::expected<void, rav::nmos::ApiError>
+rav::RavennaSender::handle_patch_request(const boost::json::value& patch_request) {
+    if (const auto result = patch_request.try_at("receiver_id")) {
+        nmos_sender_.subscription.receiver_id = uuid_from_json(*result);
+    }
+
+    if (const auto result = patch_request.try_at("transport_params")) {
+        if (!result->is_array()) {
+            return tl::unexpected(nmos::ApiError {http::status::bad_request, "Transport params should be an array"});
+        }
+
+        for (auto& p : result->as_array()) {
+            auto transport_params = boost::json::value_to<nmos::SenderTransportParamsRtp>(p);
+            if (transport_params.source_ip.has_value() && transport_params.source_ip != "auto") {
+                return tl::unexpected(nmos::ApiError {http::status::bad_request, "Changing source ip is not allowed"});
+            }
+
+            if (!std::holds_alternative<std::monostate>(transport_params.source_port)) {
+                const auto* source_port = std::get_if<std::string>(&transport_params.source_port);
+                if (source_port == nullptr || *source_port != "auto") {
+                    return tl::unexpected(
+                        nmos::ApiError {http::status::not_implemented, "Changing source port is not implemented"}
+                    );
+                }
+            }
+
+            if (transport_params.destination_ip.has_value() && transport_params.destination_ip != "auto") {
+                return tl::unexpected(
+                    nmos::ApiError {http::status::bad_request, "Changing destination ip is not allowed"}
+                );
+            }
+
+            if (!std::holds_alternative<std::monostate>(transport_params.destination_port)) {
+                const auto* destination_port = std::get_if<std::string>(&transport_params.destination_port);
+                if (destination_port == nullptr || *destination_port != "auto") {
+                    return tl::unexpected(
+                        nmos::ApiError {http::status::not_implemented, "Changing destination port is not implemented"}
+                    );
+                }
+            }
+
+            if (transport_params.rtp_enabled.has_value()) {
+                return tl::unexpected(
+                    nmos::ApiError {http::status::bad_request, "Changing RTP enabled is not allowed"}
+                );
+            }
+        }
+    }
+
+    return {};
 }
 
 void rav::tag_invoke(

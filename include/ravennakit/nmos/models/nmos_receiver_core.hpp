@@ -10,7 +10,10 @@
 
 #pragma once
 
+#include "nmos_api_error.hpp"
 #include "nmos_resource_core.hpp"
+
+#include "ravennakit/core/util/safe_function.hpp"
 
 namespace rav::nmos {
 
@@ -46,7 +49,7 @@ struct ReceiverCore: ResourceCore {
     /// Object indicating how this Receiver is currently configured to receive data.
     Subscription subscription;
 
-    SafeFunction<tl::expected<void, std::string>(const boost::json::value& patch_request)> on_patch_request;
+    SafeFunction<tl::expected<void, ApiError>(const boost::json::value& patch_request)> on_patch_request;
 };
 
 inline void

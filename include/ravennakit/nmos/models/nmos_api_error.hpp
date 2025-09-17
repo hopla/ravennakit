@@ -29,7 +29,7 @@ struct ApiError {
     ApiError(boost::beast::http::status status, std::string error_msg, std::string debug_msg = {}) :
         code(static_cast<decltype(code)>(status)), error(std::move(error_msg)), debug(std::move(debug_msg)) {
         if (debug.empty()) {
-            debug = "error: " + debug;
+            debug = "error: " + error;
         }
     }
 };

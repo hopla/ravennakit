@@ -69,6 +69,8 @@ rav::RavennaSender::RavennaSender(
     if (!ptp_instance_.subscribe(this)) {
         RAV_ERROR("Failed to subscribe to PTP instance");
     }
+
+    generate_auto_addresses_if_needed(false);
 }
 
 rav::RavennaSender::~RavennaSender() {
@@ -222,7 +224,7 @@ tl::expected<void, std::string> rav::RavennaSender::set_configuration(Configurat
 
     configuration_ = std::move(config);
 
-    generate_auto_addresses_if_needed(config.destinations);
+    generate_auto_addresses_if_needed(configuration_.destinations);
 
     if (do_restart_streaming) {
         restart_streaming();
@@ -233,7 +235,7 @@ tl::expected<void, std::string> rav::RavennaSender::set_configuration(Configurat
     if (do_update_nmos) {
         update_nmos();
     }
-    if (do_announce) {
+    if (do_announce && configuration_.enabled) {
         send_announce();
     }
 
@@ -399,6 +401,10 @@ void rav::RavennaSender::ptp_parent_changed(const ptp::ParentDs& parent) {
 }
 
 void rav::RavennaSender::send_announce() const {
+    if (rtsp_path_by_name_.empty() || rtsp_path_by_id_.empty()) {
+        return;
+    }
+
     if (network_interface_config_.empty()) {
         RAV_ERROR("No interface addresses set");
         return;
@@ -499,7 +505,6 @@ void rav::RavennaSender::update_advertisement() {
         rtsp_path_by_id_ = fmt::format("/by-id/{}", id_.to_string());
 
         RAV_TRACE("Registering RTSP path handler for paths {} and {}", rtsp_path_by_name_, rtsp_path_by_id_);
-
         rtsp_server_.register_handler(rtsp_path_by_name_, this);
         rtsp_server_.register_handler(rtsp_path_by_id_, this);
     }
@@ -619,11 +624,9 @@ tl::expected<rav::sdp::SessionDescription, std::string> rav::RavennaSender::buil
 }
 
 void rav::RavennaSender::generate_auto_addresses_if_needed(const bool notify_subscribers) {
-    if (generate_auto_addresses_if_needed(configuration_.destinations)) {
-        if (notify_subscribers) {
-            for (auto* subscriber : subscribers_) {
-                subscriber->ravenna_sender_configuration_updated(id_, configuration_);
-            }
+    if (generate_auto_addresses_if_needed(configuration_.destinations) && notify_subscribers) {
+        for (auto* subscriber : subscribers_) {
+            subscriber->ravenna_sender_configuration_updated(id_, configuration_);
         }
     }
 }
@@ -663,7 +666,7 @@ void rav::RavennaSender::restart_streaming() const {
     std::ignore = rtp_audio_sender_.remove_writer(id_);
 
     if (!configuration_.enabled) {
-        return; // Done here
+        return;  // Done here
     }
 
     rtp::AudioSender::WriterParameters params;

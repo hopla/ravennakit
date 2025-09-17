@@ -782,6 +782,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(receiver->get_transport_file, "Expecting valid function");
             auto sdp = receiver->get_transport_file();
             if (!sdp) {
                 set_error_response(res, sdp.error());
@@ -899,11 +900,13 @@ rav::nmos::Node::Node(
                 }
             }
 
+            RAV_ASSERT(receiver->on_patch_request, "Expecting valid function");
             if (auto result = receiver->on_patch_request(json); !result) {
                 set_error_response(res, result.error());
                 return;
             }
 
+            RAV_ASSERT(receiver->get_transport_file, "Expecting valid function");
             auto sdp = receiver->get_transport_file();
             if (!sdp) {
                 set_error_response(res, sdp.error());
@@ -952,6 +955,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(receiver->get_transport_file, "Expecting valid function");
             auto sdp = receiver->get_transport_file();
             if (!sdp) {
                 set_error_response(res, sdp.error());
@@ -1000,6 +1004,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(receiver->get_transport_file, "Expecting valid function");
             auto sdp = receiver->get_transport_file();
             if (!sdp) {
                 set_error_response(res, sdp.error());
@@ -1144,6 +1149,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(sender->get_transport_file, "Expecting valid function");
             auto transport_file = sender->get_transport_file();
             if (!transport_file) {
                 set_error_response(res, transport_file.error());
@@ -1223,11 +1229,13 @@ rav::nmos::Node::Node(
                 }
             }
 
+            RAV_ASSERT(sender->on_patch_request, "Expecting valid function");
             if (auto result = sender->on_patch_request(json); !result) {
                 set_error_response(res, result.error());
                 return;
             }
 
+            RAV_ASSERT(sender->get_transport_file, "Expecting valid function");
             auto transport_file = sender->get_transport_file();
             if (!transport_file) {
                 set_error_response(res, transport_file.error());
@@ -1267,6 +1275,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(sender->get_transport_file, "Expecting valid function");
             auto transport_file = sender->get_transport_file();
             if (!transport_file) {
                 set_error_response(res, transport_file.error());
@@ -1306,6 +1315,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
+            RAV_ASSERT(sender->get_transport_file, "Expecting valid function");
             auto transport_file = sender->get_transport_file();
             if (!transport_file) {
                 set_error_response(res, transport_file.error());
@@ -1331,12 +1341,13 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            auto* sender = find_sender(boost::uuids::string_generator()(*sender_id));
+            const auto* sender = find_sender(boost::uuids::string_generator()(*sender_id));
             if (sender == nullptr) {
                 set_error_response(res, http::status::not_found, "Not found", "Sender not found");
                 return;
             }
 
+            RAV_ASSERT(sender->get_transport_file, "Expecting valid function");
             auto transport_file = sender->get_transport_file();
             if (!transport_file) {
                 set_error_response(res, transport_file.error());

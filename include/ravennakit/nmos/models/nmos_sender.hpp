@@ -71,8 +71,8 @@ struct Sender: ResourceCore {
         return true;
     }
 
-    SafeFunction<tl::expected<void, ApiError>(const boost::json::value& patch_request)> on_patch_request;
-    SafeFunction<tl::expected<sdp::SessionDescription, ApiError>()> get_transport_file;
+    std::function<tl::expected<void, ApiError>(const boost::json::value& patch_request)> on_patch_request;
+    std::function<tl::expected<sdp::SessionDescription, ApiError>()> get_transport_file;
 };
 
 inline void

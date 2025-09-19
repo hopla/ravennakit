@@ -307,51 +307,54 @@ def build(args):
             print(f'Running x86_64 test {report_name} ({test_target})')
             subprocess.run(['arch', '--x86_64'] + cmd, check=True)
 
-    if platform.system() == 'Darwin':
-        if args.dist:
-            archive = build_dist(args)
-        elif args.android:
-            path_to_build = build_android(args, 'arm64-v8a', build_config, 'android_arm64')
-            path_to_build = build_android(args, 'arm64-v8a', build_config, 'android_arm64_spdlog', spdlog=True)
+    if args.dist:
+        archive = build_dist(args)
+    else:
+        if platform.system() == 'Darwin':
+            if args.android:
+                path_to_build = build_android(args, 'arm64-v8a', build_config, 'android_arm64')
+                path_to_build = build_android(args, 'arm64-v8a', build_config, 'android_arm64_spdlog', spdlog=True)
 
-            path_to_build = build_android(args, 'x86_64', build_config, 'android_x64')
-            path_to_build = build_android(args, 'x86_64', build_config, 'android_x64_spdlog', spdlog=True)
+                path_to_build = build_android(args, 'x86_64', build_config, 'android_x64')
+                path_to_build = build_android(args, 'x86_64', build_config, 'android_x64_spdlog', spdlog=True)
 
-            path_to_build = build_android(args, 'armeabi-v7a', build_config, 'android_arm')
-            path_to_build = build_android(args, 'armeabi-v7a', build_config, 'android_arm_spdlog', spdlog=True)
+                path_to_build = build_android(args, 'armeabi-v7a', build_config, 'android_arm')
+                path_to_build = build_android(args, 'armeabi-v7a', build_config, 'android_arm_spdlog', spdlog=True)
 
-            path_to_build = build_android(args, 'x86', build_config, 'android_x86')
-            path_to_build = build_android(args, 'x86', build_config, 'android_x86_spdlog', spdlog=True)
-        else:
-            path_to_build = build_macos(args, build_config, 'macos_universal')
-            run_test(path_to_build / ravennakit_tests_target, 'macos_universal')
+                path_to_build = build_android(args, 'x86', build_config, 'android_x86')
+                path_to_build = build_android(args, 'x86', build_config, 'android_x86_spdlog', spdlog=True)
+            else:
+                path_to_build = build_macos(args, build_config, 'macos_universal')
+                run_test(path_to_build / ravennakit_tests_target, 'macos_universal')
+                subprocess.run([path_to_build / ravennakit_benchmarks_target], check=True)
+
+                if args.asan:
+                    path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_asan', spdlog=True,
+                                                asan=True)
+                    run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_asan')
+
+                if args.tsan:
+                    path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_tsan', spdlog=True,
+                                                tsan=True)
+                    run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_tsan')
+
+        elif platform.system() == 'Windows':
+            path_to_build = build_windows(args, 'x64', build_config, 'windows_x64')
+            run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64')
+            subprocess.run([path_to_build / build_config.value / ravennakit_benchmarks_target], check=True)
+
+            path_to_build = build_windows(args, 'x64', build_config, 'windows_x64_spdlog', spdlog=True)
+            run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64_spdlog')
+
+        elif platform.system() == 'Linux':
+            path_to_build = build_linux(args, 'x64', build_config, 'linux_x64')
+            run_test(path_to_build / ravennakit_tests_target, 'linux_x64')
             subprocess.run([path_to_build / ravennakit_benchmarks_target], check=True)
 
-            if args.asan:
-                path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_asan', spdlog=True, asan=True)
-                run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_asan')
+            path_to_build = build_linux(args, 'x64', build_config, 'linux_x64_spdlog', spdlog=True)
+            run_test(path_to_build / ravennakit_tests_target, 'linux_x64_spdlog')
 
-            if args.tsan:
-                path_to_build = build_macos(args, build_config, 'macos_universal_spdlog_tsan', spdlog=True, tsan=True)
-                run_test(path_to_build / ravennakit_tests_target, 'macos_universal_spdlog_tsan')
-
-    elif platform.system() == 'Windows':
-        path_to_build = build_windows(args, 'x64', build_config, 'windows_x64')
-        run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64')
-        subprocess.run([path_to_build / build_config.value / ravennakit_benchmarks_target], check=True)
-
-        path_to_build = build_windows(args, 'x64', build_config, 'windows_x64_spdlog', spdlog=True)
-        run_test(path_to_build / build_config.value / f'{ravennakit_tests_target}.exe', 'windows_x64_spdlog')
-
-    elif platform.system() == 'Linux':
-        path_to_build = build_linux(args, 'x64', build_config, 'linux_x64')
-        run_test(path_to_build / ravennakit_tests_target, 'linux_x64')
-        subprocess.run([path_to_build / ravennakit_benchmarks_target], check=True)
-
-        path_to_build = build_linux(args, 'x64', build_config, 'linux_x64_spdlog', spdlog=True)
-        run_test(path_to_build / ravennakit_tests_target, 'linux_x64_spdlog')
-
-        # TODO: path_to_build_arm64 = build_linux(args, 'arm64', build_config)
+            # TODO: path_to_build_arm64 = build_linux(args, 'arm64', build_config)
 
     if archive and args.upload:
         upload_to_spaces(args, archive)

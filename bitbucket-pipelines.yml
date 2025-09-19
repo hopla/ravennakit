@@ -49,7 +49,7 @@ definitions:
         runs-on:
           - 'self.hosted'
           - 'linux'
-        image: debian/latest
+        image: debian:latest
         name: 'Build distribution package'
         script:
           - apt install doxygen python

@@ -39,6 +39,7 @@ bool rav::ptp::Instance::subscribe(Subscriber* subscriber) {
             static_assert(std::is_trivially_copyable_v<LocalClock>);
             subscriber->local_clock_buffer_.write(local_clock_);
         }
+        subscriber->ptp_configuration_updated(config_);
         return true;
     }
     return false;
@@ -46,6 +47,20 @@ bool rav::ptp::Instance::subscribe(Subscriber* subscriber) {
 
 bool rav::ptp::Instance::unsubscribe(const Subscriber* subscriber) {
     return subscribers_.remove(subscriber);
+}
+
+tl::expected<void, std::string> rav::ptp::Instance::set_configuration(Configuration config) {
+    config_ = std::move(config);
+    default_ds_.domain_number = config_.domain_number;
+
+    subscribers_.foreach ([this](Subscriber* s) {
+        s->ptp_configuration_updated(config_);
+    });
+    return {};
+}
+
+const rav::ptp::Instance::Configuration& rav::ptp::Instance::get_configuration() const {
+    return config_;
 }
 
 tl::expected<void, rav::ptp::Error>
@@ -295,13 +310,11 @@ void rav::ptp::Instance::execute_state_decision_event() {
 bool rav::ptp::Instance::should_process_ptp_messages(const MessageHeader& header) const {
     // IEEE1588-2019: 7.1.2.1
     if (header.domain_number != default_ds_.domain_number) {
-        RAV_TRACE("Discarding message with different domain number: {}", header.to_string());
         return false;
     }
 
     // IEEE1588-2019: 7.1.2.1
     if (header.sdo_id.major != default_ds_.sdo_id.major) {
-        RAV_TRACE("Discarding message with different SDO ID major: {}", header.to_string());
         return false;
     }
 
@@ -393,4 +406,17 @@ void rav::ptp::Instance::schedule_state_decision_timer() {
         }
         schedule_state_decision_timer();
     });
+}
+
+void rav::ptp::tag_invoke(
+    const boost::json::value_from_tag&, boost::json::value& jv, const Instance::Configuration& config
+) {
+    jv = {{"domain_number", config.domain_number}};
+}
+
+rav::ptp::Instance::Configuration
+rav::ptp::tag_invoke(const boost::json::value_to_tag<Instance::Configuration>&, const boost::json::value& jv) {
+    Instance::Configuration config;
+    config.domain_number = jv.at("domain_number").to_number<uint8_t>();
+    return config;
 }

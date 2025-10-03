@@ -50,4 +50,4 @@ inline std::optional<std::string> get_env(const char* name) {
 #endif
 }
 
-}  // namespace rav::env
+}  // namespace rav

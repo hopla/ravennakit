@@ -20,7 +20,7 @@
  * Helper macro which asserts exclusive access to scope. Whenever 2 different threads access the scope, an assertion
  * will be triggered.
  */
-#define RAV_ASSERT_EXCLUSIVE_ACCESS(guard)                           \
+#define RAV_ASSERT_EXCLUSIVE_ACCESS(guard)                         \
     rav::ExclusiveAccessGuard::Lock CONCAT(lock, __LINE__)(guard); \
     RAV_ASSERT(!CONCAT(lock, __LINE__).violated(), "exclusive access violation");
 

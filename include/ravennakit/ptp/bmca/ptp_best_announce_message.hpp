@@ -23,4 +23,4 @@ struct BestAnnounceMessage {
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

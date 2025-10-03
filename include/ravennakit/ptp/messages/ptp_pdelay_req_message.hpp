@@ -19,7 +19,7 @@ namespace rav::ptp {
 
 struct PdelayReqMessage {
     Timestamp origin_timestamp;
-    const uint8_t reserved[10] = {}; // To match the messages length of the pdelay_resp message.
+    const uint8_t reserved[10] = {};  // To match the messages length of the pdelay_resp message.
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -39,8 +39,8 @@ struct PdelayReqMessage {
      */
     [[nodiscard]] std::string to_string() const;
 
-private:
-    constexpr static size_t k_message_size = 20; // Excluding header size
+  private:
+    constexpr static size_t k_message_size = 20;  // Excluding header size
 };
 
-}
+}  // namespace rav::ptp

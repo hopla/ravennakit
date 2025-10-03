@@ -33,8 +33,7 @@ struct AnnounceMessage {
      * @param data The message data. Expects it to start at the beginning of the message, excluding the header.
      * @return A ptp_announce_message if the data is valid, otherwise a ptp_error.
      */
-    static tl::expected<AnnounceMessage, Error>
-    from_data(const MessageHeader& header, BufferView<const uint8_t> data);
+    static tl::expected<AnnounceMessage, Error> from_data(const MessageHeader& header, BufferView<const uint8_t> data);
 
     /**
      * @returns A string representation of the ptp_announce_message.
@@ -52,4 +51,4 @@ struct AnnounceMessage {
     constexpr static size_t k_message_size = 30;  // Excluding header size
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

@@ -25,9 +25,8 @@ class MockBrowser: public Browser {
      * @param reg_type The registration type of the service (i.e. _http._tcp.).
      * @param domain The domain of the service (i.e. local.).
      */
-    void mock_discovered_service(
-        const std::string& fullname, const std::string& name, const std::string& reg_type, const std::string& domain
-    );
+    void
+    mock_discovered_service(const std::string& fullname, const std::string& name, const std::string& reg_type, const std::string& domain);
 
     /**
      * Mocks resolving a service. Requires calling mock_discovered_service before.
@@ -36,9 +35,7 @@ class MockBrowser: public Browser {
      * @param port The port of the service.
      * @param txt_record The txt record of the service.
      */
-    void mock_resolved_service(
-        const std::string& fullname, const std::string& host_target, uint16_t port, const TxtRecord& txt_record
-    );
+    void mock_resolved_service(const std::string& fullname, const std::string& host_target, uint16_t port, const TxtRecord& txt_record);
 
     /**
      * Mocks adding an address to a service. Requires calling mock_discovered_service before.

@@ -110,8 +110,7 @@ std::optional<rav::AudioFormat> rav::WavAudioFormat::FmtChunk::to_audio_format()
         case FormatCode::pcm: {
             if (bits_per_sample == 8) {
                 return AudioFormat {
-                    AudioFormat::ByteOrder::le, AudioEncoding::pcm_u8, AudioFormat::ChannelOrdering::interleaved,
-                    sample_rate, num_channels
+                    AudioFormat::ByteOrder::le, AudioEncoding::pcm_u8, AudioFormat::ChannelOrdering::interleaved, sample_rate, num_channels
                 };
             }
             if (bits_per_sample == 16) {
@@ -170,8 +169,7 @@ bool rav::WavAudioFormat::DataChunk::read(InputStream& istream, const uint32_t c
     return istream.skip(chunk_size);
 }
 
-tl::expected<size_t, rav::OutputStream::Error>
-rav::WavAudioFormat::DataChunk::write(OutputStream& ostream, const size_t data_written) {
+tl::expected<size_t, rav::OutputStream::Error> rav::WavAudioFormat::DataChunk::write(OutputStream& ostream, const size_t data_written) {
     auto map_value = [] {
         return 0;
     };
@@ -255,8 +253,7 @@ rav::WavAudioFormat::Reader::Reader(std::unique_ptr<InputStream> istream) : istr
     }
 }
 
-tl::expected<size_t, rav::InputStream::Error>
-rav::WavAudioFormat::Reader::read_audio_data(uint8_t* buffer, const size_t size) {
+tl::expected<size_t, rav::InputStream::Error> rav::WavAudioFormat::Reader::read_audio_data(uint8_t* buffer, const size_t size) {
     if (!data_chunk_.has_value()) {
         return 0;
     }
@@ -308,15 +305,13 @@ std::optional<rav::AudioFormat> rav::WavAudioFormat::Reader::get_audio_format() 
 }
 
 rav::WavAudioFormat::Writer::Writer(
-    OutputStream& ostream, const FormatCode format, const double sample_rate, const size_t num_channels,
-    const size_t bits_per_sample
+    OutputStream& ostream, const FormatCode format, const double sample_rate, const size_t num_channels, const size_t bits_per_sample
 ) :
     ostream_(ostream) {
     fmt_chunk_.format = format;
     fmt_chunk_.sample_rate = static_cast<uint32_t>(sample_rate);
     fmt_chunk_.num_channels = static_cast<uint16_t>(num_channels);
-    fmt_chunk_.avg_bytes_per_sec =
-        static_cast<uint32_t>(fmt_chunk_.sample_rate * fmt_chunk_.num_channels * bits_per_sample / 8);
+    fmt_chunk_.avg_bytes_per_sec = static_cast<uint32_t>(fmt_chunk_.sample_rate * fmt_chunk_.num_channels * bits_per_sample / 8);
     fmt_chunk_.block_align = static_cast<uint16_t>(fmt_chunk_.num_channels * bits_per_sample / 8);
     fmt_chunk_.bits_per_sample = static_cast<uint16_t>(bits_per_sample);
 
@@ -331,8 +326,7 @@ rav::WavAudioFormat::Writer::~Writer() {
     }
 }
 
-tl::expected<void, rav::OutputStream::Error>
-rav::WavAudioFormat::Writer::write_audio_data(const uint8_t* buffer, const size_t size) {
+tl::expected<void, rav::OutputStream::Error> rav::WavAudioFormat::Writer::write_audio_data(const uint8_t* buffer, const size_t size) {
     const auto result = ostream_.write(buffer, size);
     if (!result) {
         return result;

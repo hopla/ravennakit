@@ -154,9 +154,7 @@ class AudioBufferView {
     void clear(const size_t channel_index, const size_t start_sample, const size_t num_samples_to_clear) {
         RAV_ASSERT(channel_index < num_channels(), "Channel index out of bounds");
         RAV_ASSERT(start_sample + num_samples_to_clear <= num_frames(), "Sample index out of bounds");
-        clear_audio_data(
-            channels_[channel_index] + start_sample, channels_[channel_index] + start_sample + num_samples_to_clear
-        );
+        clear_audio_data(channels_[channel_index] + start_sample, channels_[channel_index] + start_sample + num_samples_to_clear);
     }
 
     /**
@@ -168,8 +166,8 @@ class AudioBufferView {
      * @param src_start_frame The index of the start frame in the source data.
      */
     void copy_from(
-        const size_t dst_start_frame, const size_t num_frames_to_copy, const T* const* src,
-        const size_t src_num_channels, const size_t src_start_frame = 0
+        const size_t dst_start_frame, const size_t num_frames_to_copy, const T* const* src, const size_t src_num_channels,
+        const size_t src_start_frame = 0
     ) {
         RAV_ASSERT(src_num_channels == num_channels(), "Number of channels mismatch");
         for (size_t i = 0; i < std::min(src_num_channels, num_channels()); ++i) {
@@ -184,9 +182,7 @@ class AudioBufferView {
      * @param num_samples_to_copy The number of samples to copy.
      * @param src The source data to copy from.
      */
-    void copy_from(
-        const size_t dst_channel_index, const size_t dst_start_sample, const size_t num_samples_to_copy, const T* src
-    ) {
+    void copy_from(const size_t dst_channel_index, const size_t dst_start_sample, const size_t num_samples_to_copy, const T* src) {
         RAV_ASSERT(dst_channel_index < num_channels(), "Channel index out of bounds");
         RAV_ASSERT(dst_start_sample + num_samples_to_copy <= num_frames(), "Sample index out of bounds");
 
@@ -222,8 +218,7 @@ class AudioBufferView {
      * @param num_samples_to_copy The number of samples to copy.
      * @param dst The destination data to copy to.
      */
-    void
-    copy_to(const size_t src_channel_index, const size_t src_start_sample, const size_t num_samples_to_copy, T* dst) {
+    void copy_to(const size_t src_channel_index, const size_t src_start_sample, const size_t num_samples_to_copy, T* dst) {
         RAV_ASSERT(src_channel_index < num_channels(), "Channel index out of bounds");
         RAV_ASSERT(src_start_sample + num_samples_to_copy <= num_frames(), "Sample index out of bounds");
 

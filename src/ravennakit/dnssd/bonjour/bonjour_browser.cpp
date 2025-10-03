@@ -31,8 +31,8 @@ void rav::dnssd::BonjourBrowser::Service::resolve_on_interface(uint32_t index) {
     DNSServiceRef resolveServiceRef = owner_.shared_connection_.service_ref();
 
     const auto result = DNSServiceResolve(
-        &resolveServiceRef, kDNSServiceFlagsShareConnection, index, description_.name.c_str(),
-        description_.reg_type.c_str(), description_.domain.c_str(), resolve_callback, this
+        &resolveServiceRef, kDNSServiceFlagsShareConnection, index, description_.name.c_str(), description_.reg_type.c_str(),
+        description_.domain.c_str(), resolve_callback, this
     );
 
     if (result != kDNSServiceErr_NoError) {
@@ -45,8 +45,8 @@ void rav::dnssd::BonjourBrowser::Service::resolve_on_interface(uint32_t index) {
 
 void rav::dnssd::BonjourBrowser::Service::resolve_callback(
     [[maybe_unused]] DNSServiceRef serviceRef, [[maybe_unused]] DNSServiceFlags flags, uint32_t interface_index,
-    DNSServiceErrorType error_code, [[maybe_unused]] const char* fullname, const char* host_target, uint16_t port,
-    const uint16_t txt_len, const unsigned char* txt_record, void* context
+    DNSServiceErrorType error_code, [[maybe_unused]] const char* fullname, const char* host_target, uint16_t port, const uint16_t txt_len,
+    const unsigned char* txt_record, void* context
 ) {
     auto* browser_service = static_cast<Service*>(context);
 
@@ -89,9 +89,7 @@ void rav::dnssd::BonjourBrowser::Service::get_addr_info_callback(
     }
 
     if (error_code != kDNSServiceErr_NoError) {
-        browser_service->owner_.on_error(
-            fmt::format("Get addr info error: {}", dns_service_error_to_string(error_code))
-        );
+        browser_service->owner_.on_error(fmt::format("Get addr info error: {}", dns_service_error_to_string(error_code)));
         return;
     }
 
@@ -245,8 +243,8 @@ void rav::dnssd::BonjourBrowser::browse_for(const std::string& service) {
 
     DNSSD_THROW_IF_ERROR(
         DNSServiceBrowse(
-            &browsing_service_ref, kDNSServiceFlagsShareConnection, kDNSServiceInterfaceIndexAny, service.c_str(),
-            nullptr, browse_reply, this
+            &browsing_service_ref, kDNSServiceFlagsShareConnection, kDNSServiceInterfaceIndexAny, service.c_str(), nullptr, browse_reply,
+            this
         ),
         "Browse error"
     );

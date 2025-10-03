@@ -114,8 +114,8 @@ class Port {
     ByteBuffer send_buffer_ {128};
     std::function<void(const Port&)> on_state_changed_callback_;
 
-    boost::circular_buffer<SyncMessage> sync_messages_{8};
-    boost::circular_buffer<RequestResponseDelaySequence> request_response_delay_sequences_{8};
+    boost::circular_buffer<SyncMessage> sync_messages_ {8};
+    boost::circular_buffer<RequestResponseDelaySequence> request_response_delay_sequences_ {8};
 
     void handle_recv_event(const ExtendedUdpSocket::RecvEvent& event);
     void handle_announce_message(const AnnounceMessage& announce_message, BufferView<const uint8_t> tlvs);
@@ -123,9 +123,7 @@ class Port {
     void handle_follow_up_message(const FollowUpMessage& follow_up_message, BufferView<const uint8_t> tlvs);
     void handle_delay_resp_message(const DelayRespMessage& delay_resp_message, BufferView<const uint8_t> tlvs);
     void handle_pdelay_resp_message(const PdelayRespMessage& delay_req_message, BufferView<const uint8_t> tlvs);
-    void handle_pdelay_resp_follow_up_message(
-        const PdelayRespFollowUpMessage& delay_req_message, BufferView<const uint8_t> tlvs
-    );
+    void handle_pdelay_resp_follow_up_message(const PdelayRespFollowUpMessage& delay_req_message, BufferView<const uint8_t> tlvs);
 
     /**
      * Calculates the recommended state of this port.

@@ -21,7 +21,7 @@ struct SyncMessage {
 
     MessageHeader header;
     Timestamp origin_timestamp;
-    Timestamp receive_timestamp; // Not part of the message on the wire, but used for calculations
+    Timestamp receive_timestamp;  // Not part of the message on the wire, but used for calculations
 
     /**
      * Create a ptp_announce_message from a buffer_view.
@@ -43,4 +43,4 @@ struct SyncMessage {
     [[nodiscard]] std::string to_string() const;
 };
 
-}
+}  // namespace rav::ptp

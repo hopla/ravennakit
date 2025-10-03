@@ -54,9 +54,8 @@ struct SenderTransportParamsRtp {
     std::optional<bool> rtp_enabled {};
 };
 
-inline void tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const SenderTransportParamsRtp& sender_transport_params
-) {
+inline void
+tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const SenderTransportParamsRtp& sender_transport_params) {
     jv = {
         {"source_ip", boost::json::value_from(sender_transport_params.source_ip)},
         {"destination_ip", boost::json::value_from(sender_transport_params.destination_ip)},
@@ -66,8 +65,7 @@ inline void tag_invoke(
     };
 }
 
-inline SenderTransportParamsRtp
-tag_invoke(const boost::json::value_to_tag<SenderTransportParamsRtp>&, const boost::json::value& jv) {
+inline SenderTransportParamsRtp tag_invoke(const boost::json::value_to_tag<SenderTransportParamsRtp>&, const boost::json::value& jv) {
     SenderTransportParamsRtp rtp {};
     if (const auto destination_ip = jv.try_at("destination_ip")) {
         rtp.destination_ip = destination_ip->as_string();

@@ -21,8 +21,7 @@ bool rav::ptp::operator!=(const ptp::Version& lhs, const ptp::Version& rhs) {
     return !(lhs == rhs);
 }
 
-rav::ptp::MessageHeader::FlagField
-rav::ptp::MessageHeader::FlagField::from_octets(const uint8_t octet1, const uint8_t octet2) {
+rav::ptp::MessageHeader::FlagField rav::ptp::MessageHeader::FlagField::from_octets(const uint8_t octet1, const uint8_t octet2) {
     FlagField flags_field;
 
     std::bitset<8> octet1_bits(octet1);
@@ -72,8 +71,7 @@ auto rav::ptp::MessageHeader::FlagField::tie_members() const {
     );
 }
 
-tl::expected<rav::ptp::MessageHeader, rav::ptp::Error>
-rav::ptp::MessageHeader::from_data(BufferView<const uint8_t> data) {
+tl::expected<rav::ptp::MessageHeader, rav::ptp::Error> rav::ptp::MessageHeader::from_data(BufferView<const uint8_t> data) {
     if (data.empty()) {
         return tl::unexpected(Error::invalid_data);
     }
@@ -121,16 +119,16 @@ void rav::ptp::MessageHeader::write_to(ByteBuffer& buffer) const {
 
 std::string rav::ptp::MessageHeader::to_string() const {
     return fmt::format(
-        "PTP {}: sdo_id={} version={}.{} domain_number={} sequence_id={} source_port_identity={}.{}",
-        rav::ptp::to_string(message_type), sdo_id.to_string(), version.major, version.minor, domain_number,
-        sequence_id.value(), source_port_identity.clock_identity.to_string(), source_port_identity.port_number
+        "PTP {}: sdo_id={} version={}.{} domain_number={} sequence_id={} source_port_identity={}.{}", rav::ptp::to_string(message_type),
+        sdo_id.to_string(), version.major, version.minor, domain_number, sequence_id.value(),
+        source_port_identity.clock_identity.to_string(), source_port_identity.port_number
     );
 }
 
 auto rav::ptp::MessageHeader::tie() const {
     return std::tie(
-        sdo_id, message_type, version, message_length, domain_number, flags, correction_field, source_port_identity,
-        sequence_id, log_message_interval
+        sdo_id, message_type, version, message_length, domain_number, flags, correction_field, source_port_identity, sequence_id,
+        log_message_interval
     );
 }
 

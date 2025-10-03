@@ -26,22 +26,20 @@ inline LARGE_INTEGER query_performance_counter_frequency() {
     return frequency;
 }
 
-inline LARGE_INTEGER query_performance_counter()
-{
+inline LARGE_INTEGER query_performance_counter() {
     static const auto frequency = query_performance_counter_frequency();
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
     return counter;
 }
 
-inline uint64_t query_performance_counter_ns()
-{
+inline uint64_t query_performance_counter_ns() {
     static const auto frequency = query_performance_counter_frequency();
     LARGE_INTEGER counter;
     QueryPerformanceCounter(&counter);
     return static_cast<uint64_t>((counter.QuadPart * 1'000'000'000) / frequency.QuadPart);
 }
 
-}
+}  // namespace rav
 
 #endif

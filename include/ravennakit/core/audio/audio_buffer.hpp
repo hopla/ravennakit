@@ -39,8 +39,7 @@ class AudioBuffer: public AudioBufferView<T> {
      * @param num_frames The number of frames.
      * @param value_to_fill_with The value to fill the buffer with.
      */
-    AudioBuffer(const size_t num_channels, const size_t num_frames, T value_to_fill_with) :
-        AudioBufferView<T>(nullptr, 0, 0) {
+    AudioBuffer(const size_t num_channels, const size_t num_frames, T value_to_fill_with) : AudioBufferView<T>(nullptr, 0, 0) {
         resize(num_channels, num_frames);
         std::fill(data_.begin(), data_.end(), value_to_fill_with);
     }

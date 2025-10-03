@@ -64,9 +64,7 @@ class Ringbuffer {
             return false;
         }
 
-        const Fifo::Position position(
-            static_cast<size_t>(at_timestamp) * bytes_per_frame_, buffer_.size(), payload.size()
-        );
+        const Fifo::Position position(static_cast<size_t>(at_timestamp) * bytes_per_frame_, buffer_.size(), payload.size());
 
         std::memcpy(buffer_.data() + position.index1, payload.data(), position.size1);
 
@@ -74,8 +72,7 @@ class Ringbuffer {
             std::memcpy(buffer_.data(), payload.data() + position.size1, position.size2);
         }
 
-        const auto end_ts =
-            WrappingUint32(at_timestamp) + static_cast<uint32_t>(payload.size_bytes() / bytes_per_frame_);
+        const auto end_ts = WrappingUint32(at_timestamp) + static_cast<uint32_t>(payload.size_bytes() / bytes_per_frame_);
 
         if (end_ts > next_ts_) {
             next_ts_ = end_ts;
@@ -107,9 +104,7 @@ class Ringbuffer {
             return false;
         }
 
-        const Fifo::Position position(
-            static_cast<size_t>(at_timestamp) * bytes_per_frame_, buffer_.size(), buffer_size
-        );
+        const Fifo::Position position(static_cast<size_t>(at_timestamp) * bytes_per_frame_, buffer_.size(), buffer_size);
 
         std::memcpy(buffer, buffer_.data() + position.index1, position.size1);
 
@@ -141,8 +136,7 @@ class Ringbuffer {
         const auto number_of_elements = (WrappingUint32(at_timestamp) - next_ts_.value()).value() * bytes_per_frame_;
 
         const Fifo::Position position(
-            next_ts_.value() * bytes_per_frame_, buffer_.size(),
-            std::min(static_cast<size_t>(number_of_elements), buffer_.size())
+            next_ts_.value() * bytes_per_frame_, buffer_.size(), std::min(static_cast<size_t>(number_of_elements), buffer_.size())
         );
 
         std::memset(buffer_.data() + position.index1, ground_value_, position.size1);

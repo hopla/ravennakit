@@ -45,4 +45,4 @@ struct DefaultDs {
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

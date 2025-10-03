@@ -35,8 +35,7 @@ rav::HttpClient::HttpClient(
 }
 
 rav::HttpClient::HttpClient(
-    boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint,
-    const std::chrono::milliseconds timeout_seconds
+    boost::asio::io_context& io_context, const boost::asio::ip::tcp::endpoint& endpoint, const std::chrono::milliseconds timeout_seconds
 ) :
     io_context_(io_context), timeout_seconds_(timeout_seconds) {
     host_ = endpoint.address().to_string();
@@ -94,8 +93,7 @@ void rav::HttpClient::delete_async(const std::string_view target, ResponseCallba
 }
 
 void rav::HttpClient::request_async(
-    const http::verb method, const std::string_view target, std::string body, std::string_view content_type,
-    ResponseCallback callback
+    const http::verb method, const std::string_view target, std::string body, std::string_view content_type, ResponseCallback callback
 ) {
     auto request = http::request<http::string_body>(method, target.empty() ? "/" : target, 11);
     request.set(http::field::host, host_);
@@ -133,9 +131,7 @@ const std::string& rav::HttpClient::get_service() const {
     return service_;
 }
 
-rav::HttpClient::Session::Session(
-    boost::asio::io_context& io_context, HttpClient* owner, const std::chrono::milliseconds timeout_seconds
-) :
+rav::HttpClient::Session::Session(boost::asio::io_context& io_context, HttpClient* owner, const std::chrono::milliseconds timeout_seconds) :
     owner_(owner), timeout_seconds_(timeout_seconds), resolver_(io_context), stream_(io_context) {}
 
 void rav::HttpClient::Session::send_requests() {
@@ -178,9 +174,7 @@ void rav::HttpClient::Session::async_send() {
     state_ = State::waiting_for_send;
 }
 
-void rav::HttpClient::Session::on_resolve(
-    const boost::beast::error_code& ec, const tcp::resolver::results_type& results
-) {
+void rav::HttpClient::Session::on_resolve(const boost::beast::error_code& ec, const tcp::resolver::results_type& results) {
     if (owner_ == nullptr) {
         return;  // Session was abandoned, nothing to do.
     }
@@ -202,8 +196,7 @@ void rav::HttpClient::Session::on_resolve(
     state_ = State::connecting;
 }
 
-void rav::HttpClient::Session::
-    on_connect(const boost::beast::error_code& ec, const tcp::resolver::results_type::endpoint_type&) {
+void rav::HttpClient::Session::on_connect(const boost::beast::error_code& ec, const tcp::resolver::results_type::endpoint_type&) {
     if (owner_ == nullptr) {
         return;  // Session was abandoned, nothing to do.
     }
@@ -239,9 +232,7 @@ void rav::HttpClient::Session::on_write(const boost::beast::error_code& ec, std:
     response_ = {};
 
     // Receive the HTTP response
-    http::async_read(
-        stream_, buffer_, response_, boost::beast::bind_front_handler(&Session::on_read, shared_from_this())
-    );
+    http::async_read(stream_, buffer_, response_, boost::beast::bind_front_handler(&Session::on_read, shared_from_this()));
 
     state_ = State::waiting_for_response;
 }

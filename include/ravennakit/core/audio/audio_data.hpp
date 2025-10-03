@@ -85,9 +85,7 @@ class AudioData {
             static uint64_t read(const T* data) {
                 uint64_t value {};
                 if constexpr (little_endian) {
-                    std::memcpy(
-                        reinterpret_cast<uint8_t*>(std::addressof(value)) + (sizeof(value) - sizeof(T)), data, sizeof(T)
-                    );
+                    std::memcpy(reinterpret_cast<uint8_t*>(std::addressof(value)) + (sizeof(value) - sizeof(T)), data, sizeof(T));
                     value = rav::swap_bytes(value);
                 } else {
                     std::memcpy(std::addressof(value), data, sizeof(T));
@@ -254,11 +252,8 @@ class AudioData {
      * @param num_channels The number of channels in the audio data.
      * @return True if the conversion was successful, false otherwise.
      */
-    template<
-        class SrcType, class SrcByteOrder, class SrcInterleaving, class DstType, class DstByteOrder,
-        class DstInterleaving>
-    static bool
-    convert(const SrcType* src, const size_t src_size, DstType* dst, const size_t dst_size, const size_t num_channels) {
+    template<class SrcType, class SrcByteOrder, class SrcInterleaving, class DstType, class DstByteOrder, class DstInterleaving>
+    static bool convert(const SrcType* src, const size_t src_size, DstType* dst, const size_t dst_size, const size_t num_channels) {
         RAV_ASSERT(src != nullptr, "src shouldn't be nullptr");
         RAV_ASSERT(dst != nullptr, "dst shouldn't be nullptr");
         RAV_ASSERT(src_size > 0, "src_size should be greater than 0");
@@ -346,8 +341,8 @@ class AudioData {
      */
     template<class SrcType, class SrcByteOrder, class SrcInterleaving, class DstType, class DstByteOrder>
     static bool convert(
-        const SrcType* src, const size_t num_frames, const size_t num_channels, DstType* const* dst,
-        const size_t src_start_frame = 0, const size_t dst_start_frame = 0
+        const SrcType* src, const size_t num_frames, const size_t num_channels, DstType* const* dst, const size_t src_start_frame = 0,
+        const size_t dst_start_frame = 0
     ) {
         RAV_ASSERT(src != nullptr, "src shouldn't be nullptr");
         RAV_ASSERT(dst != nullptr, "dst shouldn't be nullptr");
@@ -395,8 +390,8 @@ class AudioData {
      */
     template<class SrcType, class SrcByteOrder, class DstType, class DstByteOrder, class DstInterleaving>
     static bool convert(
-        const SrcType* const* src, const size_t num_frames, const size_t num_channels, DstType* dst,
-        const size_t src_start_frame, const size_t dst_start_frame = 0
+        const SrcType* const* src, const size_t num_frames, const size_t num_channels, DstType* dst, const size_t src_start_frame,
+        const size_t dst_start_frame = 0
     ) {
         RAV_ASSERT(src != nullptr, "src shouldn't be nullptr");
         RAV_ASSERT(dst != nullptr, "dst shouldn't be nullptr");
@@ -406,8 +401,7 @@ class AudioData {
             for (size_t frame = 0; frame < num_frames; ++frame) {
                 for (size_t ch = 0; ch < num_channels; ++ch) {
                     convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(
-                        src[ch] + frame + src_start_frame,
-                        dst + frame * num_channels + ch + dst_start_frame * num_channels
+                        src[ch] + frame + src_start_frame, dst + frame * num_channels + ch + dst_start_frame * num_channels
                     );
                 }
             }
@@ -416,8 +410,7 @@ class AudioData {
             for (size_t frame = 0; frame < num_frames; ++frame) {
                 for (size_t ch = 0; ch < num_channels; ++ch) {
                     convert_sample<SrcType, SrcByteOrder, DstType, DstByteOrder>(
-                        src[ch] + frame + src_start_frame,
-                        dst + num_frames * ch + frame + dst_start_frame * num_channels
+                        src[ch] + frame + src_start_frame, dst + num_frames * ch + frame + dst_start_frame * num_channels
                     );
                 }
             }
@@ -445,9 +438,7 @@ class AudioData {
         RAV_ASSERT(!output_buffer.empty(), "output_buffer shouldn't be empty");
         RAV_ASSERT(num_channels > 0, "num_channels should be greater than 0");
         RAV_ASSERT(bytes_per_sample > 0, "bytes_per_sample should be greater than 0");
-        RAV_ASSERT(
-            input_buffer.size() == output_buffer.size(), "input_buffer and output_buffer should have the same size"
-        );
+        RAV_ASSERT(input_buffer.size() == output_buffer.size(), "input_buffer and output_buffer should have the same size");
         RAV_ASSERT(input_buffer.size_bytes() % bytes_per_sample == 0, "Invalid input");
 
         const auto num_frames = input_buffer.size() / (num_channels * bytes_per_sample);
@@ -482,9 +473,7 @@ class AudioData {
         RAV_ASSERT(!output_buffer.empty(), "output_buffer shouldn't be empty");
         RAV_ASSERT(num_channels > 0, "num_channels should be greater than 0");
         RAV_ASSERT(bytes_per_sample > 0, "bytes_per_sample should be greater than 0");
-        RAV_ASSERT(
-            input_buffer.size() == output_buffer.size(), "input_buffer and output_buffer should have the same size"
-        );
+        RAV_ASSERT(input_buffer.size() == output_buffer.size(), "input_buffer and output_buffer should have the same size");
         RAV_ASSERT(input_buffer.size_bytes() % bytes_per_sample == 0, "Invalid input");
 
         const size_t frame_size = num_channels * bytes_per_sample;  // Total bytes per frame

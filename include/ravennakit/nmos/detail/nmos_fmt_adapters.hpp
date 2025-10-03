@@ -14,4 +14,4 @@
 #include <boost/json.hpp>
 
 template<>
-struct fmt::formatter<boost::json::value> : ostream_formatter {};
+struct fmt::formatter<boost::json::value>: ostream_formatter {};

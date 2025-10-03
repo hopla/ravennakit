@@ -89,8 +89,7 @@ struct ComparisonDataSet {
      * @param receiver_identity The identity of the receiver.
      * @return The result of the comparison. See the result enum for more information.
      */
-    static result
-    compare(const AnnounceMessage& a, const AnnounceMessage& b, const PortIdentity& receiver_identity);
+    static result compare(const AnnounceMessage& a, const AnnounceMessage& b, const PortIdentity& receiver_identity);
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

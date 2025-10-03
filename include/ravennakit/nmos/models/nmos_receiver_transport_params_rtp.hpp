@@ -47,9 +47,7 @@ struct ReceiverTransportParamsRtp {
     std::optional<std::string> multicast_ip;
 };
 
-inline void tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverTransportParamsRtp& transport_file
-) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverTransportParamsRtp& transport_file) {
     jv = {
         {"source_ip", boost::json::value_from(transport_file.source_ip)},
         {"interface_ip", boost::json::value_from(transport_file.interface_ip)},
@@ -59,8 +57,7 @@ inline void tag_invoke(
     };
 }
 
-inline ReceiverTransportParamsRtp
-tag_invoke(const boost::json::value_to_tag<ReceiverTransportParamsRtp>&, const boost::json::value& jv) {
+inline ReceiverTransportParamsRtp tag_invoke(const boost::json::value_to_tag<ReceiverTransportParamsRtp>&, const boost::json::value& jv) {
     ReceiverTransportParamsRtp transport_params_rtp {};
 
     if (const auto result = jv.try_at("source_ip")) {

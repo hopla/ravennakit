@@ -13,8 +13,7 @@
 
 #include <array>
 
-rav::rtcp::ReportBlockView::ReportBlockView(const uint8_t* data, const size_t size_bytes) :
-    data_(data), size_bytes_(size_bytes) {}
+rav::rtcp::ReportBlockView::ReportBlockView(const uint8_t* data, const size_t size_bytes) : data_(data), size_bytes_(size_bytes) {}
 
 bool rav::rtcp::ReportBlockView::validate() const {
     if (data_ == nullptr) {

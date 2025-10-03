@@ -43,21 +43,21 @@ template<typename Map, typename Key>
 auto stl_get_or_default(const Map& map, const Key& key) -> typename Map::mapped_type {
     if (auto it = map.find(key); it != map.end())
         return it->second;
-    return typename Map::mapped_type{};
+    return typename Map::mapped_type {};
 }
 
 // Helper for `generate_array`
-template <typename T, std::size_t N, typename F, std::size_t... Is>
+template<typename T, std::size_t N, typename F, std::size_t... Is>
 std::array<T, N> generate_array_impl(F&& f, std::index_sequence<Is...>) {
-    return {{ f(Is)... }};
+    return {{f(Is)...}};
 }
 
 /**
  * Helper function to initialize std::array with non-copyable types.
  */
-template <typename T, std::size_t N, typename F>
+template<typename T, std::size_t N, typename F>
 std::array<T, N> generate_array(F&& f) {
-    return generate_array_impl<T, N>(std::forward<F>(f), std::make_index_sequence<N>{});
+    return generate_array_impl<T, N>(std::forward<F>(f), std::make_index_sequence<N> {});
 }
 
 }  // namespace rav

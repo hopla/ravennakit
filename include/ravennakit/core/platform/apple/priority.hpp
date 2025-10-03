@@ -20,8 +20,7 @@
 
 namespace rav {
 
-[[nodiscard]] inline bool
-set_thread_realtime(const uint64_t period_ns, const uint64_t computation_ns, const uint64_t constraint_ns) {
+[[nodiscard]] inline bool set_thread_realtime(const uint64_t period_ns, const uint64_t computation_ns, const uint64_t constraint_ns) {
     if (constraint_ns < computation_ns) {
         return false;
     }

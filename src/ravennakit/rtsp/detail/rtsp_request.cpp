@@ -30,9 +30,7 @@ std::string rav::rtsp::Request::encode(const char* newline) const {
 }
 
 void rav::rtsp::Request::encode_append(std::string& out, const char* newline) const {
-    fmt::format_to(
-        std::back_inserter(out), "{} {} RTSP/{}.{}{}", method, uri, rtsp_version_major, rtsp_version_minor, newline
-    );
+    fmt::format_to(std::back_inserter(out), "{} {} RTSP/{}.{}{}", method, uri, rtsp_version_major, rtsp_version_minor, newline);
     rtsp_headers.encode_append(out, true);
     if (!data.empty()) {
         fmt::format_to(std::back_inserter(out), "content-length: {}{}", data.size(), newline);

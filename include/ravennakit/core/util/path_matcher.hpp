@@ -213,8 +213,7 @@ inline std::ostream& operator<<(std::ostream& os, const PathMatcher::Error err) 
 }
 
 // Make PathMatcher::Error compatible with boost::system::result
-BOOST_NORETURN BOOST_NOINLINE inline void
-throw_exception_from_error(PathMatcher::Error const& e, boost::source_location const& loc) {
+BOOST_NORETURN BOOST_NOINLINE inline void throw_exception_from_error(PathMatcher::Error const& e, boost::source_location const& loc) {
     boost::throw_with_location(std::runtime_error(fmt::format("PathMatcher::Error: {}", e)), loc);
 }
 

@@ -38,9 +38,8 @@ const void* rav::dnssd::BonjourTxtRecord::bytes_ptr() const noexcept {
     return TXTRecordGetBytesPtr(&txt_record_ref_);
 }
 
-std::map<std::string, std::string> rav::dnssd::BonjourTxtRecord::get_txt_record_from_raw_bytes(
-    const unsigned char* txt_record, const uint16_t txt_record_length
-) noexcept {
+std::map<std::string, std::string>
+rav::dnssd::BonjourTxtRecord::get_txt_record_from_raw_bytes(const unsigned char* txt_record, const uint16_t txt_record_length) noexcept {
     std::map<std::string, std::string> txtRecord;
 
     uint8_t value_len;

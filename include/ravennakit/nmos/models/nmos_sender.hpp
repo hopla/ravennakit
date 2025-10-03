@@ -75,8 +75,7 @@ struct Sender: ResourceCore {
     std::function<tl::expected<sdp::SessionDescription, ApiError>()> get_transport_file;
 };
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Sender::Subscription& subscription) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Sender::Subscription& subscription) {
     jv = {
         {"receiver_id", boost::json::value_from(subscription.receiver_id)},
         {"active", subscription.active},

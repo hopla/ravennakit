@@ -44,8 +44,7 @@ class MacAddress {
      * @param byte5 Byte 5
      */
     MacAddress(
-        const uint8_t byte0, const uint8_t byte1, const uint8_t byte2, const uint8_t byte3, const uint8_t byte4,
-        const uint8_t byte5
+        const uint8_t byte0, const uint8_t byte1, const uint8_t byte2, const uint8_t byte3, const uint8_t byte4, const uint8_t byte5
     ) :
         address_ {byte0, byte1, byte2, byte3, byte4, byte5} {}
 
@@ -89,8 +88,8 @@ class MacAddress {
      */
     [[nodiscard]] std::string to_string(const char* separator = ":") const {
         return fmt::format(
-            "{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}", address_[0], separator, address_[1], separator,
-            address_[2], separator, address_[3], separator, address_[4], separator, address_[5]
+            "{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}{}{:02x}", address_[0], separator, address_[1], separator, address_[2], separator,
+            address_[3], separator, address_[4], separator, address_[5]
         );
     }
 

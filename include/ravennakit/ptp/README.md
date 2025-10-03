@@ -22,23 +22,28 @@
 ## PTP Port states (6.6.2.2)
 
 ### Master
+
 The PTP Port is the source of time on the PTP Communication Path served by the PTP
 Port.
 
 ### Slave
+
 The PTP Port synchronizes to the PTP Port on the PTP Communication Path that is in the
 MASTER state.
 
 ### Passive
+
 The PTP Port is not the source of time on the PTP Communication Path nor does it
 synchronize to a Master Clock.
 
 ## Oscillator frequency (7.2.2)
+
 Oscillators used to establish or maintain the timescale of a PTP Instance (see 7.2.1) shall maintain a period,
 that is, the inverse of the frequency, deviating no more than 0.01% from the period of a perfect oscillator of
 the same nominal frequency.
 
 ## Epoch (7.2.3)
+
 The PTP epoch (the epoch of timescale PTP) is 1 January 1970 00:00:00 TAI.
 
 ## PTP Messages (7.3)

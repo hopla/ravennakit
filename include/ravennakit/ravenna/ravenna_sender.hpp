@@ -55,8 +55,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
         bool enabled {};
 
         friend bool operator==(const Destination& lhs, const Destination& rhs) {
-            return std::tie(lhs.interface_by_rank, lhs.endpoint, lhs.enabled)
-                == std::tie(rhs.interface_by_rank, rhs.endpoint, rhs.enabled);
+            return std::tie(lhs.interface_by_rank, lhs.endpoint, lhs.enabled) == std::tie(rhs.interface_by_rank, rhs.endpoint, rhs.enabled);
         }
 
         friend bool operator!=(const Destination& lhs, const Destination& rhs) {
@@ -88,8 +87,8 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     };
 
     RavennaSender(
-        rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server,
-        ptp::Instance& ptp_instance, Id id, uint32_t session_id, NetworkInterfaceConfig network_interface_config
+        rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, Id id,
+        uint32_t session_id, NetworkInterfaceConfig network_interface_config
     );
 
     ~RavennaSender() override;
@@ -239,16 +238,12 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     tl::expected<void, rav::nmos::ApiError> handle_patch_request(const boost::json::value& patch_request);
 };
 
-void tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination
-);
+void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination);
 
-RavennaSender::Destination
-tag_invoke(const boost::json::value_to_tag<RavennaSender::Destination>&, const boost::json::value& jv);
+RavennaSender::Destination tag_invoke(const boost::json::value_to_tag<RavennaSender::Destination>&, const boost::json::value& jv);
 
 void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Configuration& config);
 
-RavennaSender::Configuration
-tag_invoke(const boost::json::value_to_tag<RavennaSender::Configuration>&, const boost::json::value& jv);
+RavennaSender::Configuration tag_invoke(const boost::json::value_to_tag<RavennaSender::Configuration>&, const boost::json::value& jv);
 
 }  // namespace rav

@@ -54,9 +54,7 @@ class ExtendedUdpSocket {
      * @param interface_address The address to bind to.
      * @param port The port to bind to.
      */
-    ExtendedUdpSocket(
-        boost::asio::io_context& io_context, const boost::asio::ip::address& interface_address, uint16_t port
-    );
+    ExtendedUdpSocket(boost::asio::io_context& io_context, const boost::asio::ip::address& interface_address, uint16_t port);
 
     ExtendedUdpSocket(const ExtendedUdpSocket&) = delete;
     ExtendedUdpSocket& operator=(const ExtendedUdpSocket&) = delete;
@@ -86,9 +84,8 @@ class ExtendedUdpSocket {
      * @param interface_address The interface address to join the multicast group on.
      * @returns Success if the operation was successful, error code otherwise.
      */
-    [[nodiscard]] boost::system::error_code join_multicast_group(
-        const boost::asio::ip::address_v4& multicast_address, const boost::asio::ip::address_v4& interface_address
-    ) const;
+    [[nodiscard]] boost::system::error_code
+    join_multicast_group(const boost::asio::ip::address_v4& multicast_address, const boost::asio::ip::address_v4& interface_address) const;
 
     /**
      * Leave a multicast group.
@@ -96,17 +93,15 @@ class ExtendedUdpSocket {
      * @param interface_address The interface address to leave the multicast group on.
      * @return Success if the operation was successful, error code otherwise.
      */
-    [[nodiscard]] boost::system::error_code leave_multicast_group(
-        const boost::asio::ip::address_v4& multicast_address, const boost::asio::ip::address_v4& interface_address
-    ) const;
+    [[nodiscard]] boost::system::error_code
+    leave_multicast_group(const boost::asio::ip::address_v4& multicast_address, const boost::asio::ip::address_v4& interface_address) const;
 
     /**
      * Set the outbound interface for multicast packets.
      * @param interface_address The address of the interface to use.
      * @return True if the operation was successful, false otherwise.
      */
-    [[nodiscard]] boost::system::error_code
-    set_multicast_outbound_interface(const boost::asio::ip::address_v4& interface_address) const;
+    [[nodiscard]] boost::system::error_code set_multicast_outbound_interface(const boost::asio::ip::address_v4& interface_address) const;
 
     /**
      * Set the multicast loopback option.
@@ -127,9 +122,8 @@ class ExtendedUdpSocket {
 };
 
 [[nodiscard]] size_t receive_from_socket(
-    boost::asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf,
-    boost::asio::ip::udp::endpoint& src_endpoint, boost::asio::ip::udp::endpoint& dst_endpoint, uint64_t& recv_time,
-    boost::system::error_code& ec
+    boost::asio::ip::udp::socket& socket, std::array<uint8_t, 1500>& data_buf, boost::asio::ip::udp::endpoint& src_endpoint,
+    boost::asio::ip::udp::endpoint& dst_endpoint, uint64_t& recv_time, boost::system::error_code& ec
 );
 
 }  // namespace rav

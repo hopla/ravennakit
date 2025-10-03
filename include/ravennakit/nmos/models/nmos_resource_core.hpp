@@ -42,11 +42,8 @@ struct ResourceCore {
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ResourceCore& resource) {
     jv = {
-        {"id", boost::uuids::to_string(resource.id)},
-        {"version", resource.version.to_string()},
-        {"label", resource.label},
-        {"description", resource.description},
-        {"tags", boost::json::value_from(resource.tags)},
+        {"id", boost::uuids::to_string(resource.id)}, {"version", resource.version.to_string()},        {"label", resource.label},
+        {"description", resource.description},        {"tags", boost::json::value_from(resource.tags)},
     };
 }
 

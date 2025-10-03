@@ -38,8 +38,7 @@ class Browser {
      * @param address The address which was added.
      * @param interface_index The index of the interface on which the address was added.
      */
-    SafeFunction<void(const ServiceDescription& description, const std::string& address, uint32_t interface_index)>
-        on_address_added;
+    SafeFunction<void(const ServiceDescription& description, const std::string& address, uint32_t interface_index)> on_address_added;
 
     /**
      * Called when a service became unavailable on given address.
@@ -47,8 +46,7 @@ class Browser {
      * @param address The address which was removed.
      * @param interface_index The index of the interface on which the address was removed.
      */
-    SafeFunction<void(const ServiceDescription& description, const std::string& address, uint32_t interface_index)>
-        on_address_removed;
+    SafeFunction<void(const ServiceDescription& description, const std::string& address, uint32_t interface_index)> on_address_removed;
 
     /**
      * Called when an error occurred during browsing for a service.

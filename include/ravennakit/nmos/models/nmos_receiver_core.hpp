@@ -55,8 +55,7 @@ struct ReceiverCore: ResourceCore {
     std::function<tl::expected<sdp::SessionDescription, ApiError>()> get_transport_file;
 };
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverCore::Subscription& subscription) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverCore::Subscription& subscription) {
     auto object = boost::json::object {
         {"active", subscription.active},
     };
@@ -68,8 +67,7 @@ tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Rec
     jv = object;
 }
 
-inline ReceiverCore::Subscription
-tag_invoke(const boost::json::value_to_tag<ReceiverCore::Subscription>&, const boost::json::value& jv) {
+inline ReceiverCore::Subscription tag_invoke(const boost::json::value_to_tag<ReceiverCore::Subscription>&, const boost::json::value& jv) {
     ReceiverCore::Subscription sub;
     sub.sender_id = uuid_from_json(jv.at("sender_id"));
     sub.active = jv.at("active").as_bool();

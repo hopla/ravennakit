@@ -159,8 +159,7 @@ struct AudioReceiver {
      * @return The timestamp at which the data was read, or std::nullopt if an error occurred.
      */
     [[nodiscard]] std::optional<uint32_t> read_data_realtime(
-        Id id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp,
-        std::optional<uint32_t> require_delay
+        Id id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
     );
 
     /**
@@ -179,8 +178,7 @@ struct AudioReceiver {
      * @return The timestamp at which the data was read, or std::nullopt if an error occurred.
      */
     [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
-        Id id, AudioBufferView<float> output_buffer, std::optional<uint32_t> at_timestamp,
-        std::optional<uint32_t> require_delay
+        Id id, AudioBufferView<float> output_buffer, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
     );
 
     /**
@@ -221,9 +219,8 @@ struct AudioReceiver {
         FifoBuffer<PacketBuffer, Fifo::Spsc> packets;
         FifoBuffer<uint16_t, Fifo::Spsc> packets_too_old;
         PacketStats packet_stats;
-        boost::lockfree::spsc_value<PacketStats::Counters, boost::lockfree::allow_multiple_reads<true>>
-            packet_stats_counters;
-        std::atomic<bool> reset_max_values{false};
+        boost::lockfree::spsc_value<PacketStats::Counters, boost::lockfree::allow_multiple_reads<true>> packet_stats_counters;
+        std::atomic<bool> reset_max_values {false};
         IntervalStats packet_interval_stats;
         WrappingUint64 prev_packet_time_ns;
         std::atomic<StreamState> state {StreamState::inactive};

@@ -58,9 +58,8 @@ const char* rav::sdp::to_string(const ReferenceClock::PtpVersion version) {
 std::string rav::sdp::to_string(const ReferenceClock& reference_clock) {
     if (reference_clock.source_ == ReferenceClock::ClockSource::ptp) {
         return fmt::format(
-            "a={}:{}={}:{}:{}", k_sdp_ts_refclk, to_string(reference_clock.source_),
-            to_string(reference_clock.ptp_version_.value()), reference_clock.gmid_.value(),
-            reference_clock.domain_.value()
+            "a={}:{}={}:{}:{}", k_sdp_ts_refclk, to_string(reference_clock.source_), to_string(reference_clock.ptp_version_.value()),
+            reference_clock.gmid_.value(), reference_clock.domain_.value()
         );
     }
     // Note: this is not properly implemented:

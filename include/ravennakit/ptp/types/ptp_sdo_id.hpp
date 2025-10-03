@@ -30,4 +30,4 @@ struct SdoId {
     }
 };
 
-}
+}  // namespace rav::ptp

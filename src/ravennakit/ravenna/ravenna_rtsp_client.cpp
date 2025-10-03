@@ -81,8 +81,7 @@ void rav::RavennaRtspClient::ravenna_session_discovered(const dnssd::ServiceDesc
     }
 }
 
-std::optional<rav::sdp::SessionDescription>
-rav::RavennaRtspClient::get_sdp_for_session(const std::string& session_name) const {
+std::optional<rav::sdp::SessionDescription> rav::RavennaRtspClient::get_sdp_for_session(const std::string& session_name) const {
     for (auto& session : sessions_) {
         if (session.session_name == session_name) {
             return session.sdp_;
@@ -110,9 +109,7 @@ rav::RavennaRtspClient::find_or_create_connection(const std::string& host_target
         return *connection;
     }
 
-    connections_.push_back(
-        std::make_unique<ConnectionContext>(ConnectionContext {host_target, port, rtsp::Client {io_context_}})
-    );
+    connections_.push_back(std::make_unique<ConnectionContext>(ConnectionContext {host_target, port, rtsp::Client {io_context_}}));
     const auto& new_connection = connections_.back();
 
     new_connection->client.on_connect_event = [=](const auto&) {
@@ -152,10 +149,7 @@ rav::RavennaRtspClient::find_or_create_connection(const std::string& host_target
         RAV_TRACE("{}", event.rtsp_response.to_debug_string(true));
 
         if (event.rtsp_response.status_code != 200) {
-            RAV_ERROR(
-                "RTSP request failed with status: {} {}", event.rtsp_response.status_code,
-                event.rtsp_response.reason_phrase
-            );
+            RAV_ERROR("RTSP request failed with status: {} {}", event.rtsp_response.status_code, event.rtsp_response.reason_phrase);
             return;
         }
 
@@ -186,9 +180,7 @@ rav::RavennaRtspClient::find_connection(const std::string& host_target, const ui
     return nullptr;
 }
 
-void rav::RavennaRtspClient::update_session_with_service(
-    SessionContext& session, const dnssd::ServiceDescription& service
-) {
+void rav::RavennaRtspClient::update_session_with_service(SessionContext& session, const dnssd::ServiceDescription& service) {
     session.host_target = string_remove_suffix(service.host_target, ".");
     session.port = service.port;
 

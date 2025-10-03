@@ -102,8 +102,7 @@ class Node: public ptp::Instance::Subscriber {
     SafeFunction<void(const Configuration& config)> on_configuration_changed;
 
     explicit Node(
-        boost::asio::io_context& io_context, ptp::Instance& ptp_instance,
-        std::unique_ptr<RegistryBrowserBase> registry_browser = nullptr,
+        boost::asio::io_context& io_context, ptp::Instance& ptp_instance, std::unique_ptr<RegistryBrowserBase> registry_browser = nullptr,
         std::unique_ptr<HttpClientBase> http_client = nullptr
     );
 
@@ -125,8 +124,7 @@ class Node: public ptp::Instance::Subscriber {
      * @param new_configuration The configuration to update.
      * @param force_update Whether to force the update even if the configuration didn't change.
      */
-    [[nodiscard]] tl::expected<void, Error>
-    set_configuration(Configuration new_configuration, bool force_update = false);
+    [[nodiscard]] tl::expected<void, Error> set_configuration(Configuration new_configuration, bool force_update = false);
 
     /**
      * @return The current configuration of the NMOS node.

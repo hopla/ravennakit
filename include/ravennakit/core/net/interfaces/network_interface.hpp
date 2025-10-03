@@ -66,8 +66,7 @@ class NetworkInterface {
         [[nodiscard]] std::string to_string() const;
 
         friend bool operator==(const Capabilities& lhs, const Capabilities& rhs) {
-            return lhs.hw_timestamp == rhs.hw_timestamp && lhs.sw_timestamp == rhs.sw_timestamp
-                && lhs.multicast == rhs.multicast;
+            return lhs.hw_timestamp == rhs.hw_timestamp && lhs.sw_timestamp == rhs.sw_timestamp && lhs.multicast == rhs.multicast;
         }
 
         friend bool operator!=(const Capabilities& lhs, const Capabilities& rhs) {

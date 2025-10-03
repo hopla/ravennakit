@@ -12,8 +12,7 @@
 
 #include "ravennakit/core/string_parser.hpp"
 
-tl::expected<rav::sdp::RavennaClockDomain, std::string>
-rav::sdp::parse_ravenna_clock_domain(const std::string_view line) {
+tl::expected<rav::sdp::RavennaClockDomain, std::string> rav::sdp::parse_ravenna_clock_domain(const std::string_view line) {
     StringParser parser(line);
 
     RavennaClockDomain clock_domain;
@@ -47,8 +46,7 @@ const char* rav::sdp::to_string(const RavennaClockDomain::SyncSource source) {
 
 std::string rav::sdp::to_string(const RavennaClockDomain& ravenna_clock_domain) {
     return fmt::format(
-        "a={}:{} {}", RavennaClockDomain::k_attribute_name, to_string(ravenna_clock_domain.source),
-        ravenna_clock_domain.domain
+        "a={}:{} {}", RavennaClockDomain::k_attribute_name, to_string(ravenna_clock_domain.source), ravenna_clock_domain.domain
     );
 }
 

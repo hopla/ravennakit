@@ -59,8 +59,7 @@ class HttpRouter {
      * @param parameters The parameters to fill with the extracted values from the path.
      * @return A pointer to the matching handler, or nullptr if no match is found.
      */
-    HandlerType*
-    match(const boost::beast::http::verb method, const std::string_view path, PathMatcher::Parameters* parameters) {
+    HandlerType* match(const boost::beast::http::verb method, const std::string_view path, PathMatcher::Parameters* parameters) {
         for (auto& route : routes_) {
             if (route.method == method) {
                 auto match_result = PathMatcher::match(path, route.pattern, parameters);

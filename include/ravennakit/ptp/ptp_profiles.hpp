@@ -153,4 +153,4 @@ static constexpr Profile DefaultProfile3 {
     1.0,
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

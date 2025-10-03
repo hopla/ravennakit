@@ -99,8 +99,7 @@ class Client final: Connection::Subscriber {
     std::shared_ptr<Connection> connection_;
     uint32_t seq_ {0};
 
-    void
-    async_resolve_connect(const std::string& host, const std::string& service, boost::asio::ip::resolver_base::flags flags);
+    void async_resolve_connect(const std::string& host, const std::string& service, boost::asio::ip::resolver_base::flags flags);
 };
 
 }  // namespace rav::rtsp

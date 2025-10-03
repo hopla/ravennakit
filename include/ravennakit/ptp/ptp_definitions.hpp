@@ -300,4 +300,4 @@ enum class DelayMechanism : uint8_t {
     no_mechanism = 0xfe,
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

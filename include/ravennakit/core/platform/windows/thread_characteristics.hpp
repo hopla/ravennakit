@@ -39,6 +39,6 @@ struct WindowsThreadCharacteristics {
     }
 };
 
-}
+}  // namespace rav
 
 #endif

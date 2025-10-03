@@ -31,8 +31,7 @@ class TimeInterval {
      * @param nanos The number of nanoseconds.
      * @param fraction The nanosecond fraction part.
      */
-    TimeInterval(const int64_t seconds, const int32_t nanos, const uint16_t fraction) :
-        seconds_(seconds), nanos_(nanos) {
+    TimeInterval(const int64_t seconds, const int32_t nanos, const uint16_t fraction) : seconds_(seconds), nanos_(nanos) {
         seconds_ = seconds;
         nanos_ = nanos * k_fractional_scale + fraction;
         normalize();
@@ -288,4 +287,4 @@ class TimeInterval {
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

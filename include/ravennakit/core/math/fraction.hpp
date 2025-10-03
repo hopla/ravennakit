@@ -32,4 +32,4 @@ struct Fraction {
     }
 };
 
-}
+}  // namespace rav

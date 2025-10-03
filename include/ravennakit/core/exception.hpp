@@ -33,12 +33,10 @@ namespace rav {
 
 class Exception: public std::exception {
   public:
-    explicit
-    Exception(const char* msg, const char* file = nullptr, const int line = -1, const char* function_name = nullptr) :
+    explicit Exception(const char* msg, const char* file = nullptr, const int line = -1, const char* function_name = nullptr) :
         error_(msg), file_(file), line_(line), function_name_(function_name) {}
 
-    explicit
-    Exception(std::string msg, const char* file = nullptr, const int line = -1, const char* function_name = nullptr) :
+    explicit Exception(std::string msg, const char* file = nullptr, const int line = -1, const char* function_name = nullptr) :
         error_(std::move(msg)), file_(file), line_(line), function_name_(function_name) {}
 
     /**

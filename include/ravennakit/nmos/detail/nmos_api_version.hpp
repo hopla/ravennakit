@@ -87,7 +87,6 @@ inline std::ostream& operator<<(std::ostream& os, const ApiVersion version) {
 
 }  // namespace rav::nmos
 
-
 // Make ApiVersion compatible with fmt
 template<>
 struct fmt::formatter<rav::nmos::ApiVersion>: ostream_formatter {};

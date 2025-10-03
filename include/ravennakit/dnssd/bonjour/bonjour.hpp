@@ -33,20 +33,20 @@
 
     #include <dns_sd.h>
 
-#define DNSSD_THROW_IF_ERROR(result, msg) \
-    if (result != kDNSServiceErr_NoError) { \
-        throw rav::Exception(std::string(msg) + ": " + dns_service_error_to_string(result), __FILE__, __LINE__, RAV_FUNCTION); \
-    }
+    #define DNSSD_THROW_IF_ERROR(result, msg)                                                                                      \
+        if (result != kDNSServiceErr_NoError) {                                                                                    \
+            throw rav::Exception(std::string(msg) + ": " + dns_service_error_to_string(result), __FILE__, __LINE__, RAV_FUNCTION); \
+        }
 
-#define DNSSD_LOG_IF_ERROR(error) \
-    if (error != kDNSServiceErr_NoError) { \
-        RAV_ERROR("DNSServiceError: {}", dns_service_error_to_string(error)); \
-    }
+    #define DNSSD_LOG_IF_ERROR(error)                                             \
+        if (error != kDNSServiceErr_NoError) {                                    \
+            RAV_ERROR("DNSServiceError: {}", dns_service_error_to_string(error)); \
+        }
 
 namespace rav::dnssd {
 
 bool is_bonjour_service_running();
-const char* dns_service_error_to_string (DNSServiceErrorType error) noexcept;
+const char* dns_service_error_to_string(DNSServiceErrorType error) noexcept;
 
 }  // namespace rav::dnssd
 

@@ -47,9 +47,7 @@ void rav::dnssd::MockBrowser::mock_resolved_service(
     });
 }
 
-void rav::dnssd::MockBrowser::mock_added_address(
-    const std::string& fullname, const std::string& address, const uint32_t interface_index
-) {
+void rav::dnssd::MockBrowser::mock_added_address(const std::string& fullname, const std::string& address, const uint32_t interface_index) {
     boost::asio::dispatch(io_context_, [=] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {
@@ -60,9 +58,7 @@ void rav::dnssd::MockBrowser::mock_added_address(
     });
 }
 
-void rav::dnssd::MockBrowser::mock_removed_address(
-    const std::string& fullname, const std::string& address, uint32_t interface_index
-) {
+void rav::dnssd::MockBrowser::mock_removed_address(const std::string& fullname, const std::string& address, uint32_t interface_index) {
     boost::asio::dispatch(io_context_, [=] {
         const auto it = services_.find(fullname);
         if (it == services_.end()) {

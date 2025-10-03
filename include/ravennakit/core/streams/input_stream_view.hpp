@@ -57,7 +57,7 @@ class InputStreamView: public InputStream {
     [[nodiscard]] bool exhausted() override;
 
   private:
-    const uint8_t* data_{};
+    const uint8_t* data_ {};
     size_t size_ {};
     size_t read_position_ = 0;
 };

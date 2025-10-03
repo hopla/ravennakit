@@ -79,9 +79,7 @@ void rav::ptp::Port::assert_valid_state(const Profile& profile) const {
     port_ds_.assert_valid_state(profile);
 }
 
-void rav::ptp::Port::apply_state_decision_algorithm(
-    const DefaultDs& default_ds, const std::optional<BestAnnounceMessage>& ebest
-) {
+void rav::ptp::Port::apply_state_decision_algorithm(const DefaultDs& default_ds, const std::optional<BestAnnounceMessage>& ebest) {
     if (!ebest && port_ds_.port_state == State::listening) {
         return;
     }
@@ -98,8 +96,8 @@ void rav::ptp::Port::apply_state_decision_algorithm(
     // recommendation anyway, I'm taking the liberty to place the PTP instance into slave state instead of listening
     // state.
 
-    const bool recommended_master = *recommended_state == StateDecisionCode::m1
-        || *recommended_state == StateDecisionCode::m2 || *recommended_state == StateDecisionCode::m3;
+    const bool recommended_master = *recommended_state == StateDecisionCode::m1 || *recommended_state == StateDecisionCode::m2
+        || *recommended_state == StateDecisionCode::m3;
 
     if (recommended_master && default_ds.slave_only) {
         recommended_state = StateDecisionCode::s1;
@@ -109,9 +107,8 @@ void rav::ptp::Port::apply_state_decision_algorithm(
     set_state(parent_.get_state_for_decision_code(*recommended_state));
 }
 
-std::optional<rav::ptp::StateDecisionCode> rav::ptp::Port::calculate_recommended_state(
-    const DefaultDs& default_ds, const std::optional<ComparisonDataSet>& ebest
-) const {
+std::optional<rav::ptp::StateDecisionCode>
+rav::ptp::Port::calculate_recommended_state(const DefaultDs& default_ds, const std::optional<ComparisonDataSet>& ebest) const {
     if (!ebest && port_ds_.port_state == State::listening) {
         return std::nullopt;
     }
@@ -120,9 +117,7 @@ std::optional<rav::ptp::StateDecisionCode> rav::ptp::Port::calculate_recommended
 
     if (Range(1, 127).contains(default_ds.clock_quality.clock_class)) {
         // D0 better or better by topology than Erbest
-        if (!erbest_
-            || d0.compare(ComparisonDataSet(*erbest_, port_ds_.port_identity))
-                >= ComparisonDataSet::result::better_by_topology) {
+        if (!erbest_ || d0.compare(ComparisonDataSet(*erbest_, port_ds_.port_identity)) >= ComparisonDataSet::result::better_by_topology) {
             return StateDecisionCode::m1;  // BMC_MASTER (D0)
         }
         return StateDecisionCode::p1;  // BMC_PASSIVE (Erbest)
@@ -139,9 +134,7 @@ std::optional<rav::ptp::StateDecisionCode> rav::ptp::Port::calculate_recommended
     }
 
     // Ebest better by topology than Erbest
-    if (!erbest_
-        || ebest->compare(ComparisonDataSet(*erbest_, port_ds_.port_identity))
-            == ComparisonDataSet::result::better_by_topology) {
+    if (!erbest_ || ebest->compare(ComparisonDataSet(*erbest_, port_ds_.port_identity)) == ComparisonDataSet::result::better_by_topology) {
         return StateDecisionCode::p2;  // BMC_PASSIVE (Erbest)
     }
 
@@ -151,8 +144,8 @@ std::optional<rav::ptp::StateDecisionCode> rav::ptp::Port::calculate_recommended
 void rav::ptp::Port::schedule_announce_receipt_timeout() {
     const auto random_factor = Random().get_random_int(0, 1000) / 1000.0;
     const auto announce_interval_ms = static_cast<int>(std::pow(2, port_ds_.log_announce_interval) * 1000);
-    const auto announce_receipt_timeout = port_ds_.announce_receipt_timeout * announce_interval_ms
-        + static_cast<int>(random_factor * announce_interval_ms);
+    const auto announce_receipt_timeout =
+        port_ds_.announce_receipt_timeout * announce_interval_ms + static_cast<int>(random_factor * announce_interval_ms);
 
     announce_receipt_timeout_timer_.expires_after(std::chrono::milliseconds(announce_receipt_timeout));
     announce_receipt_timeout_timer_.async_wait([this](const boost::system::error_code& error) {
@@ -213,9 +206,8 @@ rav::ptp::Measurement<double> rav::ptp::Port::calculate_offset_from_master(const
     return {t2, offset, mean_delay_, {}};
 }
 
-rav::ptp::Measurement<double> rav::ptp::Port::calculate_offset_from_master(
-    const SyncMessage& sync_message, const FollowUpMessage& follow_up_message
-) const {
+rav::ptp::Measurement<double>
+rav::ptp::Port::calculate_offset_from_master(const SyncMessage& sync_message, const FollowUpMessage& follow_up_message) const {
     RAV_ASSERT(sync_message.header.flags.two_step_flag, "Use the other method for one-step sync messages");
     const auto corrected_sync_correction_field = TimeInterval::from_wire_format(sync_message.header.correction_field)
                                                      .total_seconds_double();  // TODO: Ignoring delay asymmetry for now
@@ -278,8 +270,7 @@ rav::ptp::State rav::ptp::Port::state() const {
     return port_ds_.port_state;
 }
 
-std::optional<rav::ptp::BestAnnounceMessage>
-rav::ptp::Port::determine_ebest(const std::vector<std::unique_ptr<Port>>& ports) {
+std::optional<rav::ptp::BestAnnounceMessage> rav::ptp::Port::determine_ebest(const std::vector<std::unique_ptr<Port>>& ports) {
     const Port* best_port = nullptr;
 
     for (auto& port : ports) {
@@ -412,8 +403,7 @@ void rav::ptp::Port::handle_recv_event(const ExtendedUdpSocket::RecvEvent& event
 
     switch (header->message_type) {
         case MessageType::announce: {
-            auto announce_message =
-                AnnounceMessage::from_data(header.value(), data.subview(MessageHeader::k_header_size));
+            auto announce_message = AnnounceMessage::from_data(header.value(), data.subview(MessageHeader::k_header_size));
             if (!announce_message) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(announce_message.error()));
             }
@@ -458,8 +448,7 @@ void rav::ptp::Port::handle_recv_event(const ExtendedUdpSocket::RecvEvent& event
             break;
         }
         case MessageType::p_delay_resp_follow_up: {
-            auto pdelay_resp_follow_up =
-                PdelayRespFollowUpMessage::from_data(data.subview(MessageHeader::k_header_size));
+            auto pdelay_resp_follow_up = PdelayRespFollowUpMessage::from_data(data.subview(MessageHeader::k_header_size));
             if (!pdelay_resp_follow_up) {
                 RAV_ERROR("{} error: {}", header->to_string(), to_string(pdelay_resp_follow_up.error()));
             }
@@ -520,8 +509,7 @@ void rav::ptp::Port::handle_announce_message(const AnnounceMessage& announce_mes
 
     // IEEE 1588-2019: 9.3.2.3.c If the port state is Slave, Uncalibrated, or Passive, the previous Erbest is used, and
     // updated with newer messages from this port.
-    if (port_ds_.port_state == State::slave || port_ds_.port_state == State::uncalibrated
-        || port_ds_.port_state == State::passive) {
+    if (port_ds_.port_state == State::slave || port_ds_.port_state == State::uncalibrated || port_ds_.port_state == State::passive) {
         if (erbest_ && erbest_->header.source_port_identity == announce_message.header.source_port_identity) {
             if (announce_message.header.sequence_id > erbest_->header.sequence_id) {
                 erbest_ = announce_message;
@@ -576,9 +564,7 @@ void rav::ptp::Port::handle_sync_message(SyncMessage sync_message, BufferView<co
     process_request_response_delay_sequence();
 }
 
-void rav::ptp::Port::handle_follow_up_message(
-    const FollowUpMessage& follow_up_message, BufferView<const uint8_t> tlvs
-) {
+void rav::ptp::Port::handle_follow_up_message(const FollowUpMessage& follow_up_message, BufferView<const uint8_t> tlvs) {
     TRACY_ZONE_SCOPED;
 
     std::ignore = follow_up_message;
@@ -614,9 +600,7 @@ void rav::ptp::Port::handle_follow_up_message(
     RAV_WARNING("Received follow-up message without matching sync message");
 }
 
-void rav::ptp::Port::handle_delay_resp_message(
-    const DelayRespMessage& delay_resp_message, BufferView<const uint8_t> tlvs
-) {
+void rav::ptp::Port::handle_delay_resp_message(const DelayRespMessage& delay_resp_message, BufferView<const uint8_t> tlvs) {
     TRACY_ZONE_SCOPED;
 
     std::ignore = tlvs;
@@ -669,9 +653,7 @@ void rav::ptp::Port::handle_delay_resp_message(
     RAV_WARNING("Received a delay response message without matching delay request message");
 }
 
-void rav::ptp::Port::handle_pdelay_resp_message(
-    const PdelayRespMessage& delay_req_message, BufferView<const uint8_t> tlvs
-) {
+void rav::ptp::Port::handle_pdelay_resp_message(const PdelayRespMessage& delay_req_message, BufferView<const uint8_t> tlvs) {
     std::ignore = delay_req_message;
     std::ignore = tlvs;
 }
@@ -702,13 +684,11 @@ void rav::ptp::Port::calculate_erbest() {
     std::optional<AnnounceMessage> erbest;
 
     bool should_include_previous_erbest = erbest_
-        && (port_ds_.port_state == State::slave || port_ds_.port_state == State::uncalibrated
-            || port_ds_.port_state == State::passive);
+        && (port_ds_.port_state == State::slave || port_ds_.port_state == State::uncalibrated || port_ds_.port_state == State::passive);
 
     for (const auto& entry : foreign_master_list_) {
         if (const auto& announce_message = entry.most_recent_announce_message) {
-            if (should_include_previous_erbest
-                && announce_message->header.source_port_identity == erbest_->header.source_port_identity) {
+            if (should_include_previous_erbest && announce_message->header.source_port_identity == erbest_->header.source_port_identity) {
                 // Don't include this entry, because it is the previous Erbest, which might have been updated outside
                 // the foreign master list and which is considered later.
                 continue;
@@ -731,8 +711,7 @@ void rav::ptp::Port::calculate_erbest() {
 
     if (erbest) {
         if (should_include_previous_erbest) {
-            if (ComparisonDataSet::compare(*erbest, *erbest_, port_ds_.port_identity)
-                >= ComparisonDataSet::result::better_by_topology) {
+            if (ComparisonDataSet::compare(*erbest, *erbest_, port_ds_.port_identity) >= ComparisonDataSet::result::better_by_topology) {
                 erbest_ = erbest;
             }
         } else {

@@ -45,10 +45,9 @@ struct ParentDs {
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
             "Parent port identity: {}, grandmaster identity: {}, grandmaster priority1: {}, grandmaster priority2: {}",
-            parent_port_identity.clock_identity.to_string(), grandmaster_identity.to_string(), grandmaster_priority1,
-            grandmaster_priority2
+            parent_port_identity.clock_identity.to_string(), grandmaster_identity.to_string(), grandmaster_priority1, grandmaster_priority2
         );
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

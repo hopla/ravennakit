@@ -30,4 +30,4 @@ constexpr auto k_sdp_ipv6 = "IP6";
 constexpr auto k_sdp_wildcard = "*";
 constexpr auto k_sdp_crlf = "\r\n";
 
-}
+}  // namespace rav::sdp

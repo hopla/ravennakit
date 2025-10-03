@@ -78,9 +78,7 @@ class qos_flow {
         sockaddr4->sin_port = htons(endpoint.port());
         sockaddr4->sin_addr.s_addr = htonl(local_address.to_v4().to_uint());
 
-        if (!QOSAddSocketToFlow(
-                qos_handle_, native_socket_handle, &sockaddr, QOSTrafficTypeBestEffort, QOS_NON_ADAPTIVE_FLOW, &flow_id_
-            )) {
+        if (!QOSAddSocketToFlow(qos_handle_, native_socket_handle, &sockaddr, QOSTrafficTypeBestEffort, QOS_NON_ADAPTIVE_FLOW, &flow_id_)) {
             RAV_ERROR("Failed to add socket to flow");
             return false;
         }

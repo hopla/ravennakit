@@ -259,9 +259,7 @@ std::string rav::sdp::to_string(const MediaDescription& media_description, const
 
     // Media direction
     if (media_description.media_direction) {
-        fmt::format_to(
-            std::back_inserter(result), "a={}{}", sdp::to_string(*media_description.media_direction), newline
-        );
+        fmt::format_to(std::back_inserter(result), "a={}{}", sdp::to_string(*media_description.media_direction), newline);
     }
 
     // Reference clock
@@ -287,8 +285,7 @@ std::string rav::sdp::to_string(const MediaDescription& media_description, const
     // Clock deviation (RAVENNA Specific)
     if (media_description.ravenna_clock_deviation) {
         fmt::format_to(
-            std::back_inserter(result), "a=clock-deviation:{}/{}{}",
-            media_description.ravenna_clock_deviation->numerator,
+            std::back_inserter(result), "a=clock-deviation:{}/{}{}", media_description.ravenna_clock_deviation->numerator,
             media_description.ravenna_clock_deviation->denominator, newline
         );
     }

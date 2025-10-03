@@ -44,8 +44,7 @@ class RequestResponseDelaySequence {
      */
     explicit RequestResponseDelaySequence(const SyncMessage& sync_message) :
         sync_message_(sync_message), t1_(sync_message.origin_timestamp), t2_(sync_message_.receive_timestamp) {
-        corrected_sync_correction_field_ =
-            TimeInterval::from_wire_format(sync_message_.header.correction_field).total_seconds_double();
+        corrected_sync_correction_field_ = TimeInterval::from_wire_format(sync_message_.header.correction_field).total_seconds_double();
         if (sync_message.header.flags.two_step_flag) {
             state_ = state::awaiting_follow_up;
         } else {
@@ -114,8 +113,7 @@ class RequestResponseDelaySequence {
     void schedule_delay_req_message_send(const PortDs& port_ds) {
         TRACY_ZONE_SCOPED;
         const auto max_interval_ms = std::pow(2, port_ds.log_min_delay_req_interval + 1) * 1000;
-        const auto seconds =
-            static_cast<double>(Random().get_random_int(0, static_cast<int>(max_interval_ms))) / 1000.0;
+        const auto seconds = static_cast<double>(Random().get_random_int(0, static_cast<int>(max_interval_ms))) / 1000.0;
         scheduled_send_time_ = sync_message_.receive_timestamp;
         scheduled_send_time_.add_seconds(seconds);
         state_ = state::delay_req_send_scheduled;
@@ -191,8 +189,8 @@ class RequestResponseDelaySequence {
     [[nodiscard]] std::string to_string() const {
         TRACY_ZONE_SCOPED;
         return fmt::format(
-            "{}, state: {}, requesting_port_identity: {}", sync_message_.header.sequence_id.value(),
-            state_to_string(state_), requesting_port_identity_.to_string()
+            "{}, state: {}, requesting_port_identity: {}", sync_message_.header.sequence_id.value(), state_to_string(state_),
+            requesting_port_identity_.to_string()
         );
     }
 
@@ -229,4 +227,4 @@ class RequestResponseDelaySequence {
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

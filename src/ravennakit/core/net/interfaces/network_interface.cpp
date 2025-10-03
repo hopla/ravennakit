@@ -221,12 +221,9 @@ tl::expected<std::vector<rav::NetworkInterface>, int> rav::NetworkInterface::get
             continue;
         }
 
-        auto it = std::find_if(
-            network_interfaces.begin(), network_interfaces.end(),
-            [&ifa](const NetworkInterface& network_interface) {
-                return network_interface.identifier_ == ifa->ifa_name;
-            }
-        );
+        auto it = std::find_if(network_interfaces.begin(), network_interfaces.end(), [&ifa](const NetworkInterface& network_interface) {
+            return network_interface.identifier_ == ifa->ifa_name;
+        });
 
         if (it == network_interfaces.end()) {
             it = network_interfaces.emplace(it, ifa->ifa_name);
@@ -285,12 +282,10 @@ tl::expected<std::vector<rav::NetworkInterface>, int> rav::NetworkInterface::get
             continue;
         }
 
-        auto it = std::find_if(
-            network_interfaces.begin(), network_interfaces.end(),
-            [&bsd_name](const NetworkInterface& network_interface) {
+        auto it =
+            std::find_if(network_interfaces.begin(), network_interfaces.end(), [&bsd_name](const NetworkInterface& network_interface) {
                 return network_interface.identifier_ == bsd_name;
-            }
-        );
+            });
 
         if (it == network_interfaces.end()) {
             continue;  // We're only filling in the existing interfaces, skipping interfaces not gotten from getifaddrs.
@@ -330,12 +325,10 @@ tl::expected<std::vector<rav::NetworkInterface>, int> rav::NetworkInterface::get
             continue;
         }
 
-        auto it = std::find_if(
-            network_interfaces.begin(), network_interfaces.end(),
-            [&adapter_name](const NetworkInterface& network_interface) {
+        auto it =
+            std::find_if(network_interfaces.begin(), network_interfaces.end(), [&adapter_name](const NetworkInterface& network_interface) {
                 return network_interface.identifier_ == adapter_name;
-            }
-        );
+            });
 
         if (it == network_interfaces.end()) {
             it = network_interfaces.emplace(it, adapter_name);
@@ -352,8 +345,7 @@ tl::expected<std::vector<rav::NetworkInterface>, int> rav::NetworkInterface::get
             RAV_WARNING("Unknown physical address length ({})", adapter->PhysicalAddressLength);
         }
 
-        for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != nullptr;
-             unicast = unicast->Next) {
+        for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress; unicast != nullptr; unicast = unicast->Next) {
             if (unicast->Address.lpSockaddr->sa_family == AF_INET) {
                 const sockaddr_in* sa = reinterpret_cast<struct sockaddr_in*>(unicast->Address.lpSockaddr);
                 boost::asio::ip::address_v4 addr_v4(ntohl(sa->sin_addr.s_addr));

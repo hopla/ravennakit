@@ -93,7 +93,7 @@ tl::expected<void, std::string> rav::sdp::SessionDescription::parse_attribute(co
         }
     } else if (key == k_sdp_group) {
         if (const auto value = parser.read_until_end()) {
-            auto new_group= parse_group(*value);
+            auto new_group = parse_group(*value);
             if (!new_group.has_value()) {
                 return tl::unexpected(new_group.error());
             }
@@ -126,8 +126,7 @@ tl::expected<int, std::string> rav::sdp::parse_version(const std::string_view li
     return tl::unexpected("failed to parse integer from string");
 }
 
-tl::expected<rav::sdp::SessionDescription, std::string>
-rav::sdp::parse_session_description(const std::string& sdp_text) {
+tl::expected<rav::sdp::SessionDescription, std::string> rav::sdp::parse_session_description(const std::string& sdp_text) {
     SessionDescription sd;
     StringParser parser(sdp_text);
 
@@ -232,8 +231,7 @@ std::optional<std::string> rav::sdp::to_string(const SessionDescription& session
 
     // Session name
     fmt::format_to(
-        std::back_inserter(sdp), "s={}{}",
-        session_description.session_name.empty() ? "-" : session_description.session_name, newline
+        std::back_inserter(sdp), "s={}{}", session_description.session_name.empty() ? "-" : session_description.session_name, newline
     );
 
     // Time active

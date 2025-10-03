@@ -33,7 +33,7 @@
 // Apple
 #if defined(__APPLE__)
     #define RAV_APPLE 1
-    #define RAV_POSIX 1 // POSIX-certified.
+    #define RAV_POSIX 1  // POSIX-certified.
     #include <TargetConditionals.h>
     #if TARGET_IPHONE_SIMULATOR  // iOS, tvOS, or watchOS Simulator
         #define RAV_SIMULATOR 1

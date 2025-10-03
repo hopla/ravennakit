@@ -132,8 +132,7 @@ class StringBuffer {
      * @return True if the next available data starts with the prefix.
      */
     [[nodiscard]] bool starts_with(const std::string_view prefix) const {
-        return remaining() >= prefix.size()
-            && std::equal(prefix.begin(), prefix.end(), data_.begin() + static_cast<long>(read_position_));
+        return remaining() >= prefix.size() && std::equal(prefix.begin(), prefix.end(), data_.begin() + static_cast<long>(read_position_));
     }
 
     /**

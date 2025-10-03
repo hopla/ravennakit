@@ -111,8 +111,7 @@ class RavennaNode {
      * @param initial_config The initial configuration for the receiver. Optional.
      * @return The ID of the created receiver, which might be invalid if the receiver couldn't be created.
      */
-    [[nodiscard]] std::future<tl::expected<Id, std::string>>
-    create_receiver(RavennaReceiver::Configuration initial_config);
+    [[nodiscard]] std::future<tl::expected<Id, std::string>> create_receiver(RavennaReceiver::Configuration initial_config);
 
     /**
      * Removes the receiver with the given id.
@@ -229,8 +228,7 @@ class RavennaNode {
      * @param update The configuration to set.
      * @return A future that will be set when the operation is complete.
      */
-    [[nodiscard]] std::future<tl::expected<void, std::string>>
-    set_ptp_instance_configuration(ptp::Instance::Configuration update);
+    [[nodiscard]] std::future<tl::expected<void, std::string>> set_ptp_instance_configuration(ptp::Instance::Configuration update);
 
     /**
      * Get the SDP for the receiver with the given id.
@@ -253,8 +251,7 @@ class RavennaNode {
      * @copydoc rtp::AudioReceiver::read_data_realtime
      */
     [[nodiscard]] std::optional<uint32_t> read_data_realtime(
-        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp,
-        std::optional<uint32_t> require_delay
+        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
     );
 
     /**
@@ -273,8 +270,7 @@ class RavennaNode {
     /**
      * @copydoc rtp::AudioSender::send_audio_data_realtime
      */
-    [[nodiscard]] bool
-    send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
+    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
 
     /**
      * Sets the network interfaces to use. Can contain multiple interfaces for redundancy (not yet implemented).

@@ -18,7 +18,7 @@ namespace rav {
  * A running average.
  */
 class RunningAverage {
-public:
+  public:
     /**
      * Adds a new value to the running average.
      * @param value The value to add.
@@ -60,7 +60,7 @@ public:
         average_ = 0;
     }
 
-private:
+  private:
     double average_ {};
     size_t count_ {};
 };

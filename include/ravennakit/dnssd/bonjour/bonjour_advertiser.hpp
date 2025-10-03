@@ -31,8 +31,8 @@ class BonjourAdvertiser: public Advertiser {
     explicit BonjourAdvertiser(boost::asio::io_context& io_context);
 
     Id register_service(
-        const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record,
-        bool auto_rename, bool local_only
+        const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record, bool auto_rename,
+        bool local_only
     ) override;
 
     void update_txt_record(Id id, const TxtRecord& txt_record) override;
@@ -53,8 +53,8 @@ class BonjourAdvertiser: public Advertiser {
     void async_process_results();
 
     static void DNSSD_API register_service_callback(
-        DNSServiceRef service_ref, DNSServiceFlags flags, DNSServiceErrorType error_code, const char* service_name,
-        const char* reg_type, const char* reply_domain, void* context
+        DNSServiceRef service_ref, DNSServiceFlags flags, DNSServiceErrorType error_code, const char* service_name, const char* reg_type,
+        const char* reply_domain, void* context
     );
 
     registered_service* find_registered_service(Id id);

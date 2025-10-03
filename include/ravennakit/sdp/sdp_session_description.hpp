@@ -73,7 +73,6 @@ struct SessionDescription {
  * Converts the session description to a string.
  * @return The session description as a string.
  */
-[[nodiscard]] std::optional<std::string>
-to_string(const SessionDescription& session_description, const char* newline = k_sdp_crlf);
+[[nodiscard]] std::optional<std::string> to_string(const SessionDescription& session_description, const char* newline = k_sdp_crlf);
 
 }  // namespace rav::sdp

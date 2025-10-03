@@ -117,7 +117,7 @@ std::string rav::Uri::to_string() const {
             output.append(encode(value, true, true));
             output.append("&");
         }
-        output.pop_back(); // Remove last '&'
+        output.pop_back();  // Remove last '&'
     }
 
     // Fragment
@@ -133,8 +133,7 @@ std::string rav::Uri::encode(const std::string_view str, const bool encode_plus,
     std::string output;
     output.reserve(str.size());
     for (const auto chr : str) {
-        if (std::isalnum(chr) || chr == '-' || chr == '_' || chr == '.' || chr == '~'
-            || (!encode_slash && chr == '/')) {
+        if (std::isalnum(chr) || chr == '-' || chr == '_' || chr == '.' || chr == '~' || (!encode_slash && chr == '/')) {
             output.push_back(chr);
         } else if (encode_plus && chr == ' ') {
             output.push_back('+');

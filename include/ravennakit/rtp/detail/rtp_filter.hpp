@@ -37,10 +37,7 @@ class Filter {
      * @param src_address The source address.
      * @param mode Whether to include or exclude the source.
      */
-    explicit Filter(
-        boost::asio::ip::address connection_address, const boost::asio::ip::address& src_address,
-        const sdp::FilterMode mode
-    ) :
+    explicit Filter(boost::asio::ip::address connection_address, const boost::asio::ip::address& src_address, const sdp::FilterMode mode) :
         connection_address_(std::move(connection_address)) {
         add_filter(src_address, mode);
     }
@@ -106,9 +103,8 @@ class Filter {
      * @param src_address The source address.
      * @return True if the connection address and source address matches the filter, or false if not.
      */
-    [[nodiscard]] bool is_valid_source(
-        const boost::asio::ip::address& connection_address, const boost::asio::ip::address& src_address
-    ) const {
+    [[nodiscard]] bool
+    is_valid_source(const boost::asio::ip::address& connection_address, const boost::asio::ip::address& src_address) const {
         if (connection_address_ != connection_address) {
             return false;
         }
@@ -165,7 +161,7 @@ class Filter {
     };
 
     boost::asio::ip::address connection_address_;
-    std::vector<filter> filters_; // TODO: Avoid allocations here. Store filters in-class.
+    std::vector<filter> filters_;  // TODO: Avoid allocations here. Store filters in-class.
 };
 
 }  // namespace rav::rtp

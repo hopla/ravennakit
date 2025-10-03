@@ -24,8 +24,8 @@ rav::dnssd::BonjourAdvertiser::BonjourAdvertiser(boost::asio::io_context& io_con
 }
 
 rav::Id rav::dnssd::BonjourAdvertiser::register_service(
-    const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record,
-    const bool auto_rename, const bool local_only
+    const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record, const bool auto_rename,
+    const bool local_only
 ) {
     RAV_ASSERT(!reg_type.empty(), "Service type must not be empty");
     RAV_ASSERT(port != 0, "Port must not be 0");
@@ -42,8 +42,8 @@ rav::Id rav::dnssd::BonjourAdvertiser::register_service(
     const uint32_t interface_index = local_only ? kDNSServiceInterfaceIndexLocalOnly : kDNSServiceInterfaceIndexAny;
 
     const auto result = DNSServiceRegister(
-        &service_ref, flags, interface_index, name, reg_type.c_str(), domain, nullptr, htons(port), record.length(),
-        record.bytes_ptr(), register_service_callback, this
+        &service_ref, flags, interface_index, name, reg_type.c_str(), domain, nullptr, htons(port), record.length(), record.bytes_ptr(),
+        register_service_callback, this
     );
 
     DNSSD_THROW_IF_ERROR(result, "Failed to register service");
@@ -94,9 +94,9 @@ void rav::dnssd::BonjourAdvertiser::async_process_results() {
 }
 
 void rav::dnssd::BonjourAdvertiser::register_service_callback(
-    [[maybe_unused]] DNSServiceRef service_ref, [[maybe_unused]] const DNSServiceFlags flags,
-    const DNSServiceErrorType error_code, [[maybe_unused]] const char* service_name,
-    [[maybe_unused]] const char* reg_type, [[maybe_unused]] const char* reply_domain, [[maybe_unused]] void* context
+    [[maybe_unused]] DNSServiceRef service_ref, [[maybe_unused]] const DNSServiceFlags flags, const DNSServiceErrorType error_code,
+    [[maybe_unused]] const char* service_name, [[maybe_unused]] const char* reg_type, [[maybe_unused]] const char* reply_domain,
+    [[maybe_unused]] void* context
 ) {
     RAV_ASSERT(context != nullptr, "Expected non-null context");
 
@@ -112,8 +112,7 @@ void rav::dnssd::BonjourAdvertiser::register_service_callback(
     }
 }
 
-rav::dnssd::BonjourAdvertiser::registered_service*
-rav::dnssd::BonjourAdvertiser::find_registered_service(const Id id) {
+rav::dnssd::BonjourAdvertiser::registered_service* rav::dnssd::BonjourAdvertiser::find_registered_service(const Id id) {
     for (auto& service : registered_services_) {
         if (service.id == id) {
             return &service;
@@ -132,8 +131,7 @@ void rav::dnssd::BonjourAdvertiser::update_txt_record(const Id id, const TxtReco
     auto const record = BonjourTxtRecord(txt_record);
 
     // Second argument's nullptr tells us that we are updating the primary record.
-    const auto result =
-        DNSServiceUpdateRecord(service->service_ref.service_ref(), nullptr, 0, record.length(), record.bytes_ptr(), 0);
+    const auto result = DNSServiceUpdateRecord(service->service_ref.service_ref(), nullptr, 0, record.length(), record.bytes_ptr(), 0);
 
     DNSSD_THROW_IF_ERROR(result, "Failed to update TXT record");
 }

@@ -21,8 +21,8 @@ namespace rav::ptp {
  */
 struct CurrentDs {
     uint16_t steps_removed {0};
-    int64_t offset_from_master{};
-    int64_t mean_delay{};
+    int64_t offset_from_master {};
+    int64_t mean_delay {};
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

@@ -27,8 +27,7 @@ class RegistryBrowserBase {
     virtual void stop() = 0;
     [[nodiscard]] virtual std::optional<dnssd::ServiceDescription> find_most_suitable_registry() const = 0;
 
-    [[nodiscard]] static std::optional<int>
-    filter_and_get_pri(const dnssd::ServiceDescription& desc, const ApiVersion api_version) {
+    [[nodiscard]] static std::optional<int> filter_and_get_pri(const dnssd::ServiceDescription& desc, const ApiVersion api_version) {
         if (desc.reg_type != "_nmos-register._tcp." && desc.reg_type != "_nmos-registration._tcp.") {
             return std::nullopt;
         }
@@ -90,8 +89,8 @@ class RegistryBrowser final: public RegistryBrowserBase {
         // Multicast
         if (operation_mode_ == OperationMode::mdns_p2p) {
             if (multicast_browser_ == nullptr) {
-                multicast_browser_ = multicast_browser_factory_ ? multicast_browser_factory_(io_context_)
-                                                                : dnssd::Browser::create(io_context_);
+                multicast_browser_ =
+                    multicast_browser_factory_ ? multicast_browser_factory_(io_context_) : dnssd::Browser::create(io_context_);
                 multicast_browser_->on_service_resolved = [this](const dnssd::ServiceDescription& desc) {
                     if (filter_and_get_pri(desc, api_version_).has_value()) {
                         on_registry_discovered(desc);

@@ -45,13 +45,11 @@ inline const char* to_string(const Activation::Mode mode) {
     return "";
 }
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Activation::Mode& mode) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Activation::Mode& mode) {
     jv = to_string(mode);
 }
 
-inline Activation::Mode
-tag_invoke(const boost::json::value_to_tag<Activation::Mode>&, const boost::json::value& jv) {
+inline Activation::Mode tag_invoke(const boost::json::value_to_tag<Activation::Mode>&, const boost::json::value& jv) {
     const auto str = jv.as_string();
     if (str == "activate_immediate") {
         return Activation::Mode::activate_immediate;
@@ -65,16 +63,14 @@ tag_invoke(const boost::json::value_to_tag<Activation::Mode>&, const boost::json
     throw std::runtime_error("Unknown activation mode tag");
 }
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Activation& activation) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Activation& activation) {
     jv = {
         {"mode", boost::json::value_from(activation.mode)},
         {"requested_time", boost::json::value_from(activation.requested_time)},
     };
 }
 
-inline Activation
-tag_invoke(const boost::json::value_to_tag<Activation>&, const boost::json::value& jv) {
+inline Activation tag_invoke(const boost::json::value_to_tag<Activation>&, const boost::json::value& jv) {
     Activation act;
     if (const auto result = jv.try_at("mode")) {
         act.mode = boost::json::value_to<Activation::Mode>(*result);
@@ -85,4 +81,4 @@ tag_invoke(const boost::json::value_to_tag<Activation>&, const boost::json::valu
     return act;
 }
 
-}
+}  // namespace rav::nmos

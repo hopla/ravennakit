@@ -85,20 +85,20 @@ std::optional<rav::sdp::Format> rav::sdp::make_audio_format(const AudioFormat& i
 std::optional<rav::AudioFormat> rav::sdp::make_audio_format(const Format& input_format) {
     if (input_format.encoding_name == "L16") {
         return AudioFormat {
-            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s16, AudioFormat::ChannelOrdering::interleaved,
-            input_format.clock_rate, input_format.num_channels
+            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s16, AudioFormat::ChannelOrdering::interleaved, input_format.clock_rate,
+            input_format.num_channels
         };
     }
     if (input_format.encoding_name == "L24") {
         return AudioFormat {
-            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s24, AudioFormat::ChannelOrdering::interleaved,
-            input_format.clock_rate, input_format.num_channels
+            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s24, AudioFormat::ChannelOrdering::interleaved, input_format.clock_rate,
+            input_format.num_channels
         };
     }
     if (input_format.encoding_name == "L32") {
         return AudioFormat {
-            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s32, AudioFormat::ChannelOrdering::interleaved,
-            input_format.clock_rate, input_format.num_channels
+            AudioFormat::ByteOrder::be, AudioEncoding::pcm_s32, AudioFormat::ChannelOrdering::interleaved, input_format.clock_rate,
+            input_format.num_channels
         };
     }
     return std::nullopt;
@@ -106,7 +106,6 @@ std::optional<rav::AudioFormat> rav::sdp::make_audio_format(const Format& input_
 
 std::string rav::sdp::to_string(const Format& input_format) {
     return fmt::format(
-        "{} {}/{}/{}", input_format.payload_type, input_format.encoding_name, input_format.clock_rate,
-        input_format.num_channels
+        "{} {}/{}/{}", input_format.payload_type, input_format.encoding_name, input_format.clock_rate, input_format.num_channels
     );
 }

@@ -114,20 +114,17 @@ class RealtimeSharedObject {
     /**
      * @param initial_value Initial value to set. Must not be nullptr.
      */
-    explicit RealtimeSharedObject(std::unique_ptr<T> initial_value) :
-        storage_(std::move(initial_value)), ptr_(storage_.get()) {}
+    explicit RealtimeSharedObject(std::unique_ptr<T> initial_value) : storage_(std::move(initial_value)), ptr_(storage_.get()) {}
 
     /**
      * @param initial_value Initial value to set.
      */
-    explicit RealtimeSharedObject(const T& initial_value) :
-        storage_(std::make_unique<T>(initial_value)), ptr_(storage_.get()) {}
+    explicit RealtimeSharedObject(const T& initial_value) : storage_(std::make_unique<T>(initial_value)), ptr_(storage_.get()) {}
 
     /**
      * @param initial_value Initial value to set.
      */
-    explicit RealtimeSharedObject(T&& initial_value) :
-        storage_(std::make_unique<T>(std::move(initial_value))), ptr_(storage_.get()) {}
+    explicit RealtimeSharedObject(T&& initial_value) : storage_(std::make_unique<T>(std::move(initial_value))), ptr_(storage_.get()) {}
 
     ~RealtimeSharedObject() {
         RAV_ASSERT_NO_THROW(ptr_ != nullptr, "There should be no active locks");

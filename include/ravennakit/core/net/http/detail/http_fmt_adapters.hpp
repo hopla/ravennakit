@@ -15,10 +15,8 @@
 
 // Make beast response printable with fmt
 template<typename Body, typename Allocator>
-struct fmt::formatter<boost::beast::http::response<Body, boost::beast::http::basic_fields<Allocator>>>:
-    ostream_formatter {};
+struct fmt::formatter<boost::beast::http::response<Body, boost::beast::http::basic_fields<Allocator>>>: ostream_formatter {};
 
 // Make beast request printable with fmt
 template<typename Body, typename Allocator>
-struct fmt::formatter<boost::beast::http::request<Body, boost::beast::http::basic_fields<Allocator>>>:
-    ostream_formatter {};
+struct fmt::formatter<boost::beast::http::request<Body, boost::beast::http::basic_fields<Allocator>>>: ostream_formatter {};

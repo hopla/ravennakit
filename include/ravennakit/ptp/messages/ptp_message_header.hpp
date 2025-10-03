@@ -108,4 +108,4 @@ bool operator!=(const MessageHeader::FlagField& lhs, const MessageHeader::FlagFi
 bool operator==(const MessageHeader& lhs, const MessageHeader& rhs);
 bool operator!=(const MessageHeader& lhs, const MessageHeader& rhs);
 
-}  // namespace rav
+}  // namespace rav::ptp

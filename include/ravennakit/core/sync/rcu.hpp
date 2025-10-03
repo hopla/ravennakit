@@ -181,9 +181,7 @@ class Rcu {
          */
         ~Reader() {
             std::lock_guard lock(owner_.readers_mutex_);
-            owner_.readers_.erase(
-                std::remove(owner_.readers_.begin(), owner_.readers_.end(), this), owner_.readers_.end()
-            );
+            owner_.readers_.erase(std::remove(owner_.readers_.begin(), owner_.readers_.end(), this), owner_.readers_.end());
         }
 
         /**

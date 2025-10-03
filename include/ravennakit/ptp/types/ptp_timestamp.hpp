@@ -261,10 +261,7 @@ struct Timestamp {
      * @return The number of samples.
      */
     [[nodiscard]] uint64_t to_samples(const uint32_t sample_rate) const {
-        RAV_ASSERT(
-            seconds_ + 1 <= std::numeric_limits<decltype(seconds_)>::max() / sample_rate,
-            "Overflow in seconds_ * sample_rate"
-        );
+        RAV_ASSERT(seconds_ + 1 <= std::numeric_limits<decltype(seconds_)>::max() / sample_rate, "Overflow in seconds_ * sample_rate");
         return seconds_ * sample_rate + static_cast<uint64_t>(nanoseconds_) * sample_rate / 1'000'000'000;
     }
 
@@ -298,8 +295,8 @@ struct Timestamp {
 #endif
 
         return fmt::format(
-            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z", tm_result.tm_year + 1900, tm_result.tm_mon + 1,
-            tm_result.tm_mday, tm_result.tm_hour, tm_result.tm_min, tm_result.tm_sec, nanoseconds_
+            "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:09}Z", tm_result.tm_year + 1900, tm_result.tm_mon + 1, tm_result.tm_mday,
+            tm_result.tm_hour, tm_result.tm_min, tm_result.tm_sec, nanoseconds_
         );
     }
 

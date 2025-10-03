@@ -80,8 +80,8 @@ struct ClockIdentity {
      */
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
-            "{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}", data[0], data[1], data[2], data[3], data[4],
-            data[5], data[6], data[7]
+            "{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}-{:02x}", data[0], data[1], data[2], data[3], data[4], data[5], data[6],
+            data[7]
         );
     }
 

@@ -31,8 +31,8 @@ struct PdelayRespMessage {
      */
     [[nodiscard]] std::string to_string() const;
 
-private:
-    constexpr static size_t k_message_size = 20; // Excluding header size
+  private:
+    constexpr static size_t k_message_size = 20;  // Excluding header size
 };
 
-}
+}  // namespace rav::ptp

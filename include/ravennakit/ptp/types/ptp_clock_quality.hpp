@@ -49,10 +49,10 @@ struct ClockQuality {
      */
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
-            "clock_class={} clock_accuracy={} offset_scaled_log_variance={}", clock_class,
-            rav::ptp::to_string(clock_accuracy), offset_scaled_log_variance
+            "clock_class={} clock_accuracy={} offset_scaled_log_variance={}", clock_class, rav::ptp::to_string(clock_accuracy),
+            offset_scaled_log_variance
         );
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

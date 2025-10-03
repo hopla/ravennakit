@@ -22,4 +22,4 @@ const char* to_string(const AddrType& type);
 const char* to_string(const MediaDirection& direction);
 const char* to_string(const FilterMode& filter_mode);
 
-}
+}  // namespace rav::sdp

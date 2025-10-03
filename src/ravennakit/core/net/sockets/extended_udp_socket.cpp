@@ -57,9 +57,8 @@ size_t rav::receive_from_socket(
             auto* pktinfo = reinterpret_cast<IN_PKTINFO*>(WSA_CMSG_DATA(cmsg));
             IN_ADDR dest_addr = pktinfo->ipi_addr;
 
-            dst_endpoint = boost::asio::ip::udp::endpoint(
-                boost::asio::ip::address_v4(ntohl(dest_addr.s_addr)), socket.local_endpoint(ec).port()
-            );
+            dst_endpoint =
+                boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4(ntohl(dest_addr.s_addr)), socket.local_endpoint(ec).port());
 
             if (ec) {
                 RAV_ERROR("Failed to get port from local endpoint");
@@ -106,13 +105,11 @@ size_t rav::receive_from_socket(
     for (cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR_PKTINFO) {
             const auto* dst_addr = reinterpret_cast<struct in_addr*>(CMSG_DATA(cmsg));
-            dst_endpoint =
-                boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4(ntohl(dst_addr->s_addr)), ntohs(src_addr.sin_port));
+            dst_endpoint = boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4(ntohl(dst_addr->s_addr)), ntohs(src_addr.sin_port));
         }
     }
 
-    src_endpoint =
-        boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4(ntohl(src_addr.sin_addr.s_addr)), ntohs(src_addr.sin_port));
+    src_endpoint = boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4(ntohl(src_addr.sin_addr.s_addr)), ntohs(src_addr.sin_port));
 
     return static_cast<size_t>(received_bytes);
 }
@@ -183,9 +180,7 @@ rav::ExtendedUdpSocket::Impl::set_multicast_outbound_interface(const boost::asio
     return ec;
 }
 
-void rav::ExtendedUdpSocket::Impl::send(
-    const uint8_t* data, const size_t size, const boost::asio::ip::udp::endpoint& endpoint
-) {
+void rav::ExtendedUdpSocket::Impl::send(const uint8_t* data, const size_t size, const boost::asio::ip::udp::endpoint& endpoint) {
     RAV_ASSERT(data != nullptr, "Data must not be null");
     RAV_ASSERT(size > 0, "Size must be greater than 0");
     boost::system::error_code ec;
@@ -228,10 +223,7 @@ void rav::ExtendedUdpSocket::Impl::start(HandlerType handler) {
 
     async_receive();
 
-    RAV_TRACE(
-        "Started extended udp socket on {}:{}", socket_.local_endpoint().address().to_string(),
-        socket_.local_endpoint().port()
-    );
+    RAV_TRACE("Started extended udp socket on {}:{}", socket_.local_endpoint().address().to_string(), socket_.local_endpoint().port());
 }
 
 rav::ExtendedUdpSocket::Impl::Impl(boost::asio::io_context& io_context, const boost::asio::ip::udp::endpoint& endpoint) :
@@ -280,8 +272,7 @@ void rav::ExtendedUdpSocket::Impl::async_receive() {
             boost::asio::ip::udp::endpoint src_endpoint;
             boost::asio::ip::udp::endpoint dst_endpoint;
             uint64_t recv_time = 0;
-            const auto bytes_received =
-                receive_from_socket(self->socket_, self->recv_data_, src_endpoint, dst_endpoint, recv_time, ec);
+            const auto bytes_received = receive_from_socket(self->socket_, self->recv_data_, src_endpoint, dst_endpoint, recv_time, ec);
 
             if (ec) {
                 RAV_ERROR("Read error: {}. Closing connection.", ec.message());
@@ -319,10 +310,7 @@ boost::system::error_code rav::ExtendedUdpSocket::Impl::join_multicast_group(
         return ec;
     }
 
-    RAV_TRACE(
-        "Joined multicast group: {} on {}:{}", multicast_address.to_string(), interface_address.to_string(),
-        local_endpoint.port()
-    );
+    RAV_TRACE("Joined multicast group: {} on {}:{}", multicast_address.to_string(), interface_address.to_string(), local_endpoint.port());
 
     return {};
 }
@@ -343,10 +331,7 @@ boost::system::error_code rav::ExtendedUdpSocket::Impl::leave_multicast_group(
         return ec;
     }
 
-    RAV_TRACE(
-        "Left multicast group: {} on {}:{}", multicast_address.to_string(), interface_address.to_string(),
-        local_endpoint.port()
-    );
+    RAV_TRACE("Left multicast group: {} on {}:{}", multicast_address.to_string(), interface_address.to_string(), local_endpoint.port());
 
     return {};
 }
@@ -356,9 +341,7 @@ void rav::ExtendedUdpSocket::start(HandlerType handler) const {
     impl_->start(std::move(handler));
 }
 
-void rav::ExtendedUdpSocket::send(
-    const uint8_t* data, const size_t size, const boost::asio::ip::udp::endpoint& endpoint
-) const {
+void rav::ExtendedUdpSocket::send(const uint8_t* data, const size_t size, const boost::asio::ip::udp::endpoint& endpoint) const {
     impl_->send(data, size, endpoint);
 }
 

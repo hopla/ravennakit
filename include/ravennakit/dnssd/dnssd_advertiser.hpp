@@ -51,8 +51,8 @@ class Advertiser {
      * @throws When an error occurs during registration.
      */
     virtual Id register_service(
-        const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record,
-        bool auto_rename, bool local_only
+        const std::string& reg_type, const char* name, const char* domain, uint16_t port, const TxtRecord& txt_record, bool auto_rename,
+        bool local_only
     ) = 0;
 
     /**

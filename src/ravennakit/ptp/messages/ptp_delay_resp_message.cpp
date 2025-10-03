@@ -28,7 +28,6 @@ rav::ptp::DelayRespMessage::from_data(const MessageHeader& header, const BufferV
 
 std::string rav::ptp::DelayRespMessage::to_string() const {
     return fmt::format(
-        "receive_timestamp={} requesting_port_identity={}", receive_timestamp.to_string(),
-        requesting_port_identity.to_string()
+        "receive_timestamp={} requesting_port_identity={}", receive_timestamp.to_string(), requesting_port_identity.to_string()
     );
 }

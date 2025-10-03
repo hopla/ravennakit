@@ -16,8 +16,7 @@ constexpr size_t kRtpHeaderBaseLengthOctets = 12;
 constexpr size_t kHeaderExtensionLengthOctets = sizeof(uint16_t) * 2;
 }  // namespace
 
-rav::rtp::PacketView::PacketView(const uint8_t* data, const size_t size_bytes) :
-    data_(data), size_bytes_(size_bytes) {}
+rav::rtp::PacketView::PacketView(const uint8_t* data, const size_t size_bytes) : data_(data), size_bytes_(size_bytes) {}
 
 bool rav::rtp::PacketView::validate() const {
     if (data_ == nullptr) {
@@ -175,7 +174,7 @@ const uint8_t* rav::rtp::PacketView::data() const {
 std::string rav::rtp::PacketView::to_string() const {
     return fmt::format(
         "RTP Header: valid={} version={} padding={} extension={} csrc_count={} market_bit={} payload_type={} sequence_number={} timestamp={} ssrc={} payload_start_index={}",
-        validate(), version(), padding(), extension(), csrc_count(), marker_bit(), payload_type(),
-        sequence_number(), timestamp(), ssrc(), header_total_length()
+        validate(), version(), padding(), extension(), csrc_count(), marker_bit(), payload_type(), sequence_number(), timestamp(), ssrc(),
+        header_total_length()
     );
 }

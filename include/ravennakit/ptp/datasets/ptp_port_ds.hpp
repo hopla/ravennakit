@@ -25,7 +25,7 @@ struct PortDs {
     State port_state {State::undefined};
     /// Valid range: [0,5]
     int8_t log_min_delay_req_interval {0};  // Required for e2e only
-    TimeInterval mean_link_delay;      // Required for p2p only
+    TimeInterval mean_link_delay;           // Required for p2p only
 
     /// Specifies the mean time interval between successive Announce messages. Should be uniform throughout a domain.
     /// IEEE 1588-2019: 7.7.2.2
@@ -39,7 +39,7 @@ struct PortDs {
     /// IEEE 1588-2019: 7.7.2.3
     int8_t log_sync_interval {1};
 
-    DelayMechanism delay_mechanism {};  // Required for p2p only
+    DelayMechanism delay_mechanism {};       // Required for p2p only
     int8_t log_min_pdelay_req_interval {0};  // Required for p2p only
     uint8_t version_number {2};              // 4 bits on the wire (one nibble)
     uint8_t minor_version_number {1};        // 4 bits on the wire (one nibble)
@@ -52,20 +52,14 @@ struct PortDs {
     void assert_valid_state(const Profile& profile) const {
         port_identity.assert_valid_state();
         RAV_ASSERT(port_state != State::undefined, "port_state is undefined");
-        RAV_ASSERT(
-            profile.port_ds.log_announce_interval_range.contains(log_announce_interval),
-            "log_announce_interval is out of range"
-        );
-        RAV_ASSERT(
-            profile.port_ds.log_sync_interval_range.contains(log_sync_interval), "log_sync_interval is out of range"
-        );
+        RAV_ASSERT(profile.port_ds.log_announce_interval_range.contains(log_announce_interval), "log_announce_interval is out of range");
+        RAV_ASSERT(profile.port_ds.log_sync_interval_range.contains(log_sync_interval), "log_sync_interval is out of range");
         RAV_ASSERT(
             profile.port_ds.log_min_delay_req_interval_range.contains(log_min_delay_req_interval),
             "log_min_delay_req_interval is out of range"
         );
         RAV_ASSERT(
-            profile.port_ds.announce_receipt_timeout_range.contains(announce_receipt_timeout),
-            "announce_receipt_timeout is out of range"
+            profile.port_ds.announce_receipt_timeout_range.contains(announce_receipt_timeout), "announce_receipt_timeout is out of range"
         );
         if (profile.port_ds.log_pdelay_req_interval_default.has_value()) {
             RAV_ASSERT(
@@ -76,4 +70,4 @@ struct PortDs {
     }
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

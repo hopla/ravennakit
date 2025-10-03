@@ -5,8 +5,7 @@
 #include <string>
 #include <cstdint>
 
-namespace rav::dnssd
-{
+namespace rav::dnssd {
 
 /// Simple typedef for representing a TXT record.
 using TxtRecord = std::map<std::string, std::string>;
@@ -14,8 +13,7 @@ using TxtRecord = std::map<std::string, std::string>;
 /**
  * A struct containing data which represents a service on the network.
  */
-struct ServiceDescription
-{
+struct ServiceDescription {
     /// The full service domain name.
     std::string fullname;
 
@@ -32,13 +30,13 @@ struct ServiceDescription
     std::string host_target;
 
     /// The port of the service (in native endian).
-    uint16_t port{};
+    uint16_t port {};
 
     /// The TXT record of the service, represented as a map of keys and values.
     TxtRecord txt;
 
     /// The resolved addresses of this service.
-    std::map<uint32_t, std::set<std::string>> interfaces; // interfaceIndex, addresses
+    std::map<uint32_t, std::set<std::string>> interfaces;  // interfaceIndex, addresses
 
     /**
      * Returns whether this service has been resolved.
@@ -50,4 +48,4 @@ struct ServiceDescription
     [[nodiscard]] std::string to_string() const noexcept;
 };
 
-} // namespace dnssd
+}  // namespace rav::dnssd

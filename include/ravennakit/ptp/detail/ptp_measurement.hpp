@@ -22,4 +22,4 @@ struct Measurement {
     T corrected_master_event_timestamp;
 };
 
-}
+}  // namespace rav::ptp

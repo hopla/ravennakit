@@ -17,13 +17,11 @@ constexpr size_t kSenderReportNtpTimestampHalfLength = 4;
 constexpr size_t kSenderReportNtpTimestampFullLength = kSenderReportNtpTimestampHalfLength * 2;
 constexpr size_t kSenderReportPacketCountLength = 4;
 constexpr size_t kSenderReportOctetCountLength = 4;
-constexpr size_t kSenderInfoLength = kSenderReportNtpTimestampFullLength
-    + rav::rtp::k_rtp_timestamp_length_length + kSenderReportPacketCountLength
-    + kSenderReportOctetCountLength;
+constexpr size_t kSenderInfoLength = kSenderReportNtpTimestampFullLength + rav::rtp::k_rtp_timestamp_length_length
+    + kSenderReportPacketCountLength + kSenderReportOctetCountLength;
 }  // namespace
 
-rav::rtcp::PacketView::PacketView(const uint8_t* data, const size_t size_bytes) :
-    data_(data), size_bytes_(size_bytes) {}
+rav::rtcp::PacketView::PacketView(const uint8_t* data, const size_t size_bytes) : data_(data), size_bytes_(size_bytes) {}
 
 bool rav::rtcp::PacketView::validate() const {
     if (data_ == nullptr) {
@@ -115,10 +113,7 @@ rav::ntp::Timestamp rav::rtcp::PacketView::ntp_timestamp() const {
         return {};
     }
 
-    return {
-        read_be<uint32_t>(data_ + kHeaderLength),
-        read_be<uint32_t>(data_ + kHeaderLength + kSenderReportNtpTimestampHalfLength)
-    };
+    return {read_be<uint32_t>(data_ + kHeaderLength), read_be<uint32_t>(data_ + kHeaderLength + kSenderReportNtpTimestampHalfLength)};
 }
 
 uint32_t rav::rtcp::PacketView::rtp_timestamp() const {
@@ -176,10 +171,7 @@ rav::rtcp::ReportBlockView rav::rtcp::PacketView::get_report_block(const size_t 
         return {};
     }
 
-    return {
-        data_ + offset + ReportBlockView::k_report_block_length_length * index,
-        ReportBlockView::k_report_block_length_length
-    };
+    return {data_ + offset + ReportBlockView::k_report_block_length_length * index, ReportBlockView::k_report_block_length_length};
 }
 
 rav::BufferView<const uint8_t> rav::rtcp::PacketView::get_profile_specific_extension() const {
@@ -227,14 +219,14 @@ size_t rav::rtcp::PacketView::size() const {
 
 std::string rav::rtcp::PacketView::to_string() const {
     auto header = fmt::format(
-        "RTCP Packet valid={} | Header version={} padding={} reception_report_count={} packet_type={} length={} ssrc={}",
-        validate(), version(), padding(), reception_report_count(), packet_type_to_string(type()), length(), ssrc()
+        "RTCP Packet valid={} | Header version={} padding={} reception_report_count={} packet_type={} length={} ssrc={}", validate(),
+        version(), padding(), reception_report_count(), packet_type_to_string(type()), length(), ssrc()
     );
 
     if (type() == PacketType::sender_report_report) {
         return fmt::format(
-            "{} | Sender info ntp={} rtp={} packet_count={} octet_count={}", header, ntp_timestamp().to_string(),
-            rtp_timestamp(), packet_count(), octet_count()
+            "{} | Sender info ntp={} rtp={} packet_count={} octet_count={}", header, ntp_timestamp().to_string(), rtp_timestamp(),
+            packet_count(), octet_count()
         );
     }
 

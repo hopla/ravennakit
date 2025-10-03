@@ -17,8 +17,7 @@
 #include <utility>
 
 rav::RavennaNode::RavennaNode() :
-    rtsp_server_(io_context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), 0)),
-    ptp_instance_(io_context_) {
+    rtsp_server_(io_context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), 0)), ptp_instance_(io_context_) {
     advertiser_ = dnssd::Advertiser::create(io_context_);
 
     nmos_device_.id = boost::uuids::random_generator()();
@@ -32,12 +31,11 @@ rav::RavennaNode::RavennaNode() :
         }
     };
 
-    nmos_node_.on_status_changed =
-        [this](const nmos::Node::Status status, const nmos::Node::StatusInfo& registry_info) {
-            for (const auto& s : subscribers_) {
-                s->nmos_node_status_changed(status, registry_info);
-            }
-        };
+    nmos_node_.on_status_changed = [this](const nmos::Node::Status status, const nmos::Node::StatusInfo& registry_info) {
+        for (const auto& s : subscribers_) {
+            s->nmos_node_status_changed(status, registry_info);
+        }
+    };
 
     std::promise<std::thread::id> promise;
     auto f = promise.get_future();
@@ -119,12 +117,9 @@ rav::RavennaNode::~RavennaNode() {
     }
 }
 
-std::future<tl::expected<rav::Id, std::string>>
-rav::RavennaNode::create_receiver(RavennaReceiver::Configuration initial_config) {
+std::future<tl::expected<rav::Id, std::string>> rav::RavennaNode::create_receiver(RavennaReceiver::Configuration initial_config) {
     auto work = [this, config = std::move(initial_config)]() mutable -> tl::expected<Id, std::string> {
-        auto new_receiver = std::make_unique<RavennaReceiver>(
-            rtsp_client_, rtp_receiver_, id_generator_.next(), network_interface_config_
-        );
+        auto new_receiver = std::make_unique<RavennaReceiver>(rtsp_client_, rtp_receiver_, id_generator_.next(), network_interface_config_);
         auto result = new_receiver->set_configuration(std::move(config));
         if (!result) {
             RAV_ERROR("Failed to set receiver configuration: {}", result.error());
@@ -173,8 +168,7 @@ rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver:
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }
 
-std::future<tl::expected<rav::Id, std::string>>
-rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
+std::future<tl::expected<rav::Id, std::string>> rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
     auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_sender = std::make_unique<RavennaSender>(
             rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
@@ -230,8 +224,7 @@ rav::RavennaNode::update_sender_configuration(Id sender_id, RavennaSender::Confi
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }
 
-std::future<tl::expected<void, std::string>>
-rav::RavennaNode::set_nmos_configuration(nmos::Node::Configuration update) {
+std::future<tl::expected<void, std::string>> rav::RavennaNode::set_nmos_configuration(nmos::Node::Configuration update) {
     auto work = [this, u = std::move(update)]() -> tl::expected<void, std::string> {
         auto result = nmos_node_.set_configuration(u);
         if (!result) {
@@ -372,8 +365,7 @@ std::future<void> rav::RavennaNode::unsubscribe_from_ptp_instance(ptp::Instance:
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }
 
-std::future<tl::expected<void, std::string>>
-rav::RavennaNode::set_ptp_instance_configuration(ptp::Instance::Configuration update) {
+std::future<tl::expected<void, std::string>> rav::RavennaNode::set_ptp_instance_configuration(ptp::Instance::Configuration update) {
     auto work = [this, u = std::move(update)]() -> tl::expected<void, std::string> {
         auto result = ptp_instance_.set_configuration(u);
         if (!result) {
@@ -425,15 +417,11 @@ std::optional<uint32_t> rav::RavennaNode::read_audio_data_realtime(
     return rtp_receiver_.read_audio_data_realtime(receiver_id, output_buffer, at_timestamp, require_delay);
 }
 
-bool rav::RavennaNode::send_data_realtime(
-    const Id sender_id, const BufferView<const uint8_t> buffer, const uint32_t timestamp
-) {
+bool rav::RavennaNode::send_data_realtime(const Id sender_id, const BufferView<const uint8_t> buffer, const uint32_t timestamp) {
     return rtp_sender_.send_data_realtime(sender_id, buffer, timestamp);
 }
 
-bool rav::RavennaNode::send_audio_data_realtime(
-    const Id sender_id, const AudioBufferView<const float>& buffer, const uint32_t timestamp
-) {
+bool rav::RavennaNode::send_audio_data_realtime(const Id sender_id, const AudioBufferView<const float>& buffer, const uint32_t timestamp) {
     return rtp_sender_.send_audio_data_realtime(sender_id, buffer, timestamp);
 }
 
@@ -445,8 +433,7 @@ std::future<void> rav::RavennaNode::set_network_interface_config(NetworkInterfac
 
         network_interface_config_ = config;
         const auto array_of_addresses =
-            network_interface_config_.get_array_of_interface_addresses<rtp::AudioSender::k_max_num_redundant_sessions>(
-            );
+            network_interface_config_.get_array_of_interface_addresses<rtp::AudioSender::k_max_num_redundant_sessions>();
 
         if (!rtp_receiver_.set_interfaces(array_of_addresses)) {
             RAV_ERROR("Failed to set network interfaces on rtp receiver");
@@ -467,8 +454,7 @@ std::future<void> rav::RavennaNode::set_network_interface_config(NetworkInterfac
         nmos_node_.set_network_interface_config(config);
 
         // Add or update PTP ports based on the new configuration
-        if (const auto result = ptp_instance_.update_ports(network_interface_config_.get_interface_ipv4_addresses());
-            !result) {
+        if (const auto result = ptp_instance_.update_ports(network_interface_config_.get_interface_ipv4_addresses()); !result) {
             RAV_ERROR("Failed to update port ports: {}", rav::ptp::to_string(result.error()));
         }
 
@@ -518,8 +504,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
         try {
             // Configuration
 
-            auto network_interface_config =
-                NetworkInterfaceConfig::from_boost_json(json.at("config").at("network_config"));
+            auto network_interface_config = NetworkInterfaceConfig::from_boost_json(json.at("config").at("network_config"));
 
             if (!network_interface_config) {
                 return tl::unexpected(network_interface_config.error());
@@ -534,8 +519,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
 
             for (auto& sender : senders) {
                 auto new_sender = std::make_unique<RavennaSender>(
-                    rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1,
-                    *network_interface_config
+                    rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1, *network_interface_config
                 );
                 if (auto result = new_sender->restore_from_json(sender); !result) {
                     return tl::unexpected(result.error());
@@ -550,9 +534,8 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
             std::vector<std::unique_ptr<RavennaReceiver>> new_receivers;
 
             for (auto& receiver : receivers) {
-                auto new_receiver = std::make_unique<RavennaReceiver>(
-                    rtsp_client_, rtp_receiver_, id_generator_.next(), *network_interface_config
-                );
+                auto new_receiver =
+                    std::make_unique<RavennaReceiver>(rtsp_client_, rtp_receiver_, id_generator_.next(), *network_interface_config);
                 if (auto result = new_receiver->restore_from_json(receiver); !result) {
                     return tl::unexpected(result.error());
                 }

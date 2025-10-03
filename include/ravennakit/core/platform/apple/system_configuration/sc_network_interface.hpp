@@ -23,7 +23,7 @@ namespace rav {
 /**
  * An RAII wrapper around SCNetworkServiceRef.
  */
-class ScNetworkInterface : public CfType<SCNetworkInterfaceRef> {
+class ScNetworkInterface: public CfType<SCNetworkInterfaceRef> {
   public:
     ScNetworkInterface(const SCNetworkInterfaceRef interface, const bool retain) : CfType(interface, retain) {}
 
@@ -44,7 +44,7 @@ class ScNetworkInterface : public CfType<SCNetworkInterfaceRef> {
     /**
      * @returns The type of the interface.
      */
-    [[nodiscard]] std::string get_type()const {
+    [[nodiscard]] std::string get_type() const {
         return CfString::to_string(SCNetworkInterfaceGetInterfaceType(get()));
     }
 };

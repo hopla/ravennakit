@@ -155,10 +155,7 @@ inline tl::expected<std::string, Error> read_file_as_string(const std::filesyste
 
     stream.seekg(0);
 
-    RAV_ASSERT(
-        std::filesystem::file_size(file) == static_cast<uintmax_t>(file_size),
-        "File reports a different size than the stream"
-    );
+    RAV_ASSERT(std::filesystem::file_size(file) == static_cast<uintmax_t>(file_size), "File reports a different size than the stream");
 
     std::string result(static_cast<size_t>(file_size), '\0');
     stream.read(result.data(), file_size);

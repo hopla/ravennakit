@@ -43,8 +43,8 @@ class wsa_recv_msg_function {
         GUID WSARecvMsg_GUID = WSAID_WSARECVMSG;
 
         if (WSAIoctl(
-                temp_sock, SIO_GET_EXTENSION_FUNCTION_POINTER, &WSARecvMsg_GUID, sizeof(WSARecvMsg_GUID),
-                &wsa_recv_msg_func_, sizeof(wsa_recv_msg_func_), &bytes_returned, nullptr, nullptr
+                temp_sock, SIO_GET_EXTENSION_FUNCTION_POINTER, &WSARecvMsg_GUID, sizeof(WSARecvMsg_GUID), &wsa_recv_msg_func_,
+                sizeof(wsa_recv_msg_func_), &bytes_returned, nullptr, nullptr
             )
             == SOCKET_ERROR) {
             RAV_THROW_EXCEPTION(fmt::format("Failed to get WSARecvMsg function: {}", WSAGetLastError()));

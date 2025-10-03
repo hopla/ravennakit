@@ -20,7 +20,7 @@ namespace rav::nmos {
  * Parameters concerned with activation of the transport parameters.
  * https://specs.amwa.tv/is-05/releases/v1.1.2/APIs/schemas/with-refs/activation-response-schema.html
  */
-struct ActivationResponse : Activation {
+struct ActivationResponse: Activation {
     /**
      * String formatted TAI timestamp (<seconds>:<nanoseconds>) indicating the absolute time the sender or receiver will
      * or did actually activate for scheduled activations, or the time activation occurred for immediate activations. On
@@ -32,8 +32,7 @@ struct ActivationResponse : Activation {
     std::optional<Timestamp> activation_time;
 };
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ActivationResponse& activation_response) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ActivationResponse& activation_response) {
     jv = {
         {"mode", boost::json::value_from(activation_response.mode)},
         {"requested_time", boost::json::value_from(activation_response.requested_time)},

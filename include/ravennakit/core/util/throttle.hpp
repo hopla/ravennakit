@@ -87,7 +87,7 @@ class Throttle {
  */
 template<>
 class Throttle<void> {
-public:
+  public:
     Throttle() = default;
 
     /**
@@ -117,7 +117,7 @@ public:
         return false;
     }
 
-private:
+  private:
     std::chrono::steady_clock::time_point last_update_ {};
     std::chrono::milliseconds interval_ {100};
 };

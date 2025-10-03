@@ -127,8 +127,7 @@ class Instance {
      * @param interface_address The address of the interface to bind the port to. The network interface must have a MAC
      * address and support multicast.
      */
-    [[nodiscard]] tl::expected<void, Error>
-    add_port(uint16_t port_number, const boost::asio::ip::address_v4& interface_address);
+    [[nodiscard]] tl::expected<void, Error> add_port(uint16_t port_number, const boost::asio::ip::address_v4& interface_address);
 
     /**
      * Adds or updates a port. If the port does not already exist a new port will be added, otherwise the existing port
@@ -137,8 +136,7 @@ class Instance {
      * @param interface_address The address of the interface to use.
      * @return An expected indicating success or a failure.
      */
-    [[nodiscard]] tl::expected<void, Error>
-    add_or_update_port(uint16_t port_number, const boost::asio::ip::address_v4& interface_address);
+    [[nodiscard]] tl::expected<void, Error> add_or_update_port(uint16_t port_number, const boost::asio::ip::address_v4& interface_address);
 
     /**
      * Updates the ports to match the entries in given array. The port number will be the index + 1. This method will
@@ -173,8 +171,7 @@ class Instance {
      * and 0 is considered invalid.
      * @param interface_address The address of the interface to bind the port to.
      */
-    [[nodiscard]] bool
-    set_port_interface(uint16_t port_number, const boost::asio::ip::address_v4& interface_address) const;
+    [[nodiscard]] bool set_port_interface(uint16_t port_number, const boost::asio::ip::address_v4& interface_address) const;
 
     /**
      * @return The default data set of the PTP instance.
@@ -196,9 +193,7 @@ class Instance {
      * @param state_decision_code The state decision code.
      * @param announce_message The announcement message to update the data sets with.
      */
-    bool set_recommended_state(
-        StateDecisionCode state_decision_code, const std::optional<AnnounceMessage>& announce_message
-    );
+    bool set_recommended_state(StateDecisionCode state_decision_code, const std::optional<AnnounceMessage>& announce_message);
 
     /**
      * Execute a state decision event on all ports in the PTP instance.
@@ -250,7 +245,6 @@ class Instance {
 
 void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Instance::Configuration& config);
 
-Instance::Configuration
-tag_invoke(const boost::json::value_to_tag<Instance::Configuration>&, const boost::json::value& jv);
+Instance::Configuration tag_invoke(const boost::json::value_to_tag<Instance::Configuration>&, const boost::json::value& jv);
 
 }  // namespace rav::ptp

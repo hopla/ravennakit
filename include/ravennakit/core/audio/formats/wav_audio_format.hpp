@@ -162,9 +162,7 @@ class WavAudioFormat {
      */
     class Writer {
       public:
-        explicit Writer(
-            OutputStream& ostream, FormatCode format, double sample_rate, size_t num_channels, size_t bits_per_sample
-        );
+        explicit Writer(OutputStream& ostream, FormatCode format, double sample_rate, size_t num_channels, size_t bits_per_sample);
         ~Writer();
 
         /**

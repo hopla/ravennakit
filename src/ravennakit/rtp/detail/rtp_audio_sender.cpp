@@ -154,8 +154,8 @@ bool schedule_data_for_sending_realtime(
             // );
         } else {
             RAV_ERROR(
-                "Failed to schedule RTP packet: {} bytes, timestamp: {}, seq: {}", writer.rtp_packet_buffer.size(),
-                packet.rtp_timestamp, rtp_packet.get_sequence_number().value()
+                "Failed to schedule RTP packet: {} bytes, timestamp: {}, seq: {}", writer.rtp_packet_buffer.size(), packet.rtp_timestamp,
+                rtp_packet.get_sequence_number().value()
             );
         }
 
@@ -182,9 +182,7 @@ rav::rtp::AudioSender::~AudioSender() {
     }
 }
 
-bool rav::rtp::AudioSender::add_writer(
-    const Id id, const WriterParameters& parameters, const ArrayOfAddresses& interfaces
-) {
+bool rav::rtp::AudioSender::add_writer(const Id id, const WriterParameters& parameters, const ArrayOfAddresses& interfaces) {
     for (auto& writer : writers) {
         if (writer.id == id) {
             RAV_WARNING("A writer for given id already exists");
@@ -238,7 +236,7 @@ bool rav::rtp::AudioSender::set_interfaces(const ArrayOfAddresses& interfaces) {
         RAV_ASSERT(interfaces.size() == writer.sockets.size(), "Sockets and interfaces should be equal");
 
         if (!writer.id.is_valid()) {
-            continue; // Writer not in use
+            continue;  // Writer not in use
         }
 
         for (size_t i = 0; i < interfaces.size(); i++) {
@@ -281,8 +279,7 @@ void rav::rtp::AudioSender::send_outgoing_packets() {
                 }
                 boost::system::error_code ec;
                 writer.sockets[j].send_to(
-                    boost::asio::buffer(packet->payload.data(), packet->payload_size_bytes), writer.destinations[j], 0,
-                    ec
+                    boost::asio::buffer(packet->payload.data(), packet->payload_size_bytes), writer.destinations[j], 0, ec
                 );
                 if (set_error(*this, ec)) {
                     RAV_ERROR("Failed to send RTP packet: {}", ec.message());
@@ -302,9 +299,7 @@ void rav::rtp::AudioSender::send_outgoing_packets() {
     }
 }
 
-bool rav::rtp::AudioSender::send_data_realtime(
-    const Id id, const BufferView<const uint8_t> buffer, const uint32_t timestamp
-) {
+bool rav::rtp::AudioSender::send_data_realtime(const Id id, const BufferView<const uint8_t> buffer, const uint32_t timestamp) {
     TRACY_ZONE_SCOPED;
 
     for (auto& writer : writers) {
@@ -354,8 +349,7 @@ bool rav::rtp::AudioSender::send_audio_data_realtime(
 
         if (audio_format.encoding == AudioEncoding::pcm_s16) {
             const auto ok = AudioData::convert<
-                float, AudioData::ByteOrder::Ne, int16_t, AudioData::ByteOrder::Be,
-                AudioData::Interleaving::Interleaved>(
+                float, AudioData::ByteOrder::Ne, int16_t, AudioData::ByteOrder::Be, AudioData::Interleaving::Interleaved>(
                 input_buffer.data(), input_buffer.num_frames(), input_buffer.num_channels(),
                 reinterpret_cast<int16_t*>(intermediate_buffer.data()), 0, 0
             );
@@ -364,8 +358,7 @@ bool rav::rtp::AudioSender::send_audio_data_realtime(
             }
         } else if (audio_format.encoding == AudioEncoding::pcm_s24) {
             const auto ok = AudioData::convert<
-                float, AudioData::ByteOrder::Ne, int24_t, AudioData::ByteOrder::Be,
-                AudioData::Interleaving::Interleaved>(
+                float, AudioData::ByteOrder::Ne, int24_t, AudioData::ByteOrder::Be, AudioData::Interleaving::Interleaved>(
                 input_buffer.data(), input_buffer.num_frames(), input_buffer.num_channels(),
                 reinterpret_cast<int24_t*>(intermediate_buffer.data()), 0, 0
             );
@@ -378,10 +371,7 @@ bool rav::rtp::AudioSender::send_audio_data_realtime(
         }
 
         return schedule_data_for_sending_realtime(
-            writer,
-            BufferView(intermediate_buffer)
-                .subview(0, input_buffer.num_frames() * audio_format.bytes_per_frame())
-                .const_view(),
+            writer, BufferView(intermediate_buffer).subview(0, input_buffer.num_frames() * audio_format.bytes_per_frame()).const_view(),
             timestamp
         );
     }

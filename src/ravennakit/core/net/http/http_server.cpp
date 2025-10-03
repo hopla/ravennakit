@@ -26,15 +26,12 @@ class rav::HttpServer::ClientSession: public std::enable_shared_from_this<Client
   public:
     ClientSession() = delete;
 
-    explicit ClientSession(boost::asio::ip::tcp::socket&& socket, HttpServer* owner) :
-        stream_(std::move(socket)), owner_(owner) {
+    explicit ClientSession(boost::asio::ip::tcp::socket&& socket, HttpServer* owner) : stream_(std::move(socket)), owner_(owner) {
         RAV_ASSERT(owner != nullptr, "Owner cannot be null");
     }
 
     void start() {
-        boost::asio::dispatch(
-            stream_.get_executor(), boost::beast::bind_front_handler(&ClientSession::do_read, shared_from_this())
-        );
+        boost::asio::dispatch(stream_.get_executor(), boost::beast::bind_front_handler(&ClientSession::do_read, shared_from_this()));
     }
 
     void set_owner(HttpServer* owner) {
@@ -105,8 +102,7 @@ class rav::HttpServer::ClientSession: public std::enable_shared_from_this<Client
 
         // Write the response
         boost::beast::async_write(
-            stream_, std::move(msg),
-            boost::beast::bind_front_handler(&ClientSession::on_write, shared_from_this(), keep_alive)
+            stream_, std::move(msg), boost::beast::bind_front_handler(&ClientSession::on_write, shared_from_this(), keep_alive)
         );
     }
 
@@ -324,9 +320,7 @@ rav::HttpServer::on_request(const boost::beast::http::request<boost::beast::http
                     !response.body().empty() ? rav::string_replace(response.body(), "\r\n", "<crlf>") : ""
                 );
             } else {
-                RAV_WARNING(
-                    "{} {} {}", result_int, response.reason(), !response.body().empty() ? response.body().c_str() : ""
-                );
+                RAV_WARNING("{} {} {}", result_int, response.reason(), !response.body().empty() ? response.body().c_str() : "");
             }
             return response;
         }

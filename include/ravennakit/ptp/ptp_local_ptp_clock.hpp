@@ -82,8 +82,7 @@ class LocalPtpClock {
 
         // Note (Ruurd): I wonder whether we should move this to the local clock, based on the actual (non-median)
         // offset.
-        local_clock_.set_calibrated(is_between(offset_stats_.median(), -k_calibrated_threshold, k_calibrated_threshold)
-        );
+        local_clock_.set_calibrated(is_between(offset_stats_.median(), -k_calibrated_threshold, k_calibrated_threshold));
 
         TRACY_PLOT("Offset from master median (ms)", offset_stats_.median() * 1000.0);
         TRACY_PLOT("Offset from master outliers", 0.0);
@@ -93,9 +92,8 @@ class LocalPtpClock {
 
         if (trace_adjustments_throttle_.update()) {
             RAV_TRACE(
-                "Clock stats: offset_from_master=[min={}, max={}], ratio={}, ignored_outliers={}",
-                filtered_offset_stats_.min() * 1000.0, filtered_offset_stats_.max() * 1000.0,
-                local_clock_.get_frequency_ratio(), ignored_outliers_
+                "Clock stats: offset_from_master=[min={}, max={}], ratio={}, ignored_outliers={}", filtered_offset_stats_.min() * 1000.0,
+                filtered_offset_stats_.max() * 1000.0, local_clock_.get_frequency_ratio(), ignored_outliers_
             );
             ignored_outliers_ = 0;
         }

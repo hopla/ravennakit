@@ -52,17 +52,13 @@ struct ReceiverAudio: ReceiverCore {
     }
 };
 
-inline void tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverAudio::Capabilities& capabilities
-) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ReceiverAudio::Capabilities& capabilities) {
     jv = {
         {"media_types", boost::json::value_from(capabilities.media_types)},
     };
 }
 
-inline void tag_invoke(
-    const boost::json::value_from_tag& tag, boost::json::value& jv, const ReceiverAudio& receiver
-) {
+inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::value& jv, const ReceiverAudio& receiver) {
     tag_invoke(tag, jv, static_cast<const ReceiverCore&>(receiver));
     auto& jv_obj = jv.as_object();
     jv_obj["format"] = ReceiverAudio::k_format;

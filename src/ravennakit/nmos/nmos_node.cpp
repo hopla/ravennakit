@@ -69,8 +69,7 @@ void set_error_response(http::response<http::string_body>& res, const rav::nmos:
  * @param debug The debug information.
  */
 void set_error_response(
-    http::response<http::string_body>& res, const http::status status, const std::string& error,
-    const std::string& debug
+    http::response<http::string_body>& res, const http::status status, const std::string& error, const std::string& debug
 ) {
     set_error_response(res, rav::nmos::ApiError {status, error, debug});
 }
@@ -81,8 +80,7 @@ void set_error_response(
  */
 void invalid_api_version_response(http::response<http::string_body>& res) {
     set_error_response(
-        res, http::status::bad_request, "Invalid API version",
-        "Failed to parse a valid version in the form of vMAJOR.MINOR"
+        res, http::status::bad_request, "Invalid API version", "Failed to parse a valid version in the form of vMAJOR.MINOR"
     );
 }
 
@@ -92,9 +90,7 @@ void invalid_api_version_response(http::response<http::string_body>& res) {
  * @param body The body of the response.
  * @param content_type The mime type of the content.
  */
-void ok_response(
-    http::response<http::string_body>& res, std::string body, const char* content_type = "application/json"
-) {
+void ok_response(http::response<http::string_body>& res, std::string body, const char* content_type = "application/json") {
     res.result(http::status::ok);
     set_default_headers(res, content_type);
     res.body() = std::move(body);
@@ -103,8 +99,7 @@ void ok_response(
 
 template<typename VersionsContainer>
 std::optional<rav::nmos::ApiVersion> get_valid_api_version_from_parameters(
-    const rav::PathMatcher::Parameters& params, const VersionsContainer& versions,
-    const std::string_view param_name = "version"
+    const rav::PathMatcher::Parameters& params, const VersionsContainer& versions, const std::string_view param_name = "version"
 ) {
     const auto version_str = params.get(param_name);
     if (version_str == nullptr) {
@@ -151,9 +146,8 @@ boost::json::array get_sender_transport_params_from_sdp(const rav::sdp::SessionD
     return transport_params;
 }
 
-boost::json::array get_receiver_transport_params_from_sdp(
-    const rav::nmos::ReceiverAudio& receiver, const rav::sdp::SessionDescription& sdp
-) {
+boost::json::array
+get_receiver_transport_params_from_sdp(const rav::nmos::ReceiverAudio& receiver, const rav::sdp::SessionDescription& sdp) {
     boost::json::array transport_params;
     for (auto& media : sdp.media_descriptions) {
         rav::nmos::ReceiverTransportParamsRtp params {};
@@ -331,8 +325,8 @@ rav::nmos::Node::Configuration::from_json(const boost::json::value& json) {
 }
 
 rav::nmos::Node::Node(
-    boost::asio::io_context& io_context, ptp::Instance& ptp_instance,
-    std::unique_ptr<RegistryBrowserBase> registry_browser, std::unique_ptr<HttpClientBase> http_client
+    boost::asio::io_context& io_context, ptp::Instance& ptp_instance, std::unique_ptr<RegistryBrowserBase> registry_browser,
+    std::unique_ptr<HttpClientBase> http_client
 ) :
     ptp_instance_(ptp_instance),
     http_server_(io_context),
@@ -373,21 +367,18 @@ rav::nmos::Node::Node(
 
     // MARK: Node API
 
-    http_server_.get(
-        "/x-nmos/node",
-        [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
-            res.result(http::status::ok);
-            set_default_headers(res);
+    http_server_.get("/x-nmos/node", [](const HttpServer::Request&, HttpServer::Response& res, PathMatcher::Parameters&) {
+        res.result(http::status::ok);
+        set_default_headers(res);
 
-            boost::json::array versions;
-            for (const auto& version : k_node_api_versions) {
-                versions.push_back({fmt::format("{}/", version.to_string())});
-            }
-
-            res.body() = boost::json::serialize(versions);
-            res.prepare_payload();
+        boost::json::array versions;
+        for (const auto& version : k_node_api_versions) {
+            versions.push_back({fmt::format("{}/", version.to_string())});
         }
-    );
+
+        res.body() = boost::json::serialize(versions);
+        res.prepare_payload();
+    });
 
     http_server_.get(
         "/x-nmos/node/{version}",
@@ -397,10 +388,7 @@ rav::nmos::Node::Node(
             }
 
             ok_response(
-                res,
-                boost::json::serialize(
-                    boost::json::array({"self/", "sources/", "flows/", "devices/", "senders/", "receivers/"})
-                )
+                res, boost::json::serialize(boost::json::array({"self/", "sources/", "flows/", "devices/", "senders/", "receivers/"}))
             );
         }
     );
@@ -448,9 +436,7 @@ rav::nmos::Node::Node(
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, http::status::bad_request, "Invalid device ID", "Device ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid device ID", "Device ID is not a valid UUID");
                 return;
             }
 
@@ -540,9 +526,7 @@ rav::nmos::Node::Node(
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID");
                 return;
             }
 
@@ -570,9 +554,7 @@ rav::nmos::Node::Node(
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid receiver ID", "Receiver ID is not a valid UUID");
                 return;
             }
 
@@ -612,9 +594,7 @@ rav::nmos::Node::Node(
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, http::status::bad_request, "Invalid sender ID", "Sender ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid sender ID", "Sender ID is not a valid UUID");
                 return;
             }
 
@@ -659,9 +639,7 @@ rav::nmos::Node::Node(
 
             const auto uuid = boost::lexical_cast<boost::uuids::uuid>(*uuid_str);
             if (uuid.is_nil()) {
-                set_error_response(
-                    res, http::status::bad_request, "Invalid source ID", "Source ID is not a valid UUID"
-                );
+                set_error_response(res, http::status::bad_request, "Invalid source ID", "Source ID is not a valid UUID");
                 return;
             }
 
@@ -676,21 +654,18 @@ rav::nmos::Node::Node(
 
     // MARK: Connection API
 
-    http_server_.get(
-        "/x-nmos/connection",
-        [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters&) {
-            res.result(http::status::ok);
-            set_default_headers(res);
+    http_server_.get("/x-nmos/connection", [](const HttpServer::Request&, HttpServer::Response& res, const PathMatcher::Parameters&) {
+        res.result(http::status::ok);
+        set_default_headers(res);
 
-            boost::json::array versions;
-            for (const auto& version : k_connection_api_versions) {
-                versions.push_back({fmt::format("{}/", version.to_string())});
-            }
-
-            res.body() = boost::json::serialize(versions);
-            res.prepare_payload();
+        boost::json::array versions;
+        for (const auto& version : k_connection_api_versions) {
+            versions.push_back({fmt::format("{}/", version.to_string())});
         }
-    );
+
+        res.body() = boost::json::serialize(versions);
+        res.prepare_payload();
+    });
 
     http_server_.get(
         "/x-nmos/connection/{version}",
@@ -786,10 +761,7 @@ rav::nmos::Node::Node(
                 return;
             }
 
-            ok_response(
-                res,
-                boost::json::serialize(boost::json::array({"constraints/", "staged/", "active/", "transporttype/"}))
-            );
+            ok_response(res, boost::json::serialize(boost::json::array({"constraints/", "staged/", "active/", "transporttype/"})));
         }
     );
 
@@ -831,10 +803,8 @@ rav::nmos::Node::Node(
             ActivationResponse activation_response;
 
             const boost::json::value value {
-                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)},
-                {"master_enable", receiver->subscription.active},
-                {"activation", boost::json::value_from(activation_response)},
-                {"transport_params", transport_params},
+                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)}, {"master_enable", receiver->subscription.active},
+                {"activation", boost::json::value_from(activation_response)},          {"transport_params", transport_params},
                 {"transport_file", boost::json::value_from(transport_file)},
             };
 
@@ -910,8 +880,7 @@ rav::nmos::Node::Node(
                     continue;
                 }
                 set_error_response(
-                    res, http::status::bad_request, "Bad Request",
-                    "Invalid JSON: unexpected key: " + std::string(member.key())
+                    res, http::status::bad_request, "Bad Request", "Invalid JSON: unexpected key: " + std::string(member.key())
                 );
                 return;
             }
@@ -921,10 +890,7 @@ rav::nmos::Node::Node(
                 auto activation = boost::json::value_to<Activation>(*result);
                 if (const auto mode = activation.mode) {
                     if (*mode != Activation::Mode::activate_immediate) {
-                        set_error_response(
-                            res, http::status::not_implemented, "Not Implemented",
-                            "Only activate_immediate is implemented"
-                        );
+                        set_error_response(res, http::status::not_implemented, "Not Implemented", "Only activate_immediate is implemented");
                         return;
                     }
                 }
@@ -955,10 +921,8 @@ rav::nmos::Node::Node(
             ActivationResponse activation_response;
 
             const boost::json::value value {
-                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)},
-                {"master_enable", receiver->subscription.active},
-                {"activation", boost::json::value_from(activation_response)},
-                {"transport_params", transport_params},
+                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)}, {"master_enable", receiver->subscription.active},
+                {"activation", boost::json::value_from(activation_response)},          {"transport_params", transport_params},
                 {"transport_file", boost::json::value_from(transport_file)},
             };
 
@@ -1004,10 +968,8 @@ rav::nmos::Node::Node(
             ActivationResponse activation_response;
 
             const boost::json::value value {
-                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)},
-                {"master_enable", receiver->subscription.active},
-                {"activation", boost::json::value_from(activation_response)},
-                {"transport_params", transport_params},
+                {"sender_id", json_value_from_uuid(receiver->subscription.sender_id)}, {"master_enable", receiver->subscription.active},
+                {"activation", boost::json::value_from(activation_response)},          {"transport_params", transport_params},
                 {"transport_file", boost::json::value_from(transport_file)},
             };
 
@@ -1122,10 +1084,7 @@ rav::nmos::Node::Node(
             }
 
             ok_response(
-                res,
-                boost::json::serialize(
-                    boost::json::array({"constraints/", "staged/", "active/", "transportfile/", "transporttype/"})
-                )
+                res, boost::json::serialize(boost::json::array({"constraints/", "staged/", "active/", "transportfile/", "transporttype/"}))
             );
         }
     );
@@ -1230,8 +1189,7 @@ rav::nmos::Node::Node(
                     continue;
                 }
                 set_error_response(
-                    res, http::status::bad_request, "Bad Request",
-                    "Invalid JSON: unexpected key: " + std::string(member.key())
+                    res, http::status::bad_request, "Bad Request", "Invalid JSON: unexpected key: " + std::string(member.key())
                 );
                 return;
             }
@@ -1241,10 +1199,7 @@ rav::nmos::Node::Node(
                 auto activation = boost::json::value_to<Activation>(*result);
                 if (const auto mode = activation.mode) {
                     if (*mode != Activation::Mode::activate_immediate) {
-                        set_error_response(
-                            res, http::status::not_implemented, "Not Implemented",
-                            "Only activate_immediate is implemented"
-                        );
+                        set_error_response(res, http::status::not_implemented, "Not Implemented", "Only activate_immediate is implemented");
                         return;
                     }
                 }
@@ -1430,8 +1385,7 @@ void rav::nmos::Node::stop() {
     set_status(Status::disabled);
 }
 
-tl::expected<void, rav::nmos::Error>
-rav::nmos::Node::set_configuration(Configuration new_configuration, const bool force_update) {
+tl::expected<void, rav::nmos::Error> rav::nmos::Node::set_configuration(Configuration new_configuration, const bool force_update) {
     if (new_configuration == configuration_ && !force_update) {
         return {};  // Nothing changed, so we should be in the correct state.
     }
@@ -1546,10 +1500,7 @@ boost::system::result<void, rav::nmos::Error> rav::nmos::Node::start_internal() 
 
         auto url = boost::urls::parse_uri_reference(configuration_.registry_address);
         if (url.has_error()) {
-            RAV_ERROR(
-                "Invalid registry address: {} (should be in the form of: scheme://host:port)",
-                configuration_.registry_address
-            );
+            RAV_ERROR("Invalid registry address: {} (should be in the form of: scheme://host:port)", configuration_.registry_address);
             return Error::invalid_registry_address;
         }
         status_info_.name = "(custom registry)";
@@ -1686,34 +1637,30 @@ void rav::nmos::Node::post_resource_async(std::string type, boost::json::value r
 void rav::nmos::Node::delete_resource_async(std::string resource_type, const boost::uuids::uuid& id) {
     RAV_ASSERT(http_client_ != nullptr, "HTTP client should not be null");
 
-    const auto target = fmt::format(
-        "/x-nmos/registration/{}/resource/{}/{}", configuration_.api_version.to_string(), resource_type, to_string(id)
-    );
+    const auto target =
+        fmt::format("/x-nmos/registration/{}/resource/{}/{}", configuration_.api_version.to_string(), resource_type, to_string(id));
 
-    http_client_->delete_async(
-        target,
-        [this, target](const boost::system::result<http::response<http::string_body>>& result) mutable {
-            if (result.has_error()) {
-                RAV_ERROR("Failed to delete resource from registry: {}", result.error().message());
-                return;
-            }
-
-            const auto& res = result.value();
-
-            if (res.result() == http::status::no_content) {
-                RAV_INFO("Deleted {}", target);
-            } else if (http::to_status_class(res.result()) == http::status_class::successful) {
-                RAV_WARNING("Unexpected response from registry: {}", res.result_int());
-            } else {
-                if (const auto error = parse_json<ApiError>(res.body())) {
-                    RAV_ERROR("Failed to delete resource at: {} {} ({})", target, error->code, error->error);
-                } else {
-                    RAV_ERROR("Failed to delete resource at: {} {} ({})", target, res.result_int(), res.body());
-                }
-                set_status(Status::error);
-            }
+    http_client_->delete_async(target, [this, target](const boost::system::result<http::response<http::string_body>>& result) mutable {
+        if (result.has_error()) {
+            RAV_ERROR("Failed to delete resource from registry: {}", result.error().message());
+            return;
         }
-    );
+
+        const auto& res = result.value();
+
+        if (res.result() == http::status::no_content) {
+            RAV_INFO("Deleted {}", target);
+        } else if (http::to_status_class(res.result()) == http::status_class::successful) {
+            RAV_WARNING("Unexpected response from registry: {}", res.result_int());
+        } else {
+            if (const auto error = parse_json<ApiError>(res.body())) {
+                RAV_ERROR("Failed to delete resource at: {} {} ({})", target, error->code, error->error);
+            } else {
+                RAV_ERROR("Failed to delete resource at: {} {} ({})", target, res.result_int(), res.body());
+            }
+            set_status(Status::error);
+        }
+    });
 }
 
 void rav::nmos::Node::update_self() {
@@ -1725,9 +1672,7 @@ void rav::nmos::Node::update_self() {
 }
 
 void rav::nmos::Node::send_heartbeat_async() {
-    const auto target = fmt::format(
-        "/x-nmos/registration/{}/health/nodes/{}", configuration_.api_version.to_string(), to_string(self_.id)
-    );
+    const auto target = fmt::format("/x-nmos/registration/{}/health/nodes/{}", configuration_.api_version.to_string(), to_string(self_.id));
 
     http_client_->post_async(
         target, {},
@@ -1803,8 +1748,8 @@ bool rav::nmos::Node::add_sender_to_device(const Sender& sender) const {
 }
 
 bool rav::nmos::Node::select_registry(const dnssd::ServiceDescription& desc) {
-    if (selected_registry_ && selected_registry_->host_target == desc.host_target
-        && selected_registry_->port == desc.port && status_ == Status::registered) {
+    if (selected_registry_ && selected_registry_->host_target == desc.host_target && selected_registry_->port == desc.port
+        && status_ == Status::registered) {
         return false;  // Already connected to this registry
     }
     selected_registry_ = desc;
@@ -2072,10 +2017,9 @@ bool rav::nmos::Node::add_or_update_receiver(ReceiverAudio* receiver) {
 
     receiver->version = Version(get_local_clock().now());
 
-    const auto it =
-        std::find_if(receivers_.begin(), receivers_.end(), [receiver](const ReceiverAudio* existing_receiver) {
-            return receiver == existing_receiver;
-        });
+    const auto it = std::find_if(receivers_.begin(), receivers_.end(), [receiver](const ReceiverAudio* existing_receiver) {
+        return receiver == existing_receiver;
+    });
 
     if (it == receivers_.end()) {
         if (!add_receiver_to_device(*receiver)) {
@@ -2356,9 +2300,7 @@ void rav::nmos::Node::ptp_port_changed_state(const ptp::Port&) {
     }
 }
 
-void rav::nmos::tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const Node::Configuration& config
-) {
+void rav::nmos::tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Node::Configuration& config) {
     jv = {
         {"id", to_string(config.id)},
         {"operation_mode", to_string(config.operation_mode)},

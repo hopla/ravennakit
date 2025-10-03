@@ -36,8 +36,7 @@ struct Timestamp {
         RAV_ASSERT(nanoseconds < 1000000000, "Nanoseconds must be less than 1 billion.");
     }
 
-    explicit Timestamp(const ptp::Timestamp timestamp) :
-        seconds(timestamp.raw_seconds()), nanoseconds(timestamp.raw_nanoseconds()) {}
+    explicit Timestamp(const ptp::Timestamp timestamp) : seconds(timestamp.raw_seconds()), nanoseconds(timestamp.raw_nanoseconds()) {}
 
     friend bool operator<(const Timestamp& lhs, const Timestamp& rhs) {
         return lhs.seconds < rhs.seconds || (lhs.seconds == rhs.seconds && lhs.nanoseconds < rhs.nanoseconds);
@@ -129,13 +128,11 @@ struct Timestamp {
 /// An nmos version is represented as TAI timestamp
 using Version = Timestamp;
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Timestamp& timestamp) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Timestamp& timestamp) {
     jv = timestamp.to_string();
 }
 
-inline Timestamp
-tag_invoke(const boost::json::value_to_tag<Timestamp>&, const boost::json::value& jv) {
+inline Timestamp tag_invoke(const boost::json::value_to_tag<Timestamp>&, const boost::json::value& jv) {
     return Timestamp::from_string(jv.as_string()).value();
 }
 

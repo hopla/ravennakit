@@ -29,8 +29,7 @@ namespace rav {
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view string_up_to_first_occurrence_of(
-    std::string_view string_to_search_in, const std::string_view string_to_search_for,
-    const bool include_sub_string_in_result
+    std::string_view string_to_search_in, const std::string_view string_to_search_for, const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.find(string_to_search_for);
 
@@ -79,8 +78,7 @@ inline std::string_view string_up_to_the_nth_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view string_up_to_last_occurrence_of(
-    const std::string_view string_to_search_in, const std::string_view string_to_search_for,
-    const bool include_sub_string_in_result
+    const std::string_view string_to_search_in, const std::string_view string_to_search_for, const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.rfind(string_to_search_for);
 
@@ -99,8 +97,7 @@ inline std::string_view string_up_to_last_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view string_from_first_occurrence_of(
-    std::string_view string_to_search_in, const std::string_view string_to_search_for,
-    const bool include_sub_string_in_result
+    std::string_view string_to_search_in, const std::string_view string_to_search_for, const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.find(string_to_search_for);
 
@@ -137,9 +134,7 @@ inline std::string_view string_from_nth_occurrence_of(
         return {};
     }
 
-    return string_to_search_in.substr(
-        include_sub_string_in_result ? pos : pos + string_to_search_for.size(), string_to_search_in.size()
-    );
+    return string_to_search_in.substr(include_sub_string_in_result ? pos : pos + string_to_search_for.size(), string_to_search_in.size());
 }
 
 /**
@@ -151,8 +146,7 @@ inline std::string_view string_from_nth_occurrence_of(
  * @return The truncated string, or an empty string when no needle was found.
  */
 inline std::string_view string_from_last_occurrence_of(
-    const std::string_view string_to_search_in, const std::string_view string_to_search_for,
-    const bool include_sub_string_in_result
+    const std::string_view string_to_search_in, const std::string_view string_to_search_for, const bool include_sub_string_in_result
 ) {
     const auto pos = string_to_search_in.rfind(string_to_search_for);
 
@@ -376,8 +370,7 @@ inline std::vector<std::string> string_split(const std::string& string, const ch
  * @param replacement The replacement.
  * @return Modified string, or original string if sequence was not found.
  */
-inline std::string
-string_replace(const std::string_view original, const std::string_view to_replace, const std::string_view replacement) {
+inline std::string string_replace(const std::string_view original, const std::string_view to_replace, const std::string_view replacement) {
     auto modified = std::string(original);
     size_t pos = 0;
 
@@ -399,7 +392,7 @@ inline std::string_view string_unquoted(std::string_view input) {
     input = string_trim(input);
 
     if (input.size() < 2) {
-        return input; // NOLINT
+        return input;  // NOLINT
     }
 
     const char first = input.front();
@@ -411,7 +404,7 @@ inline std::string_view string_unquoted(std::string_view input) {
     }
 
     // If quotes don't match or aren't at both ends, return unchanged
-    return input; // NOLINT
+    return input;  // NOLINT
 }
 
 /**

@@ -28,8 +28,7 @@ struct ConstraintsRtp {
     std::optional<Constraint> multicast_ip;    // Required for receivers if supported
 };
 
-inline void
-tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ConstraintsRtp& constraint_rtp) {
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const ConstraintsRtp& constraint_rtp) {
     boost::json::object obj {
         {"source_ip", boost::json::value_from(constraint_rtp.source_ip)},
         {"destination_port", boost::json::value_from(constraint_rtp.destination_port)},

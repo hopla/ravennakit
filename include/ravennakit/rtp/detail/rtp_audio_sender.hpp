@@ -102,8 +102,7 @@ struct AudioSender {
      * @param timestamp The timestamp of the buffer.
      * @return True if the buffer was sent, or false if something went wrong.
      */
-    [[nodiscard]] bool
-    send_audio_data_realtime(Id id, const AudioBufferView<const float>& input_buffer, uint32_t timestamp);
+    [[nodiscard]] bool send_audio_data_realtime(Id id, const AudioBufferView<const float>& input_buffer, uint32_t timestamp);
 
     struct FifoPacket {
         uint32_t rtp_timestamp {};
@@ -123,7 +122,7 @@ struct AudioSender {
         ByteBuffer rtp_packet_buffer;
         std::vector<uint8_t> intermediate_send_buffer;
         std::vector<uint8_t> intermediate_audio_buffer;
-        uint32_t packet_time_frames{};
+        uint32_t packet_time_frames {};
         Packet rtp_packet;
         AudioFormat audio_format;
         Ringbuffer rtp_buffer;

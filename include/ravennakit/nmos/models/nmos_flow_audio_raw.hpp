@@ -19,7 +19,7 @@ struct FlowAudioRaw: FlowAudio {
     std::string media_type {};  // audio/L24, audio/L20, audio/L16, audio/L8
 
     /// Bit depth of the audio samples.
-    int bit_depth {};           // 8, 16, 20, 24
+    int bit_depth {};  // 8, 16, 20, 24
 
     /**
      * @return True if the flow is valid, loosely following the NMOS JSON schema, or false otherwise.
@@ -41,9 +41,7 @@ struct FlowAudioRaw: FlowAudio {
     }
 };
 
-inline void tag_invoke(
-    const boost::json::value_from_tag& tag, boost::json::value& jv, const FlowAudioRaw& flow_audio_raw
-) {
+inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::value& jv, const FlowAudioRaw& flow_audio_raw) {
     tag_invoke(tag, jv, static_cast<const FlowAudio&>(flow_audio_raw));
     auto& object = jv.as_object();
     object["media_type"] = flow_audio_raw.media_type;

@@ -37,4 +37,4 @@ inline const char* audio_encoding_to_nmos_media_type(const AudioEncoding encodin
     }
 }
 
-}
+}  // namespace rav::nmos

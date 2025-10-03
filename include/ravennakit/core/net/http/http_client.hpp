@@ -72,8 +72,7 @@ class HttpClientBase {
      * @param content_type The content type of the body, e.g. "application/json". If not specified, defaults to
      * "application/json".
      */
-    virtual void
-    post_async(std::string_view target, std::string body, ResponseCallback callback, std::string_view content_type) = 0;
+    virtual void post_async(std::string_view target, std::string body, ResponseCallback callback, std::string_view content_type) = 0;
 
     /**
      * Asynchronous DELETE request to the target of the URL, or the root if no target is specified.
@@ -91,8 +90,7 @@ class HttpClientBase {
      * @param callback The callback to call when the request is complete.
      */
     virtual void request_async(
-        http::verb method, std::string_view target, std::string body, std::string_view content_type,
-        ResponseCallback callback
+        http::verb method, std::string_view target, std::string body, std::string_view content_type, ResponseCallback callback
     ) = 0;
 
     /**
@@ -121,9 +119,7 @@ class HttpClient: public HttpClientBase {
      * @param io_context The io_context to use for the request.
      * @param timeout_seconds The timeout in seconds for the requests. Defaults to 30 seconds.
      */
-    explicit HttpClient(
-        boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds = std::chrono::seconds(30)
-    );
+    explicit HttpClient(boost::asio::io_context& io_context, std::chrono::milliseconds timeout_seconds = std::chrono::seconds(30));
 
     /**
      * Constructs a new HttpClient using the given io_context and url.
@@ -132,8 +128,7 @@ class HttpClient: public HttpClientBase {
      * @param timeout_seconds The timeout in seconds for the requests. Defaults to 30 seconds.
      */
     HttpClient(
-        boost::asio::io_context& io_context, std::string_view url,
-        std::chrono::milliseconds timeout_seconds = std::chrono::seconds(30)
+        boost::asio::io_context& io_context, std::string_view url, std::chrono::milliseconds timeout_seconds = std::chrono::seconds(30)
     );
 
     /**
@@ -200,16 +195,13 @@ class HttpClient: public HttpClientBase {
     /**
      * @copydoc HttpClientBase::post_async
      */
-    void post_async(
-        std::string_view target, std::string body, ResponseCallback callback, std::string_view content_type
-    ) override;
+    void post_async(std::string_view target, std::string body, ResponseCallback callback, std::string_view content_type) override;
 
     /**
      * @copydoc HttpClientBase::request_async
      */
     void request_async(
-        http::verb method, std::string_view target, std::string body, std::string_view content_type,
-        ResponseCallback callback
+        http::verb method, std::string_view target, std::string body, std::string_view content_type, ResponseCallback callback
     ) override;
 
     /**
@@ -239,9 +231,7 @@ class HttpClient: public HttpClientBase {
     class Session: public std::enable_shared_from_this<Session> {
       public:
         enum class State { disconnected, resolving, connecting, connected, waiting_for_send, waiting_for_response };
-        explicit Session(
-            boost::asio::io_context& io_context, HttpClient* owner, std::chrono::milliseconds timeout_seconds
-        );
+        explicit Session(boost::asio::io_context& io_context, HttpClient* owner, std::chrono::milliseconds timeout_seconds);
 
         void send_requests();
         void clear_owner();

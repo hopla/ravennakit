@@ -59,8 +59,8 @@ class PacketStats {
 
         [[nodiscard]] std::string to_string() const {
             return fmt::format(
-                "out_of_order: {}, duplicates: {}, dropped: {}, too_late: {}, jitter: {}", out_of_order, duplicates,
-                dropped, too_late, jitter
+                "out_of_order: {}, duplicates: {}, dropped: {}, too_late: {}, jitter: {}", out_of_order, duplicates, dropped, too_late,
+                jitter
             );
         }
     };

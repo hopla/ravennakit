@@ -147,9 +147,7 @@ class VectorBuffer {
      * @return Returns the size of the data in the buffer.
      */
     [[nodiscard]] size_t size() const {
-        RAV_ASSERT(
-            read_position_ <= data_.size(), "Read position ought to be less than or equal to the size of the data"
-        );
+        RAV_ASSERT(read_position_ <= data_.size(), "Read position ought to be less than or equal to the size of the data");
         return data_.size() - read_position_;
     }
 

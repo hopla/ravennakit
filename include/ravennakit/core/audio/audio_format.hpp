@@ -51,8 +51,7 @@ struct AudioFormat {
 
     [[nodiscard]] std::string to_string() const {
         return fmt::format(
-            "{}/{}/{}/{}/{}", rav::to_string(encoding), sample_rate, num_channels, to_string(ordering),
-            to_string(byte_order)
+            "{}/{}/{}/{}/{}", rav::to_string(encoding), sample_rate, num_channels, to_string(ordering), to_string(byte_order)
         );
     }
 

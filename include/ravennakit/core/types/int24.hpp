@@ -63,7 +63,7 @@ class int24_t {
     explicit operator int32_t() const {
         int32_t value {};
         std::memcpy(std::addressof(value), data_, sizeof(data_));
-        return value << 8 >> 8; // Sign extend the 24-bit value to 32 bits
+        return value << 8 >> 8;  // Sign extend the 24-bit value to 32 bits
     }
 
   private:

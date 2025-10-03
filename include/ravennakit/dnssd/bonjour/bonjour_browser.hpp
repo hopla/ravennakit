@@ -101,8 +101,8 @@ class BonjourBrowser: public Browser {
          * @param context
          */
         static void get_addr_info_callback(
-            DNSServiceRef sd_ref, DNSServiceFlags flags, uint32_t interface_index, DNSServiceErrorType error_code,
-            const char* hostname, const struct sockaddr* address, uint32_t ttl, void* context
+            DNSServiceRef sd_ref, DNSServiceFlags flags, uint32_t interface_index, DNSServiceErrorType error_code, const char* hostname,
+            const struct sockaddr* address, uint32_t ttl, void* context
         );
     };
 
@@ -114,7 +114,7 @@ class BonjourBrowser: public Browser {
   private:
     boost::asio::ip::tcp::socket service_socket_;
     BonjourSharedConnection shared_connection_;
-    std::map<std::string, Service> services_;                         // fullname -> service
+    std::map<std::string, Service> services_;                     // fullname -> service
     std::map<std::string, BonjourScopedDnsServiceRef> browsers_;  // reg_type -> DNSServiceRef
     size_t process_results_failed_attempts_ = 0;
 
@@ -136,8 +136,8 @@ class BonjourBrowser: public Browser {
      * @param context The user data.
      */
     static void browse_reply(
-        DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index,
-        DNSServiceErrorType error_code, const char* name, const char* type, const char* domain, void* context
+        DNSServiceRef browse_service_ref, DNSServiceFlags flags, uint32_t interface_index, DNSServiceErrorType error_code, const char* name,
+        const char* type, const char* domain, void* context
     );
 };
 

@@ -32,4 +32,4 @@ const T& get_global_const_instance_of_type() {
     return _defaultObject;
 }
 
-}
+}  // namespace rav

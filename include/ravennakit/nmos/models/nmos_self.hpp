@@ -71,12 +71,7 @@ struct Self: ResourceCore {
 };
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Self::Endpoint& endpoint) {
-    jv = {
-        {"host", endpoint.host},
-        {"port", endpoint.port},
-        {"protocol", endpoint.protocol},
-        {"authorization", endpoint.authorization}
-    };
+    jv = {{"host", endpoint.host}, {"port", endpoint.port}, {"protocol", endpoint.protocol}, {"authorization", endpoint.authorization}};
 }
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Self::Api& api) {
@@ -84,11 +79,7 @@ inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& j
 }
 
 inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Self::Interface& interface) {
-    jv = {
-        {"chassis_id", boost::json::value_from(interface.chassis_id)},
-        {"port_id", interface.port_id},
-        {"name", interface.name}
-    };
+    jv = {{"chassis_id", boost::json::value_from(interface.chassis_id)}, {"port_id", interface.port_id}, {"name", interface.name}};
 }
 
 inline void tag_invoke(const boost::json::value_from_tag& tag, boost::json::value& jv, const Self& self) {

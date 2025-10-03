@@ -114,8 +114,8 @@ void rav::rtsp::Server::on_request(Connection& connection, const Request& reques
 
     if (pc.add_connection_if_not_exists(connection)) {
         RAV_TRACE(
-            "Added connection from {}:{} to {}", connection.remote_endpoint().address().to_string(),
-            connection.remote_endpoint().port(), uri.path
+            "Added connection from {}:{} to {}", connection.remote_endpoint().address().to_string(), connection.remote_endpoint().port(),
+            uri.path
         );
     }
 
@@ -182,10 +182,7 @@ void rav::rtsp::Server::async_accept() {
             return;
         }
 
-        RAV_TRACE(
-            "Accepted new connection from: {}:{}", socket.remote_endpoint().address().to_string(),
-            socket.remote_endpoint().port()
-        );
+        RAV_TRACE("Accepted new connection from: {}:{}", socket.remote_endpoint().address().to_string(), socket.remote_endpoint().port());
 
         auto& ctx = paths_[k_special_path_all];  // All connections get added to the special path /all
         const auto& it = ctx.connections.emplace_back(Connection::create(std::move(socket)));

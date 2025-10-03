@@ -118,9 +118,8 @@ rav::ptp::Instance::add_port(const uint16_t port_number, const boost::asio::ip::
     return {};
 }
 
-tl::expected<void, rav::ptp::Error> rav::ptp::Instance::add_or_update_port(
-    const uint16_t port_number, const boost::asio::ip::address_v4& interface_address
-) {
+tl::expected<void, rav::ptp::Error>
+rav::ptp::Instance::add_or_update_port(const uint16_t port_number, const boost::asio::ip::address_v4& interface_address) {
     for (const auto& port : ports_) {
         if (port->get_port_identity().port_number == port_number) {
             port->set_interface(interface_address);
@@ -201,9 +200,7 @@ size_t rav::ptp::Instance::get_port_count() const {
     return ports_.size();
 }
 
-bool rav::ptp::Instance::set_port_interface(
-    const uint16_t port_number, const boost::asio::ip::address_v4& interface_address
-) const {
+bool rav::ptp::Instance::set_port_interface(const uint16_t port_number, const boost::asio::ip::address_v4& interface_address) const {
     for (auto& port : ports_) {
         if (port->get_port_identity().port_number == port_number) {
             port->set_interface(interface_address);
@@ -408,9 +405,7 @@ void rav::ptp::Instance::schedule_state_decision_timer() {
     });
 }
 
-void rav::ptp::tag_invoke(
-    const boost::json::value_from_tag&, boost::json::value& jv, const Instance::Configuration& config
-) {
+void rav::ptp::tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const Instance::Configuration& config) {
     jv = {{"domain_number", config.domain_number}};
 }
 

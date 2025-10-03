@@ -12,11 +12,9 @@
 
 #include "ravennakit/core/log.hpp"
 
-rav::NetworkInterfaceList::NetworkInterfaceList(std::vector<NetworkInterface> interfaces) :
-    interfaces_(std::move(interfaces)) {}
+rav::NetworkInterfaceList::NetworkInterfaceList(std::vector<NetworkInterface> interfaces) : interfaces_(std::move(interfaces)) {}
 
-const rav::NetworkInterface*
-rav::NetworkInterfaceList::get_interface(const NetworkInterface::Identifier& identifier) const {
+const rav::NetworkInterface* rav::NetworkInterfaceList::get_interface(const NetworkInterface::Identifier& identifier) const {
     for (auto& interface : interfaces_) {
         if (interface.get_identifier() == identifier) {
             return &interface;

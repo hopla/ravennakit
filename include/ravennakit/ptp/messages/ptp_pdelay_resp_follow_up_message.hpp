@@ -36,4 +36,4 @@ struct PdelayRespFollowUpMessage {
     constexpr static size_t k_message_size = 20;  // Excluding header size
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

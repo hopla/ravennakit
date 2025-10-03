@@ -10,8 +10,7 @@
 
 #include "ravennakit/ptp/messages/ptp_pdelay_req_message.hpp"
 
-tl::expected<rav::ptp::PdelayReqMessage, rav::ptp::Error>
-rav::ptp::PdelayReqMessage::from_data(const BufferView<const uint8_t> data) {
+tl::expected<rav::ptp::PdelayReqMessage, rav::ptp::Error> rav::ptp::PdelayReqMessage::from_data(const BufferView<const uint8_t> data) {
     if (data.size() < k_message_size) {
         return tl::make_unexpected(Error::invalid_message_length);
     }

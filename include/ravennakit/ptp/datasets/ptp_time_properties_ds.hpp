@@ -30,4 +30,4 @@ struct TimePropertiesDs {
     TimeSource time_source {};
 };
 
-}  // namespace rav
+}  // namespace rav::ptp

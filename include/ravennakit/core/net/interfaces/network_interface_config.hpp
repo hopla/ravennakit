@@ -150,8 +150,7 @@ class NetworkInterfaceConfig {
      * @param json The json to restore from.
      * @return A newly constructed NetworkInterfaceConfig object.
      */
-    [[nodiscard]] static tl::expected<NetworkInterfaceConfig, std::string>
-    from_boost_json(const boost::json::value& json) {
+    [[nodiscard]] static tl::expected<NetworkInterfaceConfig, std::string> from_boost_json(const boost::json::value& json) {
         const auto json_array = json.try_as_array();
         if (json_array.has_error()) {
             return tl::unexpected("Value is not an array");

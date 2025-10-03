@@ -160,9 +160,8 @@ class SlidingStats {
     [[nodiscard]] std::string to_string(const double multiply_factor = 1.0) const {
         const auto v = variance();
         return fmt::format(
-            "average={}, median={}, min={}, max={}, variance={}, stddev={}, count={}", mean_ * multiply_factor,
-            median_ * multiply_factor, min_ * multiply_factor, max_ * multiply_factor, v * multiply_factor,
-            standard_deviation(v) * multiply_factor, window_.size()
+            "average={}, median={}, min={}, max={}, variance={}, stddev={}, count={}", mean_ * multiply_factor, median_ * multiply_factor,
+            min_ * multiply_factor, max_ * multiply_factor, v * multiply_factor, standard_deviation(v) * multiply_factor, window_.size()
         );
     }
 

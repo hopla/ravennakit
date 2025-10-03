@@ -53,7 +53,7 @@ struct IntervalStats {
         max_deviation = std::max(std::fabs(interval_ms - interval), max_deviation);
     }
 
-private:
+  private:
     static constexpr auto k_min_step_size = 0.00001;
     static constexpr auto k_max_step_size = 100'000.0;
     double current_step_size_ = k_min_step_size;

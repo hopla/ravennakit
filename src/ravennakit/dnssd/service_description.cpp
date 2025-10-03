@@ -19,8 +19,7 @@ bool rav::dnssd::ServiceDescription::resolved() const {
 std::string rav::dnssd::ServiceDescription::to_string() const noexcept {
     std::string txtRecordDescription;
 
-    for (auto& kv : txt)
-    {
+    for (auto& kv : txt) {
         txtRecordDescription += kv.first;
         txtRecordDescription += "=";
         txtRecordDescription += kv.second;
@@ -29,14 +28,12 @@ std::string rav::dnssd::ServiceDescription::to_string() const noexcept {
 
     std::string addressesDescription;
 
-    for (auto& interface : interfaces)
-    {
+    for (auto& interface : interfaces) {
         addressesDescription += "interface ";
-        addressesDescription += std::to_string (interface.first);
+        addressesDescription += std::to_string(interface.first);
         addressesDescription += ": ";
 
-        for (auto& addr : interface.second)
-        {
+        for (auto& addr : interface.second) {
             addressesDescription += addr;
             addressesDescription += ", ";
         }

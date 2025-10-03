@@ -54,8 +54,7 @@ class CfString: public CfType<CFStringRef> {
 
         // If the above didn't return anything we have to fall back and use CFStringGetCString.
         const CFIndex length = CFStringGetLength(cf_string_ref);
-        const CFIndex max_size =
-            CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;  // Include \0 termination
+        const CFIndex max_size = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;  // Include \0 termination
 
         std::string output(static_cast<unsigned long>(max_size), 0);
         if (!CFStringGetCString(cf_string_ref, output.data(), max_size, kCFStringEncodingUTF8)) {

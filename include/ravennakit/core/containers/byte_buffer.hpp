@@ -22,6 +22,7 @@ namespace rav {
 class ByteBuffer {
   public:
     ByteBuffer() = default;
+
     explicit ByteBuffer(const size_t size) : data_(size) {}
 
     ByteBuffer(const ByteBuffer&) = default;

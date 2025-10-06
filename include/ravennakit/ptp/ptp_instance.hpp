@@ -21,6 +21,7 @@
 #include "ravennakit/core/util/subscriber_list.hpp"
 #include "ravennakit/core/expected.hpp"
 #include "ravennakit/core/net/interfaces/network_interface_config.hpp"
+#include "ravennakit/core/util/throttle.hpp"
 
 #include <boost/lockfree/spsc_value.hpp>
 
@@ -72,6 +73,14 @@ class Instance {
          */
         virtual void ptp_configuration_updated(const Configuration& config) {
             std::ignore = config;
+        }
+
+        /**
+         * Called at a regular interval when the PTP stats are updated.
+         * @param ptp_stats The updated statistics.
+         */
+        virtual void ptp_stats_updated(const Stats& ptp_stats) {
+            std::ignore = ptp_stats;
         }
 
         /**
@@ -238,6 +247,7 @@ class Instance {
     std::vector<std::unique_ptr<Port>> ports_;
     LocalClock local_clock_;
     Stats ptp_stats_;
+    Throttle<void> stats_callback_throttle_ {std::chrono::seconds(5)};
     SubscriberList<Subscriber> subscribers_;
 
     [[nodiscard]] uint16_t get_next_available_port_number() const;

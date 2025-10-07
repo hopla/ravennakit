@@ -40,14 +40,12 @@
 #endif
 
 /**
- * The RAV_DEBUG macro enables certain debugging facilities. Can also be enabled for release builds.
+ * The RAV_DEBUG macro enables certain debugging facilities. Define RAV_ENABLE_DEBUG to enable RAV_DEBUG in release builds.
  */
-#ifndef RAV_DEBUG
-    #if defined(NDEBUG)
-        #define RAV_DEBUG 0
-    #else
-        #define RAV_DEBUG 1
-    #endif
+#if !defined(NDEBUG) || (defined(RAV_ENABLE_DEBUG) && (RAV_ENABLE_DEBUG != 0))
+    #define RAV_DEBUG 1
+#else
+    #define RAV_DEBUG 0
 #endif
 
 /**

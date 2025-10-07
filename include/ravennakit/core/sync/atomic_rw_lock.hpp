@@ -204,7 +204,7 @@ class AtomicRwLock {
      * Wait-free: yes
      */
     void unlock_exclusive() {
-        const auto prev = readers.fetch_and(~k_exclusive_lock_bit, std::memory_order_acq_rel);
+        [[maybe_unused]] const auto prev = readers.fetch_and(~k_exclusive_lock_bit, std::memory_order_acq_rel);
         RAV_ASSERT_DEBUG(prev & k_exclusive_lock_bit, "Was not locked exclusively");
     }
 
@@ -215,7 +215,7 @@ class AtomicRwLock {
      * Wait-free: yes
      */
     void unlock_shared() {
-        const auto prev = readers.fetch_sub(1, std::memory_order_acq_rel);
+        [[maybe_unused]] const auto prev = readers.fetch_sub(1, std::memory_order_acq_rel);
         RAV_ASSERT_DEBUG((prev & k_exclusive_lock_bit) == 0, "Is locked exclusively");
         RAV_ASSERT_DEBUG((prev & k_readers_mask) > 0, "Is not locked shared");
     }

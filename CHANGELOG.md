@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added a RAV_DEBUG macro which enables certain debugging facilities. Can also be enabled for release builds.
+- Added the RAV_DEBUG macro which enables certain debugging facilities. Can also be enabled for release builds.
+- Added the RAV_ENABLE_DEBUG cmake option to enable RAV_DEBUG in release builds.
 
 ### Changed
 

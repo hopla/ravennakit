@@ -82,13 +82,17 @@ rav::RavennaNode::RavennaNode() :
                 while (keep_going_.load(std::memory_order_acquire)) {
                     rtp_receiver_.read_incoming_packets();
                     rtp_sender_.send_outgoing_packets();
+                    next += 100'000;  // 100us
 #if RAV_APPLE
-                    next += 10'000;  // 10us
                     if (!mach_wait_until_ns(next)) {
                         RAV_ERROR("mach_wait_until_ns failed");
                     }
-#elif !RAV_WINDOWS
-                    std::this_thread::sleep_for(std::chrono::microseconds(100));
+#elif RAV_WINDOWS
+                    while (clock::now_monotonic_high_resolution_ns() < next) {
+                        std::this_thread::yield();
+                    }
+#else
+                    std::this_thread::sleep_for(std::chrono::microseconds(10));
 #endif
                 }
                 break;

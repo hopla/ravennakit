@@ -577,7 +577,8 @@ void rav::rtp::AudioReceiver::read_incoming_packets() {
         }
 
         if (ec) {
-            RAV_ERROR("Failed to receive from socket: {}", ec.message());
+            // RAV_ERROR("Failed to receive from socket: {}", ec.message());
+            // TODO: Report error
             continue;
         }
 
@@ -592,12 +593,14 @@ void rav::rtp::AudioReceiver::read_incoming_packets() {
 
         const auto payload = view.payload_data();
         if (payload.size_bytes() == 0) {
-            RAV_WARNING("Received packet with empty payload");
+            // RAV_WARNING("Received packet with empty payload");
+            // TODO: Report error
             return;
         }
 
         if (payload.size_bytes() > std::numeric_limits<uint16_t>::max()) {
-            RAV_WARNING("Payload size exceeds maximum size");
+            // RAV_WARNING("Payload size exceeds maximum size");
+            // TODO: Report error
             return;
         }
 

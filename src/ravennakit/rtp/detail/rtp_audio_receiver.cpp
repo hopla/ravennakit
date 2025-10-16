@@ -721,7 +721,7 @@ std::optional<uint32_t> rav::rtp::AudioReceiver::read_data_realtime(
 }
 
 std::optional<uint32_t> rav::rtp::AudioReceiver::read_audio_data_realtime(
-    const Id id, AudioBufferView<float> output_buffer, const std::optional<uint32_t> at_timestamp,
+    const Id id, AudioBufferView<float>& output_buffer, const std::optional<uint32_t> at_timestamp,
     const std::optional<uint32_t> require_delay
 ) {
     TRACY_ZONE_SCOPED;

@@ -592,15 +592,11 @@ void rav::rtp::AudioReceiver::read_incoming_packets() {
 
         const auto payload = view.payload_data();
         if (payload.size_bytes() == 0) {
-            // RAV_LOG_WARNING("Received packet with empty payload");
-            // TODO: Report error
-            return;
+            return;  // Received packet with empty payload
         }
 
         if (payload.size_bytes() > std::numeric_limits<uint16_t>::max()) {
-            // RAV_LOG_WARNING("Payload size exceeds maximum size");
-            // TODO: Report error
-            return;
+            return;  // Payload size exceeds maximum size
         }
 
         for (auto& reader : readers) {

@@ -279,10 +279,7 @@ void rav::rtp::AudioSender::send_outgoing_packets() {
                     writer.num_packets_failed_to_send.fetch_add(1, std::memory_order_relaxed);
                 }
 
-                PacketView rtp_packet_view(packet->payload.data(), packet->payload_size_bytes);
-                if (!rtp_packet_view.validate()) {
-                    RAV_ASSERT_DEBUG(false, "Packet validation failed");
-                }
+                RAV_ASSERT_DEBUG(PacketView(packet->payload.data(), packet->payload_size_bytes).validate(), "Packet validation failed");
             }
         }
     }

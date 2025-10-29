@@ -106,6 +106,8 @@ class RavennaNode {
     explicit RavennaNode();
     ~RavennaNode();
 
+    // MARK: Receivers
+
     /**
      * Creates a new receiver for the given session.
      * @param initial_config The initial configuration for the receiver. Optional.
@@ -130,6 +132,55 @@ class RavennaNode {
     update_receiver_configuration(Id receiver_id, RavennaReceiver::Configuration config);
 
     /**
+     * Adds a subscriber to the receiver with the given id.
+     * @param receiver_id The id of the stream to add the subscriber to.
+     * @param subscriber The subscriber to add.
+     * @return A future that will be set when the operation is complete.
+     */
+    [[nodiscard]] std::future<void> subscribe_to_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
+
+    /**
+     * Removes a subscriber from the receiver with the given id.
+     * @param receiver_id The id of the stream to remove the subscriber from.
+     * @param subscriber The subscriber to remove.
+     * @return A future that will be set when the operation is complete.
+     */
+    [[nodiscard]] std::future<void> unsubscribe_from_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
+
+    /**
+     * @copydoc rtp::AudioReceiver::read_data_realtime
+     */
+    [[nodiscard]] std::optional<uint32_t> read_data_realtime(
+        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
+    );
+
+    /**
+     * @copydoc rtp::AudioReceiver::read_audio_data_realtime
+     */
+    [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
+        Id receiver_id, AudioBufferView<float>& output_buffer, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
+    );
+
+    /**
+     * Get the SDP for the receiver with the given id.
+     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
+     * @param receiver_id The id of the receiver to get the SDP for.
+     * @return The SDP for the receiver.
+     */
+    [[nodiscard]] std::future<std::optional<sdp::SessionDescription>> get_sdp_for_receiver(Id receiver_id);
+
+    /**
+     * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
+     * and might contain things which haven't been parsed into the session_description.
+     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
+     * @param receiver_id The id of the receiver to get the SDP text for.
+     * @return The SDP text for the receiver.
+     */
+    [[nodiscard]] std::future<std::optional<std::string>> get_sdp_text_for_receiver(Id receiver_id);
+
+    // MARK: Senders
+
+    /**
      * Creates a sender for the given session.
      * @return The ID of the created sender, which might be invalid if the sender couldn't be created.
      */
@@ -152,48 +203,6 @@ class RavennaNode {
     update_sender_configuration(Id sender_id, RavennaSender::Configuration config);
 
     /**
-     * Sets the configuration of the NMOS node.
-     * @param update The configuration to set.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<tl::expected<void, std::string>> set_nmos_configuration(nmos::Node::Configuration update);
-
-    /**
-     * @return The UUID of the nmos device.
-     */
-    std::future<boost::uuids::uuid> get_nmos_device_id();
-
-    /**
-     * Adds a subscriber to the node.
-     * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to add.
-     */
-    [[nodiscard]] std::future<void> subscribe(Subscriber* subscriber);
-
-    /**
-     * Removes a subscriber from the node.
-     * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to remove.
-     */
-    [[nodiscard]] std::future<void> unsubscribe(Subscriber* subscriber);
-
-    /**
-     * Adds a subscriber to the receiver with the given id.
-     * @param receiver_id The id of the stream to add the subscriber to.
-     * @param subscriber The subscriber to add.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<void> subscribe_to_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
-
-    /**
-     * Removes a subscriber from the receiver with the given id.
-     * @param receiver_id The id of the stream to remove the subscriber from.
-     * @param subscriber The subscriber to remove.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<void> unsubscribe_from_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
-
-    /**
      * Adds a subscriber to the sender with the given id.
      * @param sender_id The id of the stream to add the subscriber to.
      * @param subscriber The subscriber to add.
@@ -208,6 +217,18 @@ class RavennaNode {
      * @return A future that will be set when the operation is complete.
      */
     [[nodiscard]] std::future<void> unsubscribe_from_sender(Id sender_id, RavennaSender::Subscriber* subscriber);
+
+    /**
+     * @copydoc rtp::AudioSender::send_data_realtime
+     */
+    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
+
+    /**
+     * @copydoc rtp::AudioSender::send_audio_data_realtime
+     */
+    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
+
+    // MARK: PTP
 
     /**
      * Adds a subscriber to the PTP instance.
@@ -230,46 +251,35 @@ class RavennaNode {
      */
     [[nodiscard]] std::future<tl::expected<void, std::string>> set_ptp_instance_configuration(ptp::Instance::Configuration update);
 
-    /**
-     * Get the SDP for the receiver with the given id.
-     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
-     * @param receiver_id The id of the receiver to get the SDP for.
-     * @return The SDP for the receiver.
-     */
-    [[nodiscard]] std::future<std::optional<sdp::SessionDescription>> get_sdp_for_receiver(Id receiver_id);
+    // MARK: NMOS
 
     /**
-     * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
-     * and might contain things which haven't been parsed into the session_description.
-     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
-     * @param receiver_id The id of the receiver to get the SDP text for.
-     * @return The SDP text for the receiver.
+     * Sets the configuration of the NMOS node.
+     * @param update The configuration to set.
+     * @return A future that will be set when the operation is complete.
      */
-    [[nodiscard]] std::future<std::optional<std::string>> get_sdp_text_for_receiver(Id receiver_id);
+    [[nodiscard]] std::future<tl::expected<void, std::string>> set_nmos_configuration(nmos::Node::Configuration update);
 
     /**
-     * @copydoc rtp::AudioReceiver::read_data_realtime
+     * @return The UUID of the nmos device.
      */
-    [[nodiscard]] std::optional<uint32_t> read_data_realtime(
-        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
-    );
+    std::future<boost::uuids::uuid> get_nmos_device_id();
+
+    // MARK: RavennaNode
 
     /**
-     * @copydoc rtp::AudioReceiver::read_audio_data_realtime
+     * Adds a subscriber to the node.
+     * This method can be called from any thread, and will wait until the operation is complete.
+     * @param subscriber The subscriber to add.
      */
-    [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
-        Id receiver_id, AudioBufferView<float>& output_buffer, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
-    );
+    [[nodiscard]] std::future<void> subscribe(Subscriber* subscriber);
 
     /**
-     * @copydoc rtp::AudioSender::send_data_realtime
+     * Removes a subscriber from the node.
+     * This method can be called from any thread, and will wait until the operation is complete.
+     * @param subscriber The subscriber to remove.
      */
-    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
-
-    /**
-     * @copydoc rtp::AudioSender::send_audio_data_realtime
-     */
-    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
+    [[nodiscard]] std::future<void> unsubscribe(Subscriber* subscriber);
 
     /**
      * Sets the network interfaces to use. Can contain multiple interfaces for redundancy (not yet implemented).

@@ -34,11 +34,33 @@ namespace rav {
 class RavennaNode {
   public:
     /**
+     * Holds the configuration of the node.
+     */
+    struct Configuration {
+        /// When true, the RAVENNA node will discover other nodes using dns-sd.
+        bool enable_dnssd_node_discovery {};
+
+        /// When true, the RAVENNA node will advertise senders using dns-sd.
+        bool enable_dnssd_session_advertisement {};
+
+        /// When true, the RAVENNA node will discover sessions (streams) using dns-sd.
+        bool enable_dnssd_session_discovery {};
+    };
+
+    /**
      * Base class for classes which want to receive updates from the ravenna node.
      */
     class Subscriber: public RavennaBrowser::Subscriber {
       public:
         ~Subscriber() override = default;
+
+        /**
+         * Called when the configuration of the RavennaNode is updated.
+         * @param configuration The updated configuration.
+         */
+        virtual void ravenna_node_configuration_updated(const Configuration& configuration) {
+            std::ignore = configuration;
+        }
 
         /**
          * Called when a receiver is added to the node, or when subscribing.
@@ -54,7 +76,7 @@ class RavennaNode {
          * Called from the maintenance thread.
          * @param receiver_id The id of the receiver.
          */
-        virtual void ravenna_receiver_removed(Id receiver_id) {
+        virtual void ravenna_receiver_removed(const Id receiver_id) {
             std::ignore = receiver_id;
         }
 
@@ -89,7 +111,7 @@ class RavennaNode {
          * @param status The updated NMOS node state.
          * @param registry_info The updated NMOS registry information.
          */
-        virtual void nmos_node_status_changed(nmos::Node::Status status, const nmos::Node::StatusInfo& registry_info) {
+        virtual void nmos_node_status_changed(const nmos::Node::Status status, const nmos::Node::StatusInfo& registry_info) {
             std::ignore = status;
             std::ignore = registry_info;
         }
@@ -105,6 +127,8 @@ class RavennaNode {
 
     explicit RavennaNode();
     ~RavennaNode();
+
+    // MARK: Receivers
 
     /**
      * Creates a new receiver for the given session.
@@ -130,6 +154,55 @@ class RavennaNode {
     update_receiver_configuration(Id receiver_id, RavennaReceiver::Configuration config);
 
     /**
+     * Adds a subscriber to the receiver with the given id.
+     * @param receiver_id The id of the stream to add the subscriber to.
+     * @param subscriber The subscriber to add.
+     * @return A future that will be set when the operation is complete.
+     */
+    [[nodiscard]] std::future<void> subscribe_to_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
+
+    /**
+     * Removes a subscriber from the receiver with the given id.
+     * @param receiver_id The id of the stream to remove the subscriber from.
+     * @param subscriber The subscriber to remove.
+     * @return A future that will be set when the operation is complete.
+     */
+    [[nodiscard]] std::future<void> unsubscribe_from_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
+
+    /**
+     * @copydoc rtp::AudioReceiver::read_data_realtime
+     */
+    [[nodiscard]] std::optional<uint32_t> read_data_realtime(
+        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
+    );
+
+    /**
+     * @copydoc rtp::AudioReceiver::read_audio_data_realtime
+     */
+    [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
+        Id receiver_id, AudioBufferView<float>& output_buffer, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
+    );
+
+    /**
+     * Get the SDP for the receiver with the given id.
+     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
+     * @param receiver_id The id of the receiver to get the SDP for.
+     * @return The SDP for the receiver.
+     */
+    [[nodiscard]] std::future<std::optional<sdp::SessionDescription>> get_sdp_for_receiver(Id receiver_id);
+
+    /**
+     * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
+     * and might contain things which haven't been parsed into the session_description.
+     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
+     * @param receiver_id The id of the receiver to get the SDP text for.
+     * @return The SDP text for the receiver.
+     */
+    [[nodiscard]] std::future<std::optional<std::string>> get_sdp_text_for_receiver(Id receiver_id);
+
+    // MARK: Senders
+
+    /**
      * Creates a sender for the given session.
      * @return The ID of the created sender, which might be invalid if the sender couldn't be created.
      */
@@ -152,48 +225,6 @@ class RavennaNode {
     update_sender_configuration(Id sender_id, RavennaSender::Configuration config);
 
     /**
-     * Sets the configuration of the NMOS node.
-     * @param update The configuration to set.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<tl::expected<void, std::string>> set_nmos_configuration(nmos::Node::Configuration update);
-
-    /**
-     * @return The UUID of the nmos device.
-     */
-    std::future<boost::uuids::uuid> get_nmos_device_id();
-
-    /**
-     * Adds a subscriber to the node.
-     * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to add.
-     */
-    [[nodiscard]] std::future<void> subscribe(Subscriber* subscriber);
-
-    /**
-     * Removes a subscriber from the node.
-     * This method can be called from any thread, and will wait until the operation is complete.
-     * @param subscriber The subscriber to remove.
-     */
-    [[nodiscard]] std::future<void> unsubscribe(Subscriber* subscriber);
-
-    /**
-     * Adds a subscriber to the receiver with the given id.
-     * @param receiver_id The id of the stream to add the subscriber to.
-     * @param subscriber The subscriber to add.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<void> subscribe_to_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
-
-    /**
-     * Removes a subscriber from the receiver with the given id.
-     * @param receiver_id The id of the stream to remove the subscriber from.
-     * @param subscriber The subscriber to remove.
-     * @return A future that will be set when the operation is complete.
-     */
-    [[nodiscard]] std::future<void> unsubscribe_from_receiver(Id receiver_id, RavennaReceiver::Subscriber* subscriber);
-
-    /**
      * Adds a subscriber to the sender with the given id.
      * @param sender_id The id of the stream to add the subscriber to.
      * @param subscriber The subscriber to add.
@@ -208,6 +239,18 @@ class RavennaNode {
      * @return A future that will be set when the operation is complete.
      */
     [[nodiscard]] std::future<void> unsubscribe_from_sender(Id sender_id, RavennaSender::Subscriber* subscriber);
+
+    /**
+     * @copydoc rtp::AudioSender::send_data_realtime
+     */
+    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
+
+    /**
+     * @copydoc rtp::AudioSender::send_audio_data_realtime
+     */
+    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
+
+    // MARK: PTP
 
     /**
      * Adds a subscriber to the PTP instance.
@@ -230,46 +273,35 @@ class RavennaNode {
      */
     [[nodiscard]] std::future<tl::expected<void, std::string>> set_ptp_instance_configuration(ptp::Instance::Configuration update);
 
-    /**
-     * Get the SDP for the receiver with the given id.
-     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
-     * @param receiver_id The id of the receiver to get the SDP for.
-     * @return The SDP for the receiver.
-     */
-    [[nodiscard]] std::future<std::optional<sdp::SessionDescription>> get_sdp_for_receiver(Id receiver_id);
+    // MARK: NMOS
 
     /**
-     * Get the SDP text for the receiver with the given id. This is the original SDP text as received from the server,
-     * and might contain things which haven't been parsed into the session_description.
-     * TODO: Deprecate and signal sdp changes through RavennaReceiver::Subscriber
-     * @param receiver_id The id of the receiver to get the SDP text for.
-     * @return The SDP text for the receiver.
+     * Sets the configuration of the NMOS node.
+     * @param update The configuration to set.
+     * @return A future that will be set when the operation is complete.
      */
-    [[nodiscard]] std::future<std::optional<std::string>> get_sdp_text_for_receiver(Id receiver_id);
+    [[nodiscard]] std::future<tl::expected<void, std::string>> set_nmos_configuration(nmos::Node::Configuration update);
 
     /**
-     * @copydoc rtp::AudioReceiver::read_data_realtime
+     * @return The UUID of the nmos device.
      */
-    [[nodiscard]] std::optional<uint32_t> read_data_realtime(
-        Id receiver_id, uint8_t* buffer, size_t buffer_size, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
-    );
+    std::future<boost::uuids::uuid> get_nmos_device_id();
+
+    // MARK: RavennaNode
 
     /**
-     * @copydoc rtp::AudioReceiver::read_audio_data_realtime
+     * Adds a subscriber to the node.
+     * This method can be called from any thread, and will wait until the operation is complete.
+     * @param subscriber The subscriber to add.
      */
-    [[nodiscard]] std::optional<uint32_t> read_audio_data_realtime(
-        Id receiver_id, AudioBufferView<float>& output_buffer, std::optional<uint32_t> at_timestamp, std::optional<uint32_t> require_delay
-    );
+    [[nodiscard]] std::future<void> subscribe(Subscriber* subscriber);
 
     /**
-     * @copydoc rtp::AudioSender::send_data_realtime
+     * Removes a subscriber from the node.
+     * This method can be called from any thread, and will wait until the operation is complete.
+     * @param subscriber The subscriber to remove.
      */
-    [[nodiscard]] bool send_data_realtime(Id sender_id, BufferView<const uint8_t> buffer, uint32_t timestamp);
-
-    /**
-     * @copydoc rtp::AudioSender::send_audio_data_realtime
-     */
-    [[nodiscard]] bool send_audio_data_realtime(Id sender_id, const AudioBufferView<const float>& buffer, uint32_t timestamp);
+    [[nodiscard]] std::future<void> unsubscribe(Subscriber* subscriber);
 
     /**
      * Sets the network interfaces to use. Can contain multiple interfaces for redundancy (not yet implemented).
@@ -277,6 +309,13 @@ class RavennaNode {
      * @return A future that will be set when the operation is complete.
      */
     [[nodiscard]] std::future<void> set_network_interface_config(NetworkInterfaceConfig interface_config);
+
+    /**
+     * Sets the configuration for this node, state will be updated accordingly.
+     * @param config The new configuration.
+     * @return A future that will be set when the operation is complete.
+     */
+    std::future<void> set_configuration(Configuration config);
 
     /**
      * @return True if this method is called on the maintenance thread, false otherwise.
@@ -335,6 +374,7 @@ class RavennaNode {
 
   private:
     boost::asio::io_context io_context_;
+    Configuration configuration_;
     rtp::AudioReceiver rtp_receiver_ {io_context_};
     rtp::AudioSender rtp_sender_ {io_context_};
     std::atomic<bool> keep_going_ {true};
@@ -360,6 +400,7 @@ class RavennaNode {
 
     uint32_t generate_unique_session_id() const;
     void do_maintenance() const;
+    void update_ravenna_browser();
 };
 
 }  // namespace rav

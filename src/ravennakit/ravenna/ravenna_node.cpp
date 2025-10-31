@@ -16,9 +16,18 @@
 
 #include <utility>
 
+namespace rav {
+
+inline bool operator==(const rav::RavennaNode::Configuration& lhs, const rav::RavennaNode::Configuration& rhs) {
+    return lhs.enable_dnssd_session_advertisement == rhs.enable_dnssd_session_advertisement
+        && lhs.enable_dnssd_node_discovery == rhs.enable_dnssd_node_discovery
+        && lhs.enable_dnssd_session_discovery == rhs.enable_dnssd_session_discovery;
+}
+
+}  // namespace rav
+
 rav::RavennaNode::RavennaNode() :
     rtsp_server_(io_context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), 0)), ptp_instance_(io_context_) {
-    advertiser_ = dnssd::Advertiser::create(io_context_);
 
     nmos_device_.id = boost::uuids::random_generator()();
     if (!nmos_node_.add_or_update_device(&nmos_device_)) {
@@ -188,7 +197,7 @@ rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver:
 std::future<tl::expected<rav::Id, std::string>> rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
     auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_sender = std::make_unique<RavennaSender>(
-            rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
+            rtp_sender_, advertiser_.get(), rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
             network_interface_config_
         );
         if (initial_config.session_name.empty()) {
@@ -284,6 +293,7 @@ std::future<void> rav::RavennaNode::subscribe(Subscriber* subscriber) {
         for (const auto& sender : senders_) {
             subscriber->ravenna_sender_added(*sender);
         }
+        subscriber->ravenna_node_configuration_updated(configuration_);
         subscriber->network_interface_config_updated(network_interface_config_);
         subscriber->nmos_node_config_updated(nmos_node_.get_configuration());
         subscriber->nmos_node_status_changed(nmos_node_.get_status(), nmos_node_.get_registry_info());
@@ -383,8 +393,8 @@ std::future<void> rav::RavennaNode::unsubscribe_from_ptp_instance(ptp::Instance:
 }
 
 std::future<tl::expected<void, std::string>> rav::RavennaNode::set_ptp_instance_configuration(ptp::Instance::Configuration update) {
-    auto work = [this, u = std::move(update)]() -> tl::expected<void, std::string> {
-        auto result = ptp_instance_.set_configuration(u);
+    auto work = [this, update]() -> tl::expected<void, std::string> {
+        auto result = ptp_instance_.set_configuration(update);
         if (!result) {
             return tl::unexpected(fmt::format("Failed to set PTP instance configuration: {}", result.error()));
         }
@@ -484,6 +494,35 @@ std::future<void> rav::RavennaNode::set_network_interface_config(NetworkInterfac
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }
 
+std::future<void> rav::RavennaNode::set_configuration(Configuration config) {
+    auto work = [this, config] {
+        if (config == configuration_) {
+            return;
+        }
+
+        configuration_ = config;
+        update_ravenna_browser();
+
+        // Update advertiser
+        if (configuration_.enable_dnssd_session_advertisement && advertiser_ == nullptr) {
+            advertiser_ = dnssd::Advertiser::create(io_context_);
+            for (const auto& sender : senders_) {
+                sender->set_advertiser(advertiser_.get());
+            }
+        } else if (!configuration_.enable_dnssd_session_advertisement && advertiser_ != nullptr) {
+            for (const auto& sender : senders_) {
+                sender->set_advertiser(nullptr);
+            }
+            advertiser_.reset();
+        }
+
+        for (auto* s : subscribers_) {
+            s->ravenna_node_configuration_updated(configuration_);
+        }
+    };
+    return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
+}
+
 bool rav::RavennaNode::is_maintenance_thread() const {
     return maintenance_thread_id_ == std::this_thread::get_id();
 }
@@ -499,10 +538,13 @@ std::future<boost::json::object> rav::RavennaNode::to_boost_json() {
             receivers.push_back(receiver->to_boost_json());
         }
 
-        boost::json::object config {{
-            "network_config",
-            network_interface_config_.to_boost_json(),
-        }};
+        boost::json::object config {
+            {
+                "network_config",
+                network_interface_config_.to_boost_json(),
+            },
+            {"node_config", boost::json::value_from(configuration_)}
+        };
 
         return boost::json::object {
             {"config", config},
@@ -521,10 +563,16 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
         try {
             // Configuration
 
-            auto network_interface_config = NetworkInterfaceConfig::from_boost_json(json.at("config").at("network_config"));
+            auto config = json.at("config");
+            auto network_interface_config = NetworkInterfaceConfig::from_boost_json(config.at("network_config"));
 
             if (!network_interface_config) {
                 return tl::unexpected(network_interface_config.error());
+            }
+
+            Configuration node_config;
+            if (auto result = config.try_at("node_config")) {
+                node_config = boost::json::value_to<Configuration>(*result);
             }
 
             auto nmos_device_id = boost::uuids::string_generator()(json.at("nmos_device_id").as_string().c_str());
@@ -536,7 +584,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
 
             for (auto& sender : senders) {
                 auto new_sender = std::make_unique<RavennaSender>(
-                    rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1, *network_interface_config
+                    rtp_sender_, advertiser_.get(), rtsp_server_, ptp_instance_, id_generator_.next(), 1, *network_interface_config
                 );
                 if (auto result = new_sender->restore_from_json(sender); !result) {
                     return tl::unexpected(result.error());
@@ -567,36 +615,35 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
                 ptp_config = boost::json::value_to<ptp::Instance::Configuration>(*ptp_instance_config);
             }
 
-            // TODO: Restoring the NMOS node can still fail, should this go below that?
-            set_network_interface_config(*network_interface_config).wait();
-
             // NMOS Node
 
             auto nmos_node = json.try_at("nmos_node");
             if (nmos_node.has_value()) {
                 auto nmos_node_object = nmos_node->as_object();
-                auto config = nmos::Node::Configuration::from_json(nmos_node_object.at("configuration"));
-                if (config.has_error()) {
-                    return tl::unexpected(config.error());
+                auto nmos_config = nmos::Node::Configuration::from_json(nmos_node_object.at("configuration"));
+                if (nmos_config.has_error()) {
+                    return tl::unexpected(nmos_config.error());
                 }
 
                 nmos_node_.stop();
                 if (!nmos_node_.remove_device(&nmos_device_)) {
                     RAV_LOG_ERROR("Failed to remove NMOS device with ID: {}", boost::uuids::to_string(nmos_device_.id));
                 }
-                auto result = nmos_node_.set_configuration(*config);
+                auto result = nmos_node_.set_configuration(*nmos_config);
                 if (!result) {
                     return tl::unexpected(fmt::format("Failed to set NMOS node configuration: {}", result.error()));
                 }
                 nmos_device_.id = nmos_device_id;
-                nmos_device_.label = config->label;
-                nmos_device_.description = config->description;
+                nmos_device_.label = nmos_config->label;
+                nmos_device_.description = nmos_config->description;
                 if (!nmos_node_.add_or_update_device(&nmos_device_)) {
                     RAV_LOG_ERROR("Failed to add NMOS device to node");
                 }
             } else {
                 return tl::unexpected("No NMOS node state found in JSON");
             }
+
+            set_network_interface_config(*network_interface_config).wait();
 
             // Swap senders
 
@@ -638,6 +685,8 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
                 }
             }
 
+            set_configuration(node_config).wait();
+
             if (auto result = ptp_instance_.set_configuration(ptp_config); !result) {
                 RAV_LOG_ERROR("Failed to set PTP configuration: {}", result.error());
             }
@@ -663,3 +712,32 @@ void rav::RavennaNode::do_maintenance() const {
         receiver->do_maintenance();
     }
 }
+
+void rav::RavennaNode::update_ravenna_browser() {
+    if (auto r = browser_.set_node_browsing_enabled(configuration_.enable_dnssd_node_discovery); !r) {
+        RAV_LOG_ERROR("Failed to set node browsing enabled: {}", r.error());
+    }
+    if (auto r = browser_.set_session_browsing_enabled(configuration_.enable_dnssd_session_discovery); !r) {
+        RAV_LOG_ERROR("Failed to set session browsing: {}", r.error());
+    }
+}
+
+namespace rav {
+
+inline void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaNode::Configuration& config) {
+    jv = {
+        {"enable_dnssd_node_discovery", config.enable_dnssd_node_discovery},
+        {"enable_dnssd_session_advertisement", config.enable_dnssd_session_advertisement},
+        {"enable_dnssd_session_discovery", config.enable_dnssd_session_discovery},
+    };
+}
+
+inline RavennaNode::Configuration tag_invoke(const boost::json::value_to_tag<RavennaNode::Configuration>&, const boost::json::value& jv) {
+    RavennaNode::Configuration config;
+    config.enable_dnssd_node_discovery = jv.at("enable_dnssd_node_discovery").as_bool();
+    config.enable_dnssd_session_discovery = jv.at("enable_dnssd_session_discovery").as_bool();
+    config.enable_dnssd_session_advertisement = jv.at("enable_dnssd_session_advertisement").as_bool();
+    return config;
+}
+
+}  // namespace rav

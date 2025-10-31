@@ -39,7 +39,7 @@ class BonjourAdvertiser: public Advertiser {
     void unregister_service(Id id) override;
 
   private:
-    struct registered_service {
+    struct RegisteredService {
         Id id;
         BonjourScopedDnsServiceRef service_ref;
     };
@@ -47,7 +47,7 @@ class BonjourAdvertiser: public Advertiser {
     boost::asio::ip::tcp::socket service_socket_;
     BonjourSharedConnection shared_connection_;
     Id::Generator id_generator_;
-    std::vector<registered_service> registered_services_;
+    std::vector<RegisteredService> registered_services_;
     size_t process_results_failed_attempts_ = 0;
 
     void async_process_results();
@@ -57,7 +57,7 @@ class BonjourAdvertiser: public Advertiser {
         const char* reply_domain, void* context
     );
 
-    registered_service* find_registered_service(Id id);
+    RegisteredService* find_registered_service(Id id);
 };
 
 }  // namespace rav::dnssd

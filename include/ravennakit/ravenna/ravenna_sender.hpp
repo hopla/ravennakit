@@ -88,7 +88,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     };
 
     RavennaSender(
-        rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, Id id,
+        rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser* advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, Id id,
         uint32_t session_id, NetworkInterfaceConfig network_interface_config
     );
 
@@ -170,6 +170,12 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     void set_network_interface_config(NetworkInterfaceConfig network_interface_config);
 
     /**
+     * Sets given advertiser, updating the advertisement where necessary.
+     * @param advertiser The new advertiser. Can be nullptr to stop the advirtisement.
+     */
+    void set_advertiser(dnssd::Advertiser* advertiser);
+
+    /**
      * @return A JSON representation of the sender.
      */
     boost::json::object to_boost_json() const;
@@ -204,7 +210,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
 
   private:
     rtp::AudioSender& rtp_audio_sender_;
-    dnssd::Advertiser& advertiser_;
+    dnssd::Advertiser* advertiser_ {nullptr};
     rtsp::Server& rtsp_server_;
     ptp::Instance& ptp_instance_;
     nmos::Node* nmos_node_ {nullptr};
@@ -227,7 +233,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     std::string status_message_;
 
     /**
-     * Sends an announce request to all connected clients.
+     * Sends an announcement request to all connected clients.
      */
     void send_announce() const;
     void update_nmos();
@@ -237,6 +243,7 @@ class RavennaSender: public rtsp::Server::PathHandler, public ptp::Instance::Sub
     bool generate_auto_addresses_if_needed(std::vector<Destination>& destinations) const;
     void restart_streaming() const;
     tl::expected<void, rav::nmos::ApiError> handle_patch_request(const boost::json::value& patch_request);
+    void register_dnssd_session_advertisement();
 };
 
 void tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination);

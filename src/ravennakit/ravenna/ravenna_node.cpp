@@ -28,7 +28,6 @@ inline bool operator==(const rav::RavennaNode::Configuration& lhs, const rav::Ra
 
 rav::RavennaNode::RavennaNode() :
     rtsp_server_(io_context_, boost::asio::ip::tcp::endpoint(boost::asio::ip::address_v4::any(), 0)), ptp_instance_(io_context_) {
-    advertiser_ = dnssd::Advertiser::create(io_context_);
 
     nmos_device_.id = boost::uuids::random_generator()();
     if (!nmos_node_.add_or_update_device(&nmos_device_)) {
@@ -198,7 +197,7 @@ rav::RavennaNode::update_receiver_configuration(Id receiver_id, RavennaReceiver:
 std::future<tl::expected<rav::Id, std::string>> rav::RavennaNode::create_sender(RavennaSender::Configuration initial_config) {
     auto work = [this, initial_config]() mutable -> tl::expected<Id, std::string> {
         auto new_sender = std::make_unique<RavennaSender>(
-            rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
+            rtp_sender_, advertiser_.get(), rtsp_server_, ptp_instance_, id_generator_.next(), generate_unique_session_id(),
             network_interface_config_
         );
         if (initial_config.session_name.empty()) {
@@ -500,11 +499,26 @@ std::future<void> rav::RavennaNode::set_configuration(Configuration config) {
         if (config == configuration_) {
             return;
         }
+
         configuration_ = config;
+        update_ravenna_browser();
+
+        // Update advertiser
+        if (configuration_.enable_dnssd_session_advertisement && advertiser_ == nullptr) {
+            advertiser_ = dnssd::Advertiser::create(io_context_);
+            for (const auto& sender : senders_) {
+                sender->set_advertiser(advertiser_.get());
+            }
+        } else if (!configuration_.enable_dnssd_session_advertisement && advertiser_ != nullptr) {
+            for (const auto& sender : senders_) {
+                sender->set_advertiser(nullptr);
+            }
+            advertiser_.reset();
+        }
+
         for (auto* s : subscribers_) {
             s->ravenna_node_configuration_updated(configuration_);
         }
-        update_ravenna_browser();
     };
     return boost::asio::dispatch(io_context_, boost::asio::use_future(work));
 }
@@ -570,7 +584,7 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
 
             for (auto& sender : senders) {
                 auto new_sender = std::make_unique<RavennaSender>(
-                    rtp_sender_, *advertiser_, rtsp_server_, ptp_instance_, id_generator_.next(), 1, *network_interface_config
+                    rtp_sender_, advertiser_.get(), rtsp_server_, ptp_instance_, id_generator_.next(), 1, *network_interface_config
                 );
                 if (auto result = new_sender->restore_from_json(sender); !result) {
                     return tl::unexpected(result.error());
@@ -630,7 +644,6 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
             }
 
             set_network_interface_config(*network_interface_config).wait();
-            set_configuration(node_config).wait();
 
             // Swap senders
 
@@ -671,6 +684,8 @@ std::future<tl::expected<void, std::string>> rav::RavennaNode::restore_from_boos
                     s->ravenna_receiver_added(*receiver);
                 }
             }
+
+            set_configuration(node_config).wait();
 
             if (auto result = ptp_instance_.set_configuration(ptp_config); !result) {
                 RAV_LOG_ERROR("Failed to set PTP configuration: {}", result.error());

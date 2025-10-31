@@ -26,7 +26,7 @@
 #endif
 
 rav::RavennaSender::RavennaSender(
-    rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser& advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, const Id id,
+    rtp::AudioSender& rtp_audio_sender, dnssd::Advertiser* advertiser, rtsp::Server& rtsp_server, ptp::Instance& ptp_instance, const Id id,
     const uint32_t session_id, NetworkInterfaceConfig network_interface_config
 ) :
     rtp_audio_sender_(rtp_audio_sender),
@@ -80,7 +80,11 @@ rav::RavennaSender::~RavennaSender() {
     }
 
     if (advertisement_id_.is_valid()) {
-        advertiser_.unregister_service(advertisement_id_);
+        if (advertiser_) {
+            advertiser_->unregister_service(advertisement_id_);
+        }
+        advertisement_id_ = {};
+        RAV_ASSERT_DEBUG(advertiser_ != nullptr, "Expected valid advertiser");
     }
 
     rtsp_server_.unregister_handler(this);
@@ -300,6 +304,26 @@ void rav::RavennaSender::set_network_interface_config(NetworkInterfaceConfig net
     update_nmos();
 }
 
+void rav::RavennaSender::set_advertiser(dnssd::Advertiser* advertiser) {
+    if (advertiser_ == advertiser) {
+        return;  // No change
+    }
+
+    if (advertiser_ != nullptr) {
+        RAV_ASSERT_DEBUG(advertisement_id_.is_valid(), "Invalid advertisement");
+        advertiser_->unregister_service(advertisement_id_);
+        advertisement_id_ = {};
+        advertiser_ = nullptr;
+    }
+
+    advertiser_ = advertiser;
+
+    if (advertiser_ != nullptr) {
+        RAV_ASSERT_DEBUG(!advertisement_id_.is_valid(), "Invalid advertisement expected");
+        update_advertisement();
+    }
+}
+
 const rav::nmos::SourceAudio& rav::RavennaSender::get_nmos_source() const {
     return nmos_source_;
 }
@@ -476,9 +500,11 @@ void rav::RavennaSender::update_advertisement() {
 
     // Stop DNS-SD advertisement
     if (advertisement_id_.is_valid()) {
-        RAV_LOG_TRACE("Unregistering sender advertisement");
-        advertiser_.unregister_service(advertisement_id_);
+        if (advertiser_ != nullptr) {
+            advertiser_->unregister_service(advertisement_id_);
+        }
         advertisement_id_ = {};
+        RAV_ASSERT_DEBUG(advertiser_ != nullptr, "Expected valid advertiser");
     }
 
     if (!configuration_.enabled) {
@@ -497,9 +523,11 @@ void rav::RavennaSender::update_advertisement() {
         rtsp_server_.register_handler(rtsp_path_by_id_, this);
     }
 
-    if (!advertisement_id_.is_valid()) {
+    RAV_ASSERT_DEBUG(!advertisement_id_.is_valid(), "Expected invalid advertisement_id");
+
+    if (advertiser_ != nullptr) {
         RAV_LOG_TRACE("Registering sender advertisement");
-        advertisement_id_ = advertiser_.register_service(
+        advertisement_id_ = advertiser_->register_service(
             "_rtsp._tcp,_ravenna_session", configuration_.session_name.c_str(), nullptr, rtsp_server_.port(), {}, false, false
         );
     }
@@ -717,6 +745,15 @@ tl::expected<void, rav::nmos::ApiError> rav::RavennaSender::handle_patch_request
     }
 
     return {};
+}
+
+void rav::RavennaSender::register_dnssd_session_advertisement() {
+    if (advertiser_ != nullptr) {
+        RAV_LOG_TRACE("Registering sender advertisement");
+        advertisement_id_ = advertiser_->register_service(
+            "_rtsp._tcp,_ravenna_session", configuration_.session_name.c_str(), nullptr, rtsp_server_.port(), {}, false, false
+        );
+    }
 }
 
 void rav::tag_invoke(const boost::json::value_from_tag&, boost::json::value& jv, const RavennaSender::Destination& destination) {

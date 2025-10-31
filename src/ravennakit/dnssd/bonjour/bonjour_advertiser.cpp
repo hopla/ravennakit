@@ -50,7 +50,7 @@ rav::Id rav::dnssd::BonjourAdvertiser::register_service(
 
     auto scoped_service_ref = BonjourScopedDnsServiceRef(service_ref);
     const auto id = id_generator_.next();
-    registered_services_.push_back(registered_service {id, std::move(scoped_service_ref)});
+    registered_services_.push_back(RegisteredService {id, std::move(scoped_service_ref)});
     return id;
 }
 
@@ -58,7 +58,7 @@ void rav::dnssd::BonjourAdvertiser::unregister_service(Id id) {
     registered_services_.erase(
         std::remove_if(
             registered_services_.begin(), registered_services_.end(),
-            [id](const registered_service& s) {
+            [id](const RegisteredService& s) {
                 return s.id == id;
             }
         ),
@@ -112,7 +112,7 @@ void rav::dnssd::BonjourAdvertiser::register_service_callback(
     }
 }
 
-rav::dnssd::BonjourAdvertiser::registered_service* rav::dnssd::BonjourAdvertiser::find_registered_service(const Id id) {
+rav::dnssd::BonjourAdvertiser::RegisteredService* rav::dnssd::BonjourAdvertiser::find_registered_service(const Id id) {
     for (auto& service : registered_services_) {
         if (service.id == id) {
             return &service;

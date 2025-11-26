@@ -71,19 +71,19 @@ TEST_CASE("rav::RealtimeSharedObject") {
             std::vector<std::string> values(num_values);
 
             while (num_values_read < num_values) {
-                const auto lock = obj.access_realtime();
-                if (lock.get() == nullptr) {
+                const auto guard = obj.access_realtime();
+                if (guard.get() == nullptr) {
                     return std::vector<std::string>();
                 }
-                if (lock->second.empty()) {
+                if (guard->second.empty()) {
                     continue;  // obj was default constructed
                 }
-                if (lock->first >= num_values) {
+                if (guard->first >= num_values) {
                     return std::vector<std::string>();  // obj was updated with an invalid index
                 }
-                auto& it = values.at(lock->first);
+                auto& it = values.at(guard->first);
                 if (it.empty()) {
-                    it = lock->second;
+                    it = guard->second;
                     ++num_values_read;
                 }
             }

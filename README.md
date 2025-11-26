@@ -2,8 +2,63 @@
 
 ## Introduction
 
-This software library provides a set of tools and libraries to develop applications for RAVENNA Audio over IP
-technology. It is based on the [RAVENNA Audio over IP technology](https://ravenna-network.com/technology/).
+This repository provides a cross-platform C++ SDK for professional networked audio using AES67, RAVENNA, and ST2110-30.
+It runs on macOS, Windows, Linux, and in virtualized or containerized environments, enabling low-latency audio I/O for
+desktop applications and cloud deployments.
+
+## What's Included
+
+[RAVENNA / AES67 / ST2110-30](include/ravennakit/ravenna)  
+Full support for RAVENNA as specified by the RAVENNA protocol including AES67 and ST2110-30.
+
+[NMOS](include/ravennakit/nmos)  
+NMOS IS-04 for discovery and IS-05 for connection management.
+
+[RTP](include/ravennakit/rtp)  
+An implementation of RTP and RTCP to support the main audio-over-IP protocols.
+
+[DNS-SD](include/ravennakit/dnssd)  
+DNS-SD support for device discovery on local networks. Currently implemented for macOS and Windows; Linux support is
+planned.
+
+[PTPv2](include/ravennakit/ptp)  
+A virtual PTP follower based on IEEE 1588-2019.
+
+[RTSP](include/ravennakit/rtsp)  
+RTSP client and server implementation used for connection management in RAVENNA workflows.
+
+[SDP](include/ravennakit/sdp)  
+Session Description Protocol (SDP) parsing and generation to support signaling between devices.
+
+[Core Utilities](include/ravennakit/core)  
+A rich set of utilities for audio buffers, audio formats, generic containers, streams, lock-free programming, integer
+wraparound, URIs, and more to support all of the above.
+
+## Demo application
+
+A full JUCE base example app can be found [here](https://github.com/soundondigital/ravennakit_juce_demo). The source code is available as well as pre-built binaries and installers.
+
+## Commercial Support & Licensing
+
+The SDK is released under the AGPLv3 license. This ensures that the core remains open and that improvements can be shared with the community. If AGPLv3 works for your project, you are free to use the SDK under its terms.
+
+If you cannot or do not want to open source your product under AGPLv3 a commercial license is available. This license allows you to:
+
+- Use the SDK in proprietary products without the copyleft requirements of AGPLv3.
+- Keep your application source code closed while still benefiting from the SDK.
+- Optionally bundle the SDK as part of a larger commercial offering.
+
+### Commercial Support
+
+If you are integrating AES67 / RAVENNA / ST2110-30 into a product and want to reduce risk and time-to-market, we can help with:
+
+- Integration support. Guidance and hands-on help integrating the SDK into your existing architecture.
+- Feature development & extensions. Development of new features, protocol extensions, or optimizations specific to your use case.
+- Performance & reliability tuning. Profiling, troubleshooting, and improving latency, robustness, and scalability in real-world network conditions.
+
+### Get in Touch
+
+For commercial support or licensing inquiries, please contact us at: https://ravennakit.com/contact/
 
 ## Getting started
 
@@ -16,7 +71,7 @@ To build the project you will need to install the following external dependencie
 
 - Recent version of Git
 - CMake (see CMakeLists.txt for required version)
-- Python 3.9 (https://www.python.org/downloads/)
+- Python 3.9 or higher
 - Windows: Visual Studio (Community | Professional | Enterprise) 2019 or higher
 - macOS: Xcode 12 or higher
 - macOS: Homebrew
